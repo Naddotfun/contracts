@@ -12,3 +12,9 @@ docs/
 
 # Dotenv file
 .env
+
+.vscode/
+.github/
+node_modules/
+
+```
