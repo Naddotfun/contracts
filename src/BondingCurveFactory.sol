@@ -12,7 +12,8 @@ import "./errors/Errors.sol";
 
 contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
     address private owner;
-    address public WNAD;
+    address private endpoint;
+    address public immutable WNAD;
     Config private config;
     mapping(address => address) private curves;
 
@@ -22,7 +23,6 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         uint256 virtualNad;
         uint256 virtualToken;
         uint256 k;
-        address endpoint;
         uint256 targetToken;
         uint16 feeNumerator;
         uint8 feeDominator;
@@ -44,14 +44,12 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         uint256 virtualNad,
         uint256 virtualToken,
         uint256 targetToken,
-        address endpoint,
         uint16 feeNumerator,
         uint8 feeDominator
     ) external onlyOwner {
         uint256 k = virtualNad * virtualToken;
-        config = Config(
-            deployFee, tokenTotalSupply, virtualNad, virtualToken, k, endpoint, targetToken, feeNumerator, feeDominator
-        );
+        config =
+            Config(deployFee, tokenTotalSupply, virtualNad, virtualToken, k, targetToken, feeNumerator, feeDominator);
     }
 
     function create(string memory name, string memory symbol)
@@ -90,6 +88,10 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         owner = _owner;
     }
 
+    function setEndpoint(address _endpoint) external onlyOwner {
+        endpoint = _endpoint;
+    }
+
     function getConfig() public view returns (Config memory) {
         return config;
     }
@@ -106,7 +108,7 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         k = config.k;
     }
 
-    function getEndpoint() public view returns (address endpoint) {
-        endpoint = config.endpoint;
+    function getEndpoint() public view returns (address _endpoint) {
+        _endpoint = endpoint;
     }
 }

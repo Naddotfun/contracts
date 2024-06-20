@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "../interfaces/IBondingCurve.sol";
 import "../interfaces/IBondingCurveFactory.sol";
 import "../errors/Errors.sol";
+// import {Test, console} from "forge-std/Test.sol";
 
 library NadsPumpLibrary {
     // //  일정 금액의 자산과 페어 준비금이 주어지면 다른 자산의 동등한 금액을 반환합니다.
@@ -12,34 +13,7 @@ library NadsPumpLibrary {
     //     require(virtualBase > 0 && virtualToken > 0, "DragonswapLibrary: INSUFFICIENT_LIQUIDITY");
     //     amountB = (amount * virtualToken) / virtualBase;
     // }
-
-    // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
-    function getAmountIn(address curve, uint256 amountOut, uint256 reserveIn, uint256 reserveOut)
-        internal
-        view
-        returns (uint256 amountIn)
-    {
-        require(amountOut > 0, ERR_INSUFFICIENT_INPUT_AMOUNT);
-        require(reserveIn > 0 && reserveOut > 0, ERR_INSUFFICIENT_RESERVE);
-        //4 999 900 000
-        (uint8 feeDenominator, uint16 feeNumerator) = IBondingCurve(curve).getFeeConfig();
-        uint256 _numerator = reserveIn * amountOut * feeNumerator;
-        //49 500 990
-        uint256 _denominator = (reserveOut - amountOut) * feeDenominator;
-        amountIn = (_numerator / _denominator);
-    }
-
-    function getAmountInAndFee(address curve, uint256 amountIn)
-        internal
-        view
-        returns (uint256 fee, uint256 adjustedAmountIn)
-    {
-        (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
-        fee = getFeeAmount(amountIn, denominator, numerator);
-        adjustedAmountIn = amountIn - fee;
-    }
-
-    function getAmountOut(uint256 k, uint256 amountIn, uint256 reserveIn, uint256 reserveOut)
+    function getAmountOut(uint256 amountIn, uint256 k, uint256 reserveIn, uint256 reserveOut)
         internal
         pure
         returns (uint256 amountOut)
@@ -47,7 +21,7 @@ library NadsPumpLibrary {
         /**
          * @dev : - 1 Floating point issues
          */
-        return reserveOut - (k / (reserveIn + amountIn)) - 1;
+        amountOut = reserveOut - (k / (reserveIn + amountIn)) - 1;
     }
 
     function getAmountAndFee(address curve, uint256 amountOut)
@@ -56,8 +30,25 @@ library NadsPumpLibrary {
         returns (uint256 fee, uint256 adjustedAmountOut)
     {
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
+
         fee = getFeeAmount(amountOut, denominator, numerator);
         adjustedAmountOut = amountOut - fee;
+    }
+    // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
+
+    function getAmountIn(uint256 amountOut, uint256 k, uint256 reserveIn, uint256 reserveOut)
+        internal
+        pure
+        returns (uint256 amountIn)
+    {
+        require(amountOut <= reserveOut, ERR_INVALID_AMOUNT_OUT);
+
+        uint256 newReserveOut = reserveOut - amountOut;
+
+        uint256 numerator = k / newReserveOut;
+        amountIn = numerator - reserveIn + 1;
+
+        return amountIn;
     }
 
     function getFeeAmount(uint256 amount, uint8 denominator, uint16 numerator) internal pure returns (uint256 fee) {

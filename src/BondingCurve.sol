@@ -3,14 +3,14 @@ pragma solidity ^0.8.20;
 
 // import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
 import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
 import {IBondingCurve} from "./interfaces/IBondingCurve.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
 import "./errors/Errors.sol";
 import {Test, console} from "forge-std/Test.sol";
 
-contract BondingCurve is IBondingCurve, ReentrancyGuard {
+contract BondingCurve is IBondingCurve {
     using TransferHelper for IERC20;
 
     address public factory;
@@ -74,9 +74,12 @@ contract BondingCurve is IBondingCurve, ReentrancyGuard {
 
     function _update(uint256 amountIn, uint256 amountOut, bool isBuy) private {
         realNadReserves = IERC20(wnad).balanceOf(address(this));
+        console.log("RealNadReserves = ", realNadReserves);
         realTokenReserves = IERC20(token).balanceOf(address(this));
-        console.log("Init VirtualNad = ", virtualNad);
-        console.log("Init VirtualToken= ", virtualToken);
+        console.log("RealTokenReserves = ", realTokenReserves);
+        // console.log("Init VirtualNad = ", virtualNad);
+        // console.log("Init VirtualToken= ", virtualToken);
+        // console.log("Init K = ", k);
         if (isBuy) {
             virtualNad += amountIn;
 
@@ -98,7 +101,8 @@ contract BondingCurve is IBondingCurve, ReentrancyGuard {
             lock = true;
         }
         //emit Event Lock
-
+        // console.log("Before K = ", virtualNad * virtualToken);
+        console.log("AmountOut = ", amountOut);
         console.log("After K = ", virtualNad * virtualToken);
         console.log("After VirtualNad = ", virtualNad);
         console.log("After VirtualToken = ", virtualToken);
@@ -116,45 +120,39 @@ contract BondingCurve is IBondingCurve, ReentrancyGuard {
         address _wnad = wnad; //gas savings
         address _token = token; //gas savings
 
-        // console.log(amountIn, fee);
-        // require(amountIn >= numerator, ERR_LOW_AMOUNT_IN);
-        // require(fee == calculateFeeAmount(amountIn, denominator, numerator), ERR_INVALID_FEE);
-
         (uint256 _realNadReserves, uint256 _realTokenReserves) = getReserves();
+        // console.log("RealNadReserves = ", _realNadReserves);
+        // console.log("RealTokenReserves = ", _realTokenReserves);
+        // console.log("AmountOut = ", amountOut);
 
         require(_realTokenReserves - amountOut >= targetToken, ERR_OVERFLOW_TARGET);
 
-        // require(amountOut <= _realTokenReserves, ERR_INSUFFICIENT_RESERVE);
-
         //풀의 현재 잔액
         uint256 balanceNad;
-
+        //원래는 1000
+        // 보낸건 101
+        // 1 을 보내야지 amountNadin 이 100 이 됨.
         {
             require(to != _wnad && to != _token, ERR_INVALID_TO);
             IERC20(_token).safeTransferERC20(to, amountOut);
-
+            IERC20(_wnad).safeTransferERC20(IBondingCurveFactory(factory).getOwner(), fee);
             balanceNad = IERC20(wnad).balanceOf(address(this));
         }
 
         // console.log("BalanceBase = ", balanceBase);
         //realNadReserves = 0
         //balanceBase = amountIn
-
+        // console.log("balanceNad = ", balanceNad);
         uint256 amountNadIn = balanceNad - _realNadReserves;
         require(amountNadIn > 0, INSUFFICIENT_INPUT_AMOUNT);
         (uint8 denominator, uint16 numerator) = getFee();
-        require(fee >= amountOut * denominator / numerator, ERR_INVALID_FEE);
-        IERC20(_wnad).safeTransferERC20(IBondingCurveFactory(factory).getOwner(), fee);
-        amountNadIn -= fee;
-        // console.log("AmountNadIn = ", amountNadIn);
-
-        //TargetOverFlow Check
-        // require(amountNadIn + _realNadReserves <= _targetBase, ERR_OVERFLOW_TARGET_WNAD);
+        require(fee >= amountNadIn * denominator / numerator, ERR_INVALID_FEE);
 
         _update(amountNadIn, amountOut, true);
-        //k 값을 맞출수가없음.
-        console.log("RealNadReserves = ", realNadReserves);
-        console.log("RealTokenReserves = ", realTokenReserves);
+
+        // console.log("RealNadReserves = ", realNadReserves);
+        // console.log("RealTokenReserves = ", realTokenReserves);
+        // console.log("updateK = ", virtualNad * virtualToken);
         require(virtualNad * virtualToken >= k, ERR_INVALID_K);
         emit Buy(to, amountNadIn, amountOut);
     }
@@ -179,17 +177,17 @@ contract BondingCurve is IBondingCurve, ReentrancyGuard {
             require(fee >= amountOut * denominator / numerator, ERR_INVALID_FEE);
             // checkFee(amountOut, fee);
             IERC20(_wnad).safeTransferERC20(IBondingCurveFactory(factory).getOwner(), fee);
-            IERC20(_wnad).safeTransferERC20(to, amountOut - fee);
+            IERC20(_wnad).safeTransferERC20(to, amountOut);
 
             balanceToken = IERC20(_token).balanceOf(address(this));
         }
         // console.log("RealTokenReserves = ", _realTokenReserves);
         // console.log("BalanceToken = ", balanceToken);
         uint256 amountTokenIn = balanceToken - _realTokenReserves;
-        // console.log("AmountTokenIn = ", amountTokenIn);
+        console.log("AmountTokenIn = ", amountTokenIn);
         require(amountTokenIn > 0, INSUFFICIENT_INPUT_AMOUNT);
 
-        _update(amountTokenIn, amountOut, false);
+        _update(amountTokenIn, amountOut + fee, false);
         require(virtualNad * virtualToken >= k, ERR_INVALID_K);
         emit Sell(to, amountTokenIn, amountOut);
     }
