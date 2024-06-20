@@ -65,7 +65,7 @@ contract Endpoint {
         ensure(deadline)
     {
         require(msg.value >= amountInMax, ERR_INVALID_SEND_NAD);
-        (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
+        (address curve, uint256 virtualNad, uint256 virtualToken,) = getCurveData(factory, token);
         (uint256 fee, uint256 amountIn) =
             getAmountInAndFee(curve, getAmountIn(curve, amountOut, virtualNad, virtualToken));
         uint256 totalAmountIn = amountIn + fee;
@@ -80,10 +80,11 @@ contract Endpoint {
         IBondingCurve(curve).buy(to, fee, amountOut);
         emit Buy(msg.sender, amountIn, amountOut, token, curve);
     }
+    //-------------Sell Functions ---------------------------------------------
 
     function sellAmountOutMin(
         uint256 amountIn,
-        uint256 amountOutMin,
+        uint256 amountOutMin, //front = 10000 slippage = 10% -> 9000 이하로 받으면 revert
         address token,
         address from,
         address to,
@@ -153,7 +154,7 @@ contract Endpoint {
         uint256 allowance = IERC20(token).allowance(msg.sender, address(this));
         require(allowance >= amountInMax, ERR_INVALID_ALLOWANCE);
         IERC20(token).safeTransferFrom(msg.sender, address(this), amountInMax);
-        (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
+        (address curve, uint256 virtualNad, uint256 virtualToken,) = getCurveData(factory, token);
         uint256 amountIn = getAmountIn(curve, amountOut + fee, virtualToken, virtualNad);
         require(amountIn <= amountInMax, ERR_INVALID_AMOUNT_IN_MAX);
         if (amountIn < amountInMax) {

@@ -22,6 +22,7 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         uint256 virtualNad;
         uint256 virtualToken;
         uint256 k;
+        address endpoint;
         uint256 targetToken;
         uint16 feeNumerator;
         uint8 feeDominator;
@@ -43,12 +44,14 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         uint256 virtualNad,
         uint256 virtualToken,
         uint256 targetToken,
+        address endpoint,
         uint16 feeNumerator,
         uint8 feeDominator
     ) external onlyOwner {
         uint256 k = virtualNad * virtualToken;
-        config =
-            Config(deployFee, tokenTotalSupply, virtualNad, virtualToken, k, targetToken, feeNumerator, feeDominator);
+        config = Config(
+            deployFee, tokenTotalSupply, virtualNad, virtualToken, k, endpoint, targetToken, feeNumerator, feeDominator
+        );
     }
 
     function create(string memory name, string memory symbol)
@@ -63,8 +66,7 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         TransferHelper.safeTransferNad(owner, msg.value);
 
         curve = address(new BondingCurve());
-
-        token = address(createToken(name, symbol));
+        token = address(new Token(name, symbol));
 
         IToken(token).mint(curve);
 
@@ -88,10 +90,6 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         owner = _owner;
     }
 
-    function createToken(string memory name, string memory symbol) private returns (Token token) {
-        return new Token(name, symbol);
-    }
-
     function getConfig() public view returns (Config memory) {
         return config;
     }
@@ -104,7 +102,11 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         curve = curves[token];
     }
 
-    function getK() public view returns (uint256) {
-        return config.k;
+    function getK() public view returns (uint256 k) {
+        k = config.k;
+    }
+
+    function getEndpoint() public view returns (address endpoint) {
+        endpoint = config.endpoint;
     }
 }

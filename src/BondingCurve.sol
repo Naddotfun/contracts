@@ -119,13 +119,13 @@ contract BondingCurve is IBondingCurve, ReentrancyGuard {
 
         require(_realTokenReserves - amountOut >= targetToken, ERR_OVERFLOW_TARGET);
 
-        require(amountOut <= _realTokenReserves, ERR_INSUFFICIENT_RESERVE);
+        // require(amountOut <= _realTokenReserves, ERR_INSUFFICIENT_RESERVE);
 
         //풀의 현재 잔액
         uint256 balanceNad;
 
         {
-            require(to != _token, ERR_INVALID_TO);
+            require(to != _wnad && to != _token, ERR_INVALID_TO);
             IERC20(_token).safeTransferERC20(to, amountOut);
 
             balanceNad = IERC20(wnad).balanceOf(address(this));
@@ -137,7 +137,8 @@ contract BondingCurve is IBondingCurve, ReentrancyGuard {
 
         uint256 amountNadIn = balanceNad - _realNadReserves;
         require(amountNadIn > 0, INSUFFICIENT_INPUT_AMOUNT);
-        checkFee(amountNadIn, fee);
+        (uint8 denominator, uint16 numerator) = getFee();
+        require(fee >= amountOut * denominator / numerator, ERR_INVALID_FEE);
         IERC20(_wnad).safeTransferERC20(IBondingCurveFactory(factory).getOwner(), fee);
         amountNadIn -= fee;
         // console.log("AmountNadIn = ", amountNadIn);
@@ -157,6 +158,7 @@ contract BondingCurve is IBondingCurve, ReentrancyGuard {
     //fee = 1% * amountOut
     function sell(address to, uint256 fee, uint256 amountOut) external islock nonReentrant {
         require(amountOut > 0, ERR_INVALID_AMOUNT_OUT);
+
         address _wnad = wnad; //gas savings
         address _token = token; //gas savings
         (uint256 _realNadReserves, uint256 _realTokenReserves) = getReserves();
@@ -167,9 +169,10 @@ contract BondingCurve is IBondingCurve, ReentrancyGuard {
 
         //amountOut is fee 계산된 금액
         {
-            require(to != _token, ERR_INVALID_TO);
-
-            checkFee(amountOut, fee);
+            require(to != _wnad && to != _token, ERR_INVALID_TO);
+            (uint8 denominator, uint16 numerator) = getFee();
+            require(fee >= amountOut * denominator / numerator, ERR_INVALID_FEE);
+            // checkFee(amountOut, fee);
             IERC20(_wnad).safeTransferERC20(IBondingCurveFactory(factory).getOwner(), fee);
             IERC20(_wnad).safeTransferERC20(to, amountOut - fee);
 
@@ -192,19 +195,6 @@ contract BondingCurve is IBondingCurve, ReentrancyGuard {
     // }
     // //fee is 1%
     // //
-
-    function calculateFeeAmount(uint256 amountIn, uint8 denominator, uint16 numerator)
-        internal
-        pure
-        returns (uint256)
-    {
-        return amountIn * denominator / numerator;
-    }
-
-    function checkFee(uint256 amountIn, uint256 fee) public view {
-        (uint8 denominator, uint16 numerator) = getFee();
-        require(fee == calculateFeeAmount(amountIn, denominator, numerator), ERR_INVALID_FEE);
-    }
 
     function getReserves() public view override returns (uint256 _realNadReserves, uint256 _realTokenReserves) {
         _realNadReserves = realNadReserves;
@@ -239,17 +229,4 @@ contract BondingCurve is IBondingCurve, ReentrancyGuard {
     function getLock() public view returns (bool) {
         return lock;
     }
-
-    // function getAmountOut(uint256 _k, uint256 _virtualNad, uint256 _virtualToken, uint256 _amountIn, bool _isBuy)
-    //     internal
-    //     pure
-    //     returns (uint256 amountOut)
-    // {
-    //     if (_isBuy) {
-    //         amountOut = _virtualToken - (_k / (_virtualNad + _amountIn));
-    //     } else {
-    //         amountOut = _virtualNad - (_k / (_virtualToken + _amountIn));
-    //     }
-    //     return amountOut;
-    // }
 }
