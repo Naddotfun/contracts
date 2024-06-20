@@ -11,4 +11,5 @@ interface IBondingCurveFactory {
     function getCurve(address token) external view returns (address market);
     function getOwner() external view returns (address owner); // `view` 추가
     function getK() external view returns (uint256 k);
+    function getEndpoint() external view returns (address endpoint);
 }

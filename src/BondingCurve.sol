@@ -39,6 +39,11 @@ contract BondingCurve is IBondingCurve, ReentrancyGuard {
         _;
     }
 
+    modifier onlyEndpoint() {
+        require(msg.sender == IBondingCurveFactory(factory).getEndpoint(), ERR_ONLY_ENDPOINT);
+        _;
+    }
+
     constructor() {
         factory = msg.sender;
     }
@@ -106,7 +111,7 @@ contract BondingCurve is IBondingCurve, ReentrancyGuard {
     }
     // this low-level function should be called from a contract which performs important safety checks
 
-    function buy(address to, uint256 fee, uint256 amountOut) external islock nonReentrant {
+    function buy(address to, uint256 fee, uint256 amountOut) external islock onlyEndpoint {
         require(amountOut > 0, ERR_INVALID_AMOUNT_OUT);
         address _wnad = wnad; //gas savings
         address _token = token; //gas savings
@@ -156,7 +161,7 @@ contract BondingCurve is IBondingCurve, ReentrancyGuard {
 
     //fee는 amountOut 의 1 % 가 되어야함.
     //fee = 1% * amountOut
-    function sell(address to, uint256 fee, uint256 amountOut) external islock nonReentrant {
+    function sell(address to, uint256 fee, uint256 amountOut) external islock onlyEndpoint {
         require(amountOut > 0, ERR_INVALID_AMOUNT_OUT);
 
         address _wnad = wnad; //gas savings
