@@ -94,17 +94,12 @@ contract Endpoint {
         // Get curve and reserves
         (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
 
-        // Calculate and verify amountOut
-        // uint256 amountOut = getAmountOut(amountIn, amountOutMin, virtualNad, virtualToken, k);
         uint256 amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
-        // console.log("Amount Out", amountOut);
+
         require(amountOut >= amountOutMin, ERR_INVALID_AMOUNT_OUT);
 
         IERC20(WNAD).safeTransferERC20(curve, totalAmountIn);
-        // console.log("BuyAmountOutMin amountIn", amountIn);
-        // console.log("BuyAmountOutMin virtualNad", virtualNad);
-        // console.log("BuyAmountOutMin virtualToken", virtualToken);
-        // console.log("BuyAmountOutMin AmountOut", amountOut);
+
         IBondingCurve(curve).buy(to, fee, amountOut);
         emit Buy(msg.sender, amountIn, amountOut, token, curve);
     }
@@ -117,9 +112,9 @@ contract Endpoint {
         require(msg.value >= amountInMax, ERR_INVALID_SEND_NAD);
         (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
         uint256 amountIn = getAmountIn(amountOut, k, virtualNad, virtualToken);
-        //buy 일때는 amountIn + fee를 보내야함 .
+
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
-        // (uint256 fee, uint256 adjustedAmount) = getFeeAndAdjustedAmount(amountIn, denominator, numerator);
+
         uint256 fee = NadsPumpLibrary.getFeeAmount(amountIn, denominator, numerator);
 
         uint256 totalAmountIn = fee + amountIn;
@@ -136,7 +131,6 @@ contract Endpoint {
         emit Buy(msg.sender, amountIn, amountOut, token, curve);
     }
     // //-------------Sell Functions ---------------------------------------------
-    //amountOutMin 은 fee 제외하고 받아야할 최소수량
 
     function sell(uint256 amountIn, address token, address to, uint256 deadline) external ensure(deadline) {
         uint256 allowance = IERC20(token).allowance(msg.sender, address(this));
@@ -146,9 +140,8 @@ contract Endpoint {
 
         (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
 
-        //sell 은 amountOut 에서 fee 를 때감
         uint256 amountOut = getAmountOut(amountIn, k, virtualToken, virtualNad);
-        // console.log("AmountOut = ", amountOut);
+
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
         uint256 fee = NadsPumpLibrary.getFeeAmount(amountOut, denominator, numerator);
         uint256 adjustedAmountOut = amountOut - fee;
@@ -162,13 +155,10 @@ contract Endpoint {
         emit Sell(msg.sender, amountIn, adjustedAmountOut, token, curve);
     }
 
-    function sellAmountOutMin(
-        uint256 amountIn,
-        uint256 amountOutMin, //front = 10000 slippage = 10% -> 9000 이하로 받으면 revert
-        address token,
-        address to,
-        uint256 deadline
-    ) external ensure(deadline) {
+    function sellAmountOutMin(uint256 amountIn, uint256 amountOutMin, address token, address to, uint256 deadline)
+        external
+        ensure(deadline)
+    {
         uint256 allowance = IERC20(token).allowance(msg.sender, address(this));
         require(allowance >= amountIn, ERR_INVALID_ALLOWANCE);
         require(amountIn > 0, ERR_INVALID_AMOUNT_IN);
@@ -176,7 +166,6 @@ contract Endpoint {
 
         (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
 
-        //sell 은 amountOut 에서 fee 를 때감
         uint256 amountOut = getAmountOut(amountIn, k, virtualToken, virtualNad);
 
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
@@ -184,11 +173,11 @@ contract Endpoint {
         uint256 adjustedAmountOut = amountOut - fee;
 
         require(adjustedAmountOut >= amountOutMin, ERR_INVALID_AMOUNT_OUT);
-        // Transfer tokens to curve and call sell on BondingCurve
+
         IERC20(token).safeTransferERC20(curve, amountIn);
-        // console.log(IERC20(WNAD).balanceOf(address(this)));
+
         IBondingCurve(curve).sell(address(this), fee, adjustedAmountOut);
-        // console.log(IERC20(WNAD).balanceOf(address(this)));
+
         IWNAD(WNAD).withdraw(adjustedAmountOut);
         TransferHelper.safeTransferNad(to, adjustedAmountOut);
         emit Sell(msg.sender, amountIn, adjustedAmountOut, token, curve);
@@ -221,16 +210,14 @@ contract Endpoint {
         uint256 adjustedAmountOut = amountOut - fee;
 
         require(adjustedAmountOut >= amountOutMin, ERR_INVALID_AMOUNT_OUT);
-        // Transfer tokens to curve and call sell on BondingCurve
+
         IERC20(token).safeTransferERC20(curve, amountIn);
         IBondingCurve(curve).sell(address(this), fee, adjustedAmountOut);
 
-        // Convert WNAD to NAD and transfer to the recipient
         IWNAD(WNAD).withdraw(adjustedAmountOut);
         TransferHelper.safeTransferNad(to, adjustedAmountOut);
         emit Sell(msg.sender, amountIn, adjustedAmountOut, token, curve);
     }
-    // //애초에 fee 를 계산해서 넣어주면 되자나 예상 amountOut 과 fee 를 계산해서 넣어주면 됨.
 
     function sellExactAmountOut(uint256 amountOut, uint256 amountInMax, address token, address to, uint256 deadline)
         external
@@ -240,8 +227,7 @@ contract Endpoint {
         require(allowance >= amountInMax && amountInMax > 0, ERR_INVALID_ALLOWANCE);
 
         (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
-        //amountIn 이 구해졌자나.
-        //amountOut에 fee 를 더해서 구해야함.
+
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
         uint256 fee = NadsPumpLibrary.getFeeAmount(amountOut, denominator, numerator);
         uint256 adjustedAmountOut = amountOut + fee;
@@ -255,7 +241,6 @@ contract Endpoint {
         TransferHelper.safeTransferNad(to, amountOut);
         emit Sell(msg.sender, amountIn, adjustedAmountOut, token, curve);
     }
-    // //유저용
 
     function sellExactAmountOutwithPermit(
         uint256 amountOut,
@@ -270,7 +255,7 @@ contract Endpoint {
     ) external ensure(deadline) {
         IERC20Permit(token).permit(from, address(this), amountInMax, deadline, v, r, s);
         require(amountInMax > 0, ERR_INVALID_AMOUNT_IN_MAX);
-        // 먼저 amountIn 을구함
+
         (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
         uint256 fee = NadsPumpLibrary.getFeeAmount(amountOut, denominator, numerator);

@@ -31,7 +31,7 @@ contract BondingCurve is IBondingCurve {
 
     uint256 realNadReserves; //realNadReserves = 30
     uint256 realTokenReserves; //realTokenReserves = 1073000191
-    //계산에 필요한것
+
     bool lock;
 
     modifier islock() {
@@ -80,17 +80,12 @@ contract BondingCurve is IBondingCurve {
         address _token = token; //gas savings
 
         (uint256 _realNadReserves, uint256 _realTokenReserves) = getReserves();
-        // console.log("RealNadReserves = ", _realNadReserves);
-        // console.log("RealTokenReserves = ", _realTokenReserves);
-        // console.log("AmountOut = ", amountOut);
 
         require(_realTokenReserves - amountOut >= targetToken, ERR_OVERFLOW_TARGET);
 
-        //풀의 현재 잔액
+        //Current balance of the curve
         uint256 balanceNad;
-        //원래는 1000
-        // 보낸건 101
-        // 1 을 보내야지 amountNadin 이 100 이 됨.
+
         {
             require(to != _wnad && to != _token, ERR_INVALID_TO);
             IERC20(_token).safeTransferERC20(to, amountOut);
@@ -125,7 +120,6 @@ contract BondingCurve is IBondingCurve {
         //유저가 보낸 현재 잔액
         uint256 balanceToken;
 
-        //amountOut is fee 계산된 금액
         {
             require(to != _wnad && to != _token, ERR_INVALID_TO);
             (uint8 denominator, uint16 numerator) = getFee();
@@ -138,37 +132,25 @@ contract BondingCurve is IBondingCurve {
         }
 
         uint256 amountTokenIn = balanceToken - _realTokenReserves;
-        // console.log("AmountTokenIn = ", amountTokenIn);
+
         require(amountTokenIn > 0, INSUFFICIENT_INPUT_AMOUNT);
 
         _update(amountTokenIn, amountOut + fee, false);
         require(virtualNad * virtualToken >= k, ERR_INVALID_K);
-        // emit Sell(to, amountTokenIn, amountOut);
     }
 
     function _update(uint256 amountIn, uint256 amountOut, bool isBuy) private {
         realNadReserves = IERC20(wnad).balanceOf(address(this));
         // console.log("RealNadReserves = ", realNadReserves);
         realTokenReserves = IERC20(token).balanceOf(address(this));
-        // console.log("RealTokenReserves = ", realTokenReserves);
-        // console.log("Init VirtualNad = ", virtualNad);
-        // console.log("Init VirtualToken= ", virtualToken);
-        // console.log("Init K = ", k);
+
         if (isBuy) {
             virtualNad += amountIn;
 
             virtualToken -= amountOut;
-            // console.log("Amount In =", amountIn);
-            // console.log("AfterVirutalBase =", virtualNad);
-            // console.log("Amount Out = ", amountOut);
-            // console.log("AfterVirtualToken = ", virtualToken);
         } else {
             virtualNad -= amountOut;
             virtualToken += amountIn;
-            // console.log("Amount In =", amountIn);
-            // console.log("AfterVirutalBase =", virtualNad);
-            // console.log("Amount Out = ", amountOut);
-            // console.log("AfterVirtualToken = ", virtualToken);
         }
 
         if (realTokenReserves == getTargetToken()) {
