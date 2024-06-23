@@ -8,7 +8,7 @@ import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
 import {IBondingCurve} from "./interfaces/IBondingCurve.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
 import "./errors/Errors.sol";
-import {Test, console} from "forge-std/Test.sol";
+// import {Test, console} from "forge-std/Test.sol";
 
 contract BondingCurve is IBondingCurve {
     using TransferHelper for IERC20;
@@ -72,47 +72,6 @@ contract BondingCurve is IBondingCurve {
         feeConfig = Fee(_feeDenominator, _feeNumerator);
     }
 
-    function _update(uint256 amountIn, uint256 amountOut, bool isBuy) private {
-        realNadReserves = IERC20(wnad).balanceOf(address(this));
-        console.log("RealNadReserves = ", realNadReserves);
-        realTokenReserves = IERC20(token).balanceOf(address(this));
-        console.log("RealTokenReserves = ", realTokenReserves);
-        // console.log("Init VirtualNad = ", virtualNad);
-        // console.log("Init VirtualToken= ", virtualToken);
-        // console.log("Init K = ", k);
-        if (isBuy) {
-            virtualNad += amountIn;
-
-            virtualToken -= amountOut;
-            // console.log("Amount In =", amountIn);
-            // console.log("AfterVirutalBase =", virtualNad);
-            // console.log("Amount Out = ", amountOut);
-            // console.log("AfterVirtualToken = ", virtualToken);
-        } else {
-            virtualNad -= amountOut;
-            virtualToken += amountIn;
-            // console.log("Amount In =", amountIn);
-            // console.log("AfterVirutalBase =", virtualNad);
-            // console.log("Amount Out = ", amountOut);
-            // console.log("AfterVirtualToken = ", virtualToken);
-        }
-
-        if (realTokenReserves == getTargetToken()) {
-            lock = true;
-        }
-        //emit Event Lock
-        // console.log("Before K = ", virtualNad * virtualToken);
-        console.log("AmountOut = ", amountOut);
-        console.log("After K = ", virtualNad * virtualToken);
-        console.log("After VirtualNad = ", virtualNad);
-        console.log("After VirtualToken = ", virtualToken);
-
-        // console.log("TargetBase = ", targetBase);
-
-        emit Lock(address(this));
-        emit Sync(realNadReserves, realTokenReserves, virtualNad, virtualToken);
-        //emit Sync(balanceBase,balanceToken)asdf
-    }
     // this low-level function should be called from a contract which performs important safety checks
 
     function buy(address to, uint256 fee, uint256 amountOut) external islock onlyEndpoint {
@@ -139,22 +98,18 @@ contract BondingCurve is IBondingCurve {
             balanceNad = IERC20(wnad).balanceOf(address(this));
         }
 
-        // console.log("BalanceBase = ", balanceBase);
-        //realNadReserves = 0
-        //balanceBase = amountIn
-        // console.log("balanceNad = ", balanceNad);
         uint256 amountNadIn = balanceNad - _realNadReserves;
         require(amountNadIn > 0, INSUFFICIENT_INPUT_AMOUNT);
-        (uint8 denominator, uint16 numerator) = getFee();
-        require(fee >= amountNadIn * denominator / numerator, ERR_INVALID_FEE);
+
+        {
+            (uint8 denominator, uint16 numerator) = getFee();
+            require(fee >= amountNadIn * denominator / numerator, ERR_INVALID_FEE);
+        }
 
         _update(amountNadIn, amountOut, true);
 
-        // console.log("RealNadReserves = ", realNadReserves);
-        // console.log("RealTokenReserves = ", realTokenReserves);
-        // console.log("updateK = ", virtualNad * virtualToken);
         require(virtualNad * virtualToken >= k, ERR_INVALID_K);
-        emit Buy(to, amountNadIn, amountOut);
+        // emit Buy(to, amountNadIn, amountOut);
     }
 
     //fee는 amountOut 의 1 % 가 되어야함.
@@ -181,15 +136,47 @@ contract BondingCurve is IBondingCurve {
 
             balanceToken = IERC20(_token).balanceOf(address(this));
         }
-        // console.log("RealTokenReserves = ", _realTokenReserves);
-        // console.log("BalanceToken = ", balanceToken);
+
         uint256 amountTokenIn = balanceToken - _realTokenReserves;
-        console.log("AmountTokenIn = ", amountTokenIn);
+        // console.log("AmountTokenIn = ", amountTokenIn);
         require(amountTokenIn > 0, INSUFFICIENT_INPUT_AMOUNT);
 
         _update(amountTokenIn, amountOut + fee, false);
         require(virtualNad * virtualToken >= k, ERR_INVALID_K);
-        emit Sell(to, amountTokenIn, amountOut);
+        // emit Sell(to, amountTokenIn, amountOut);
+    }
+
+    function _update(uint256 amountIn, uint256 amountOut, bool isBuy) private {
+        realNadReserves = IERC20(wnad).balanceOf(address(this));
+        // console.log("RealNadReserves = ", realNadReserves);
+        realTokenReserves = IERC20(token).balanceOf(address(this));
+        // console.log("RealTokenReserves = ", realTokenReserves);
+        // console.log("Init VirtualNad = ", virtualNad);
+        // console.log("Init VirtualToken= ", virtualToken);
+        // console.log("Init K = ", k);
+        if (isBuy) {
+            virtualNad += amountIn;
+
+            virtualToken -= amountOut;
+            // console.log("Amount In =", amountIn);
+            // console.log("AfterVirutalBase =", virtualNad);
+            // console.log("Amount Out = ", amountOut);
+            // console.log("AfterVirtualToken = ", virtualToken);
+        } else {
+            virtualNad -= amountOut;
+            virtualToken += amountIn;
+            // console.log("Amount In =", amountIn);
+            // console.log("AfterVirutalBase =", virtualNad);
+            // console.log("Amount Out = ", amountOut);
+            // console.log("AfterVirtualToken = ", virtualToken);
+        }
+
+        if (realTokenReserves == getTargetToken()) {
+            lock = true;
+            emit Lock(address(this));
+        }
+
+        emit Sync(realNadReserves, realTokenReserves, virtualNad, virtualToken);
     }
 
     // // TODO : Target Dex Factory 가 정재지면 그때 작성
