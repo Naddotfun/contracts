@@ -55,7 +55,8 @@ contract EndpointTest is Test {
         vm.startPrank(creator);
 
         // createCurve 함수 호출
-        (address curveAddress, address tokenAddress) = factory.create{value: 0.02 ether}("test", "test");
+        (address curveAddress, address tokenAddress) =
+            endpoint.createCurve{value: 0.02 ether}("test", "test", 0, 0, 0.02 ether);
         curve = BondingCurve(curveAddress);
         token = Token(tokenAddress);
         // creator로의 프랭크 종료
@@ -65,36 +66,37 @@ contract EndpointTest is Test {
     function testCreateCurve() public {
         // address creator = address(0xb);
         vm.deal(creator, 1.03 ether);
-        vm.recordLogs();
+        // vm.recordLogs();
         vm.startPrank(creator);
-        endpoint.createCurveInitBalance{value: 1.03 ether}("Test", "Test", 1 ether, 0.01 ether, 0.02 ether);
+        (address curve, address token) =
+            endpoint.createCurve{value: 1.03 ether}("Test", "Test", 1 ether, 0.01 ether, 0.02 ether);
 
         vm.stopPrank();
         assertEq(owner.balance, 0.04 ether);
         assertEq(creator.balance, 0);
         // 기록된 이벤트 로그 수집
-        Vm.Log[] memory logs = vm.getRecordedLogs();
+        // Vm.Log[] memory logs = vm.getRecordedLogs();
 
-        address tokenAddress;
+        // address tokenAddress;
 
-        // Create 이벤트 로그 분석 및 token 주소 출력
-        for (uint256 i = 0; i < logs.length; i++) {
-            Vm.Log memory log = logs[i];
+        // // Create 이벤트 로그 분석 및 token 주소 출력
+        // for (uint256 i = 0; i < logs.length; i++) {
+        //     Vm.Log memory log = logs[i];
 
-            // Create 이벤트의 토픽 확인 (토픽이 최소 4개 있는지 확인)
-            if (log.topics.length == 4 && log.topics[0] == keccak256("Create(address,address,address)")) {
-                tokenAddress = address(uint160(uint256(log.topics[2])));
+        //     // Create 이벤트의 토픽 확인 (토픽이 최소 4개 있는지 확인)
+        //     if (log.topics.length == 4 && log.topics[0] == keccak256("Create(address,address,address)")) {
+        //         tokenAddress = address(uint160(uint256(log.topics[2])));
 
-                // token 주소 로그 출력
-                console.log("Token Address from Create Event:", tokenAddress);
-                break; // 이벤트를 찾았으므로 더 이상 반복할 필요 없음
-            }
-        }
+        //         // token 주소 로그 출력
+        //         console.log("Token Address from Create Event:", tokenAddress);
+        //         break; // 이벤트를 찾았으므로 더 이상 반복할 필요 없음
+        //     }
+        // }
 
-        require(tokenAddress != address(0), "Create event not found or token address not found");
+        // require(tokenAddress != address(0), "Create event not found or token address not found");
         // console.log(IERC20(tokenAddress).balanceOf(creator));
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
-        assertEq(IERC20(tokenAddress).balanceOf(creator), amountOut);
+        assertEq(IERC20(token).balanceOf(creator), amountOut);
     }
 
     function testInvalidValueCreateCurve() public {
@@ -102,37 +104,36 @@ contract EndpointTest is Test {
         vm.expectRevert(bytes(ERR_INVALID_SEND_NAD));
         vm.startPrank(creator);
         //보내야할 이더 양은 = 1.03 ether
-        endpoint.createCurveInitBalance{value: 1.01 ether}("TEST", "TEST", 1 ether, 0.01 ether, 0.02 ether);
+        endpoint.createCurve{value: 1.01 ether}("TEST", "TEST", 1 ether, 0.01 ether, 0.02 ether);
         vm.stopPrank();
     }
 
-    function testInvalidAmountInCreateCurve() public {
-        vm.deal(creator, 1.01 ether);
-        vm.expectRevert(bytes(ERR_INVALID_AMOUNT_IN));
-        vm.startPrank(creator);
-        //amountIn = 0;
-        endpoint.createCurveInitBalance{value: 1.01 ether}("TEST", "TEST", 0, 0.01 ether, 0.02 ether);
-        vm.stopPrank();
-    }
+    // function testInvalidAmountInCreateCurve() public {
+    //     vm.deal(creator, 1.01 ether);
+    //     vm.expectRevert(bytes(ERR_INVALID_AMOUNT_IN));
+    //     vm.startPrank(creator);
+    //     //amountIn = 0;
+    //     endpoint.createCurve{value: 1.01 ether}("TEST", "TEST", 0, 0.01 ether, 0.02 ether);
+    //     vm.stopPrank();
+    // }
 
-    function testInvalidFeeCreateCurve() public {
-        vm.deal(creator, 1.02 ether);
-        vm.expectRevert(bytes(ERR_INVALID_FEE));
-        vm.startPrank(creator);
-        //amountIn = 0;
-        endpoint.createCurveInitBalance{value: 1.02 ether}("TEST", "TEST", 1 ether, 0, 0.02 ether);
-        vm.stopPrank();
-    }
+    // function testInvalidFeeCreateCurve() public {
+    //     vm.deal(creator, 1.02 ether);
+    //     vm.expectRevert(bytes(ERR_INVALID_FEE));
+    //     vm.startPrank(creator);
+    //     //amountIn = 0;
+    //     endpoint.createCurve{value: 1.02 ether}("TEST", "TEST", 1 ether, 0, 0.02 ether);
+    //     vm.stopPrank();
+    // }
     /**
      * @dev Buy Test
      */
-
     function testInvalidDeployFeeCreateCurve() public {
         vm.deal(creator, 1.02 ether);
         vm.expectRevert(bytes(ERR_INSUFFICIENT_FEE));
         vm.startPrank(creator);
         //amountIn = 0;
-        endpoint.createCurveInitBalance{value: 1.02 ether}("TEST", "TEST", 1 ether, 0.01 ether, 0.01 ether);
+        endpoint.createCurve{value: 1.02 ether}("TEST", "TEST", 1 ether, 0.01 ether, 0.01 ether);
         vm.stopPrank();
     }
 
