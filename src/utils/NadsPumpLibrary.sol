@@ -4,15 +4,8 @@ pragma solidity ^0.8.20;
 import "../interfaces/IBondingCurve.sol";
 import "../interfaces/IBondingCurveFactory.sol";
 import "../errors/Errors.sol";
-// import {Test, console} from "forge-std/Test.sol";
 
 library NadsPumpLibrary {
-    // //  일정 금액의 자산과 페어 준비금이 주어지면 다른 자산의 동등한 금액을 반환합니다.
-    // function quote(uint256 amount, uint256 virtualBase, uint256 virtualToken) internal pure returns (uint256 amountB) {
-    //     require(amount > 0, "DragonswapLibrary: INSUFFICIENT_AMOUNT");
-    //     require(virtualBase > 0 && virtualToken > 0, "DragonswapLibrary: INSUFFICIENT_LIQUIDITY");
-    //     amountB = (amount * virtualToken) / virtualBase;
-    // }
     function getAmountOut(uint256 amountIn, uint256 k, uint256 reserveIn, uint256 reserveOut)
         internal
         pure
@@ -64,7 +57,11 @@ library NadsPumpLibrary {
         (virtualNad, virtualToken) = getVirtualReserves(curve);
         k = NadsPumpLibrary.getK(curve);
     }
-    // 공통 로직: Fee Config 가져오기
+
+    function getCurveData(address curve) internal view returns (uint256 virtualNad, uint256 virtualToken, uint256 k) {
+        (virtualNad, virtualToken) = getVirtualReserves(curve);
+        k = NadsPumpLibrary.getK(curve);
+    }
 
     function getFeeConfig(address curve) internal view returns (uint8, uint16) {
         return IBondingCurve(curve).getFeeConfig();
