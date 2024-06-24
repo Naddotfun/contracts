@@ -38,6 +38,11 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         _;
     }
 
+    modifier onlyEndpoint() {
+        require(msg.sender == endpoint, ERR_ONLY_ENDPOINT);
+        _;
+    }
+
     function initialize(
         uint256 deployFee,
         uint256 tokenTotalSupply,
@@ -55,7 +60,7 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
     function create(string memory name, string memory symbol)
         external
         payable
-        nonReentrant
+        onlyEndpoint
         returns (address curve, address token)
     {
         Config memory _config = getConfig();
@@ -81,7 +86,7 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
 
         curves[token] = curve;
 
-        emit Create(curve, token, msg.sender);
+        // emit Create(curve, token, msg.sender);
     }
 
     function setOwner(address _owner) external onlyOwner {

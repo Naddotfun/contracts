@@ -14,6 +14,7 @@ import {Test, console} from "forge-std/Test.sol";
 contract Endpoint {
     using TransferHelper for IERC20;
 
+    address private owner;
     address public immutable factory;
     address public immutable WNAD;
 
@@ -24,6 +25,7 @@ contract Endpoint {
 
     event Buy(address indexed sender, uint256 amountIn, uint256 amountOut, address token, address curve);
     event Sell(address indexed sender, uint256 amountIn, uint256 amountOut, address token, address curve);
+    event CreateCurve(address indexed curve, address indexed token);
 
     receive() external payable {
         assert(msg.sender == WNAD); // only accept NAD via fallback from the WNAD contract
@@ -34,25 +36,27 @@ contract Endpoint {
         _;
     }
 
-    //
-    function createCurveInitBalance(
-        string memory name,
-        string memory symbol,
-        uint256 amountIn,
-        uint256 fee,
-        uint256 deployFee
-    ) external payable {
+    function createCurve(string memory name, string memory symbol, uint256 amountIn, uint256 fee, uint256 deployFee)
+        external
+        payable
+        returns (address curve, address token)
+    {
         require(msg.value >= amountIn + fee + deployFee, ERR_INVALID_SEND_NAD);
-        require(amountIn > 0, ERR_INVALID_AMOUNT_IN);
-        require(fee > 0, ERR_INVALID_FEE);
 
-        (, address token) = IBondingCurveFactory(factory).create{value: deployFee}(name, symbol);
+        (curve, token) = IBondingCurveFactory(factory).create{value: deployFee}(name, symbol);
+        emit CreateCurve(curve, token);
+
+        if (amountIn == 0 || fee == 0) {
+            return (curve, token);
+        }
+        //amountIn 이 0 이거나 fee 가 0 이라면  return 하는 로직
         IWNAD(WNAD).deposit{value: amountIn + fee}();
 
-        (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
+        (uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(curve);
         uint256 amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
         IERC20(WNAD).safeTransferERC20(curve, amountIn + fee);
         IBondingCurve(curve).buy(msg.sender, fee, amountOut);
+
         emit Buy(msg.sender, amountIn, amountOut, token, curve);
     }
 
@@ -273,15 +277,19 @@ contract Endpoint {
     //----------------------------Common Functions ---------------------------------------------------
 
     function getCurveData(address _factory, address token)
-        internal
+        public
         view
         returns (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k)
     {
         (curve, virtualNad, virtualToken, k) = NadsPumpLibrary.getCurveData(_factory, token);
     }
 
+    function getCurveData(address curve) public view returns (uint256 virtualNad, uint256 virtualToken, uint256 k) {
+        (virtualNad, virtualToken, k) = NadsPumpLibrary.getCurveData(curve);
+    }
+
     function getAmountOut(uint256 amountIn, uint256 k, uint256 reserveIn, uint256 reserveOut)
-        internal
+        public
         pure
         returns (uint256 amountOut)
     {
@@ -289,7 +297,7 @@ contract Endpoint {
     }
 
     function getAmountIn(uint256 amountOut, uint256 k, uint256 reserveIn, uint256 reserveOut)
-        internal
+        public
         pure
         returns (uint256 amountIn)
     {
