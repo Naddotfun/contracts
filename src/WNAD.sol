@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {TransferHelper} from "./utils/TransferHelper.sol";
+import "./errors/Errors.sol";
 
 contract WNAD {
     string public name = "Wrapped NAD Token";
@@ -15,8 +16,20 @@ contract WNAD {
 
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(address => uint256)) public allowance;
-
+    bytes32 public DOMAIN_SEPARATOR;
+    bytes32 public constant PERMIT_TYPEHASH =
+        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
     // 이더를 직접 받을 때 호출되는 receive 함수
+    mapping(address => uint256) public nonces;
+
+    struct Permit {
+        address owner;
+        address spender;
+        uint256 value;
+        uint256 nonce;
+        uint256 deadline;
+    }
+
     receive() external payable {
         deposit();
     }
@@ -47,12 +60,17 @@ contract WNAD {
 
     // 사용자가 다른 주소에게 이더 전송을 허락하는 함수
     function approve(address spender, uint256 amount) public returns (bool) {
-        allowance[msg.sender][spender] = amount;
+        bool ok = _approve(msg.sender, spender, amount);
+        return ok;
+    }
+
+    function _approve(address owner, address spender, uint256 amount) private returns (bool) {
+        allowance[owner][spender] = amount;
         emit Approval(msg.sender, spender, amount);
         return true;
     }
-
     // 사용자가 자신의 주소에서 다른 주소로 이더를 전송하는 함수
+
     function transfer(address to, uint256 amount) public returns (bool) {
         return transferFrom(msg.sender, to, amount);
     }
@@ -72,5 +90,21 @@ contract WNAD {
         emit Transfer(from, to, amount);
 
         return true;
+    }
+
+    function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s)
+        external
+    {
+        require(deadline >= block.timestamp, ERR_EXPIRED);
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                DOMAIN_SEPARATOR,
+                keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, nonces[owner]++, deadline))
+            )
+        );
+        address recoveredAddress = ecrecover(digest, v, r, s);
+        require(recoveredAddress != address(0) && recoveredAddress == owner, ERR_INVALID_SIGNATURE);
+        _approve(owner, spender, value);
     }
 }
