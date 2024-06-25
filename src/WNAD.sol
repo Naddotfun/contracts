@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
+import "./interfaces/IWNAD.sol";
 import "./errors/Errors.sol";
 
-contract WNAD {
+contract WNAD is IERC20, IWNAD {
     string public name = "Wrapped NAD Token";
     string public symbol = "WNAD";
     uint8 public decimals = 18;
 
-    event Approval(address indexed from, address indexed spender, uint256 amount);
-    event Transfer(address indexed from, address indexed to, uint256 amount);
     event Deposit(address indexed to, uint256 amount);
     event Withdrawal(address indexed from, uint256 amount);
 
@@ -28,6 +28,19 @@ contract WNAD {
         uint256 value;
         uint256 nonce;
         uint256 deadline;
+    }
+
+    constructor() {
+        uint256 chainId = block.chainid;
+        DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256(bytes(name)),
+                keccak256(bytes("1")),
+                chainId,
+                address(this)
+            )
+        );
     }
 
     receive() external payable {
