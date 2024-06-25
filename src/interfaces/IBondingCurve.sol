@@ -27,9 +27,9 @@ interface IBondingCurve {
         uint16 feeNumerator
     ) external;
 
-    function buy(address to, uint256 fee, uint256 amountOut) external;
+    function buy(address to, uint256 amountOut) external;
 
-    function sell(address to, uint256 fee, uint256 amountOut) external;
+    function sell(address to, uint256 amountOut) external;
     function getK() external view returns (uint256);
     function getFeeConfig() external view returns (uint8 denominator, uint16 numerator);
     function getVirtualReserves() external view returns (uint256 virtualBase, uint256 virtualToken);

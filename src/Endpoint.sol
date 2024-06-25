@@ -21,6 +21,7 @@ contract Endpoint {
     constructor(address _factory, address _WNAD) {
         factory = _factory;
         WNAD = _WNAD;
+        owner = msg.sender;
     }
 
     event Buy(address indexed sender, uint256 amountIn, uint256 amountOut, address token, address curve);
@@ -36,26 +37,35 @@ contract Endpoint {
         _;
     }
 
+    function checkFee(address curve, uint256 amount, uint256 fee) internal view {
+        (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
+        require(fee >= amount * denominator / numerator, ERR_INVALID_FEE);
+    }
+
     function createCurve(string memory name, string memory symbol, uint256 amountIn, uint256 fee, uint256 deployFee)
         external
         payable
         returns (address curve, address token)
     {
         require(msg.value >= amountIn + fee + deployFee, ERR_INVALID_SEND_NAD);
-
-        (curve, token) = IBondingCurveFactory(factory).create{value: deployFee}(name, symbol);
+        uint256 _deployFee = IBondingCurveFactory(factory).getDelpyFee();
+        require(deployFee >= _deployFee, ERR_INVALID_DEPLOY_FEE);
+        TransferHelper.safeTransferNad(owner, deployFee);
+        (curve, token) = IBondingCurveFactory(factory).create(name, symbol);
         emit CreateCurve(curve, token);
 
         if (amountIn == 0 || fee == 0) {
             return (curve, token);
         }
+        checkFee(curve, amountIn, fee);
+        TransferHelper.safeTransferNad(owner, fee);
         //amountIn 이 0 이거나 fee 가 0 이라면  return 하는 로직
-        IWNAD(WNAD).deposit{value: amountIn + fee}();
+        IWNAD(WNAD).deposit{value: amountIn}();
 
         (uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(curve);
         uint256 amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
-        IERC20(WNAD).safeTransferERC20(curve, amountIn + fee);
-        IBondingCurve(curve).buy(msg.sender, fee, amountOut);
+        IERC20(WNAD).safeTransferERC20(curve, amountIn);
+        IBondingCurve(curve).buy(msg.sender, amountOut);
 
         emit Buy(msg.sender, amountIn, amountOut, token, curve);
     }
@@ -66,20 +76,22 @@ contract Endpoint {
         payable
         ensure(deadline)
     {
-        uint256 totalAmountIn = amountIn + fee;
-        require(msg.value >= totalAmountIn, ERR_INVALID_SEND_NAD);
+        require(msg.value >= amountIn + fee, ERR_INVALID_SEND_NAD);
         require(amountIn > 0, ERR_INVALID_AMOUNT_IN);
         require(fee > 0, ERR_INVALID_FEE);
-        IWNAD(WNAD).deposit{value: totalAmountIn}();
+
+        (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
+        checkFee(curve, amountIn, fee);
+        TransferHelper.safeTransferNad(owner, fee);
+        IWNAD(WNAD).deposit{value: amountIn}();
 
         // Get curve and reserves
-        (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
 
         // Calculate and verify amountOut
         uint256 amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
 
-        IERC20(WNAD).safeTransferERC20(curve, totalAmountIn);
-        IBondingCurve(curve).buy(to, fee, amountOut);
+        IERC20(WNAD).safeTransferERC20(curve, amountIn);
+        IBondingCurve(curve).buy(to, amountOut);
         emit Buy(msg.sender, amountIn, amountOut, token, curve);
     }
 
@@ -92,19 +104,24 @@ contract Endpoint {
         uint256 deadline
     ) external payable ensure(deadline) {
         uint256 totalAmountIn = amountIn + fee;
-        require(msg.value >= totalAmountIn, ERR_INVALID_SEND_NAD);
-        IWNAD(WNAD).deposit{value: totalAmountIn}();
+
+        require(msg.value >= amountIn + fee, ERR_INVALID_SEND_NAD);
+
+        (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
+        checkFee(curve, amountIn, fee);
+        TransferHelper.safeTransferNad(owner, fee);
+
+        IWNAD(WNAD).deposit{value: amountIn}();
 
         // Get curve and reserves
-        (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
 
         uint256 amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
 
         require(amountOut >= amountOutMin, ERR_INVALID_AMOUNT_OUT);
 
-        IERC20(WNAD).safeTransferERC20(curve, totalAmountIn);
+        IERC20(WNAD).safeTransferERC20(curve, amountIn);
 
-        IBondingCurve(curve).buy(to, fee, amountOut);
+        IBondingCurve(curve).buy(to, amountOut);
         emit Buy(msg.sender, amountIn, amountOut, token, curve);
     }
 
@@ -120,18 +137,17 @@ contract Endpoint {
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
 
         uint256 fee = NadsPumpLibrary.getFeeAmount(amountIn, denominator, numerator);
+        TransferHelper.safeTransferNad(owner, fee);
 
-        uint256 totalAmountIn = fee + amountIn;
+        require(amountIn + fee <= amountInMax, ERR_INVALID_AMOUNT_IN_MAX);
 
-        require(totalAmountIn <= amountInMax, ERR_INVALID_AMOUNT_IN_MAX);
-
-        uint256 resetValue = amountInMax - totalAmountIn;
+        uint256 resetValue = amountInMax - (amountIn + fee);
         if (resetValue > 0) {
             TransferHelper.safeTransferNad(msg.sender, resetValue);
         }
-        IWNAD(WNAD).deposit{value: totalAmountIn}();
-        IERC20(WNAD).safeTransferERC20(curve, totalAmountIn);
-        IBondingCurve(curve).buy(to, fee, amountOut);
+        IWNAD(WNAD).deposit{value: amountIn}();
+        IERC20(WNAD).safeTransferERC20(curve, amountIn);
+        IBondingCurve(curve).buy(to, amountOut);
         emit Buy(msg.sender, amountIn, amountOut, token, curve);
     }
     // //-------------Sell Functions ---------------------------------------------
@@ -147,16 +163,16 @@ contract Endpoint {
         uint256 amountOut = getAmountOut(amountIn, k, virtualToken, virtualNad);
 
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
-        uint256 fee = NadsPumpLibrary.getFeeAmount(amountOut, denominator, numerator);
-        uint256 adjustedAmountOut = amountOut - fee;
 
         IERC20(token).safeTransferERC20(curve, amountIn);
 
-        IBondingCurve(curve).sell(address(this), fee, adjustedAmountOut);
+        IBondingCurve(curve).sell(address(this), amountOut);
+        uint256 fee = NadsPumpLibrary.getFeeAmount(amountOut, denominator, numerator);
+        IWNAD(WNAD).withdraw(amountOut);
+        TransferHelper.safeTransferNad(owner, fee);
 
-        IWNAD(WNAD).withdraw(adjustedAmountOut);
-        TransferHelper.safeTransferNad(to, adjustedAmountOut);
-        emit Sell(msg.sender, amountIn, adjustedAmountOut, token, curve);
+        TransferHelper.safeTransferNad(to, amountOut - fee);
+        emit Sell(msg.sender, amountIn, amountOut - fee, token, curve);
     }
 
     function sellAmountOutMin(uint256 amountIn, uint256 amountOutMin, address token, address to, uint256 deadline)
@@ -174,17 +190,16 @@ contract Endpoint {
 
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
         uint256 fee = NadsPumpLibrary.getFeeAmount(amountOut, denominator, numerator);
-        uint256 adjustedAmountOut = amountOut - fee;
 
-        require(adjustedAmountOut >= amountOutMin, ERR_INVALID_AMOUNT_OUT);
+        require(amountOut - fee >= amountOutMin, ERR_INVALID_AMOUNT_OUT);
 
         IERC20(token).safeTransferERC20(curve, amountIn);
 
-        IBondingCurve(curve).sell(address(this), fee, adjustedAmountOut);
-
-        IWNAD(WNAD).withdraw(adjustedAmountOut);
-        TransferHelper.safeTransferNad(to, adjustedAmountOut);
-        emit Sell(msg.sender, amountIn, adjustedAmountOut, token, curve);
+        IBondingCurve(curve).sell(address(this), amountOut);
+        IWNAD(WNAD).withdraw(amountOut);
+        TransferHelper.safeTransferNad(owner, fee);
+        TransferHelper.safeTransferNad(to, amountOut - fee);
+        emit Sell(msg.sender, amountIn, amountOut - fee, token, curve);
     }
 
     function sellAmountOutMinWithPermit(
@@ -211,17 +226,18 @@ contract Endpoint {
         uint256 amountOut = getAmountOut(amountIn, k, virtualToken, virtualNad);
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
         uint256 fee = NadsPumpLibrary.getFeeAmount(amountOut, denominator, numerator);
-        uint256 adjustedAmountOut = amountOut - fee;
 
-        require(adjustedAmountOut >= amountOutMin, ERR_INVALID_AMOUNT_OUT);
+        require(amountOut - fee >= amountOutMin, ERR_INVALID_AMOUNT_OUT);
 
         IERC20(token).safeTransferERC20(curve, amountIn);
-        IBondingCurve(curve).sell(address(this), fee, adjustedAmountOut);
+        IBondingCurve(curve).sell(address(this), amountOut);
 
-        IWNAD(WNAD).withdraw(adjustedAmountOut);
-        TransferHelper.safeTransferNad(to, adjustedAmountOut);
-        emit Sell(msg.sender, amountIn, adjustedAmountOut, token, curve);
+        IWNAD(WNAD).withdraw(amountOut);
+        TransferHelper.safeTransferNad(owner, fee);
+        TransferHelper.safeTransferNad(to, amountOut - fee);
+        emit Sell(msg.sender, amountIn, amountOut - fee, token, curve);
     }
+    //amountOut 은 fee + amountOut 이어야함.
 
     function sellExactAmountOut(uint256 amountOut, uint256 amountInMax, address token, address to, uint256 deadline)
         external
@@ -233,17 +249,21 @@ contract Endpoint {
         (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
 
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
-        uint256 fee = NadsPumpLibrary.getFeeAmount(amountOut, denominator, numerator);
-        uint256 adjustedAmountOut = amountOut + fee;
 
-        uint256 amountIn = getAmountIn(adjustedAmountOut, k, virtualToken, virtualNad);
+        uint256 fee = NadsPumpLibrary.getFeeAmount(amountOut, denominator, numerator);
+        uint256 amountIn = getAmountIn(amountOut + fee, k, virtualToken, virtualNad);
+
         require(amountIn <= amountInMax, ERR_INVALID_AMOUNT_IN_MAX);
+
         IERC20(token).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(token).safeTransferERC20(curve, amountIn);
-        IBondingCurve(curve).sell(address(this), fee, amountOut);
-        IWNAD(WNAD).withdraw(amountOut);
+
+        IBondingCurve(curve).sell(address(this), amountOut + fee);
+
+        IWNAD(WNAD).withdraw(amountOut + fee);
+        TransferHelper.safeTransferNad(owner, fee);
         TransferHelper.safeTransferNad(to, amountOut);
-        emit Sell(msg.sender, amountIn, adjustedAmountOut, token, curve);
+        emit Sell(msg.sender, amountIn, amountOut, token, curve);
     }
 
     function sellExactAmountOutwithPermit(
@@ -263,16 +283,19 @@ contract Endpoint {
         (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
         uint256 fee = NadsPumpLibrary.getFeeAmount(amountOut, denominator, numerator);
-        uint256 adjustedAmountOut = amountOut + fee;
-        uint256 amountIn = getAmountIn(adjustedAmountOut, k, virtualToken, virtualNad);
+
+        uint256 amountIn = getAmountIn(amountOut + fee, k, virtualToken, virtualNad);
 
         require(amountIn <= amountInMax, ERR_INVALID_AMOUNT_IN_MAX);
-        IERC20(token).safeTransferFrom(from, address(this), amountIn);
+
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(token).safeTransferERC20(curve, amountIn);
-        IBondingCurve(curve).sell(address(this), fee, amountOut);
-        IWNAD(WNAD).withdraw(amountOut);
+        IBondingCurve(curve).sell(address(this), amountOut + fee);
+
+        IWNAD(WNAD).withdraw(amountOut + fee);
+        TransferHelper.safeTransferNad(owner, fee);
         TransferHelper.safeTransferNad(to, amountOut);
-        emit Sell(msg.sender, amountIn, adjustedAmountOut, token, curve);
+        emit Sell(msg.sender, amountIn, amountOut, token, curve);
     }
     //----------------------------Common Functions ---------------------------------------------------
 

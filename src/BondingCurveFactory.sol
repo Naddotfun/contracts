@@ -59,14 +59,10 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
 
     function create(string memory name, string memory symbol)
         external
-        payable
         onlyEndpoint
         returns (address curve, address token)
     {
         Config memory _config = getConfig();
-        require(msg.value >= _config.deployFee, ERR_INSUFFICIENT_FEE);
-
-        TransferHelper.safeTransferNad(owner, msg.value);
 
         curve = address(new BondingCurve());
         token = address(new Token(name, symbol));
@@ -115,5 +111,9 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
 
     function getEndpoint() public view returns (address _endpoint) {
         _endpoint = endpoint;
+    }
+
+    function getDelpyFee() public view returns (uint256 deployFee) {
+        deployFee = config.deployFee;
     }
 }

@@ -8,7 +8,7 @@ import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
 import {IBondingCurve} from "./interfaces/IBondingCurve.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
 import "./errors/Errors.sol";
-// import {Test, console} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 contract BondingCurve is IBondingCurve {
     using TransferHelper for IERC20;
@@ -74,7 +74,7 @@ contract BondingCurve is IBondingCurve {
 
     // this low-level function should be called from a contract which performs important safety checks
 
-    function buy(address to, uint256 fee, uint256 amountOut) external islock onlyEndpoint {
+    function buy(address to, uint256 amountOut) external islock onlyEndpoint {
         require(amountOut > 0, ERR_INVALID_AMOUNT_OUT);
         address _wnad = wnad; //gas savings
         address _token = token; //gas savings
@@ -89,17 +89,17 @@ contract BondingCurve is IBondingCurve {
         {
             require(to != _wnad && to != _token, ERR_INVALID_TO);
             IERC20(_token).safeTransferERC20(to, amountOut);
-            IERC20(_wnad).safeTransferERC20(IBondingCurveFactory(factory).getOwner(), fee);
+            // IERC20(_wnad).safeTransferERC20(IBondingCurveFactory(factory).getOwner(), fee);
             balanceNad = IERC20(wnad).balanceOf(address(this));
         }
 
         uint256 amountNadIn = balanceNad - _realNadReserves;
         require(amountNadIn > 0, INSUFFICIENT_INPUT_AMOUNT);
 
-        {
-            (uint8 denominator, uint16 numerator) = getFee();
-            require(fee >= amountNadIn * denominator / numerator, ERR_INVALID_FEE);
-        }
+        // {
+        //     (uint8 denominator, uint16 numerator) = getFee();
+        //     require(fee >= amountNadIn * denominator / numerator, ERR_INVALID_FEE);
+        // }
 
         _update(amountNadIn, amountOut, true);
 
@@ -109,7 +109,7 @@ contract BondingCurve is IBondingCurve {
 
     //fee는 amountOut 의 1 % 가 되어야함.
     //fee = 1% * amountOut
-    function sell(address to, uint256 fee, uint256 amountOut) external islock onlyEndpoint {
+    function sell(address to, uint256 amountOut) external islock onlyEndpoint {
         require(amountOut > 0, ERR_INVALID_AMOUNT_OUT);
 
         address _wnad = wnad; //gas savings
@@ -122,10 +122,10 @@ contract BondingCurve is IBondingCurve {
 
         {
             require(to != _wnad && to != _token, ERR_INVALID_TO);
-            (uint8 denominator, uint16 numerator) = getFee();
-            require(fee >= amountOut * denominator / numerator, ERR_INVALID_FEE);
+            // (uint8 denominator, uint16 numerator) = getFee();
+            // require(fee >= amountOut * denominator / numerator, ERR_INVALID_FEE);
             // checkFee(amountOut, fee);
-            IERC20(_wnad).safeTransferERC20(IBondingCurveFactory(factory).getOwner(), fee);
+            // IERC20(_wnad).safeTransferERC20(IBondingCurveFactory(factory).getOwner(), fee);
             IERC20(_wnad).safeTransferERC20(to, amountOut);
 
             balanceToken = IERC20(_token).balanceOf(address(this));
@@ -134,8 +134,10 @@ contract BondingCurve is IBondingCurve {
         uint256 amountTokenIn = balanceToken - _realTokenReserves;
 
         require(amountTokenIn > 0, INSUFFICIENT_INPUT_AMOUNT);
-
-        _update(amountTokenIn, amountOut + fee, false);
+        console.log("amountOut", amountOut);
+        // console.log("fee", fee);
+        console.log("amountTokenIn", amountTokenIn);
+        _update(amountTokenIn, amountOut, false);
         require(virtualNad * virtualToken >= k, ERR_INVALID_K);
     }
 
