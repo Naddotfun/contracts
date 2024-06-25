@@ -4,9 +4,10 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 import {BondingCurve} from "src/BondingCurve.sol";
 import {BondingCurveFactory} from "src/BondingCurveFactory.sol";
+import "src/interfaces/IWNAD.sol";
 import {Token} from "src/Token.sol";
 import "src/errors/Errors.sol";
-import {WNAD} from "src/WNAD.sol";
+import "src/WNAD.sol";
 import "src/utils/NadsPumpLibrary.sol";
 import "src/Endpoint.sol";
 
@@ -27,7 +28,7 @@ contract EndpointTest is Test {
     uint256 targetToken = 206_900_000 * 10 ** 18;
     uint256 tokenTotalSupply = 10 ** 27;
 
-    uint8 feeDominator = 10;
+    uint8 feeDenominator = 10;
     uint16 feeNumerator = 1000;
 
     function setUp() public {
@@ -39,7 +40,7 @@ contract EndpointTest is Test {
         wNad = new WNAD();
         factory = new BondingCurveFactory(owner, address(wNad));
         factory.initialize(
-            deployFee, tokenTotalSupply, virtualNad, virtualToken, targetToken, feeNumerator, feeDominator
+            deployFee, tokenTotalSupply, virtualNad, virtualToken, targetToken, feeNumerator, feeDenominator
         );
 
         endpoint = new Endpoint(address(factory), address(wNad));
@@ -72,41 +73,24 @@ contract EndpointTest is Test {
             endpoint.createCurve{value: 1.03 ether}("Test", "Test", 1 ether, 0.01 ether, 0.02 ether);
 
         vm.stopPrank();
-        assertEq(owner.balance, 0.04 ether);
-        assertEq(creator.balance, 0);
-        // 기록된 이벤트 로그 수집
-        // Vm.Log[] memory logs = vm.getRecordedLogs();
-
-        // address tokenAddress;
-
-        // // Create 이벤트 로그 분석 및 token 주소 출력
-        // for (uint256 i = 0; i < logs.length; i++) {
-        //     Vm.Log memory log = logs[i];
-
-        //     // Create 이벤트의 토픽 확인 (토픽이 최소 4개 있는지 확인)
-        //     if (log.topics.length == 4 && log.topics[0] == keccak256("Create(address,address,address)")) {
-        //         tokenAddress = address(uint160(uint256(log.topics[2])));
-
-        //         // token 주소 로그 출력
-        //         console.log("Token Address from Create Event:", tokenAddress);
-        //         break; // 이벤트를 찾았으므로 더 이상 반복할 필요 없음
-        //     }
-        // }
+        //orgin balance = 0.02 , deploy fee = 0.02 , fee = 0.01
 
         // require(tokenAddress != address(0), "Create event not found or token address not found");
         // console.log(IERC20(tokenAddress).balanceOf(creator));
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
         assertEq(IERC20(token).balanceOf(creator), amountOut);
+        assertEq(owner.balance, 0.05 ether);
+        assertEq(creator.balance, 0);
     }
 
-    function testInvalidValueCreateCurve() public {
-        vm.deal(creator, 1.01 ether);
-        vm.expectRevert(bytes(ERR_INVALID_SEND_NAD));
-        vm.startPrank(creator);
-        //보내야할 이더 양은 = 1.03 ether
-        endpoint.createCurve{value: 1.01 ether}("TEST", "TEST", 1 ether, 0.01 ether, 0.02 ether);
-        vm.stopPrank();
-    }
+    // function testInvalidValueCreateCurve() public {
+    //     vm.deal(creator, 1.01 ether);
+    //     vm.expectRevert(bytes(ERR_INVALID_SEND_NAD));
+    //     vm.startPrank(creator);
+    //     //보내야할 이더 양은 = 1.03 ether
+    //     endpoint.createCurve{value: 1 ether}("TEST", "TEST", 1 ether, 0.01 ether, 0.02 ether);
+    //     vm.stopPrank();
+    // }
 
     // function testInvalidAmountInCreateCurve() public {
     //     vm.deal(creator, 1.01 ether);
@@ -117,20 +101,21 @@ contract EndpointTest is Test {
     //     vm.stopPrank();
     // }
 
-    // function testInvalidFeeCreateCurve() public {
-    //     vm.deal(creator, 1.02 ether);
-    //     vm.expectRevert(bytes(ERR_INVALID_FEE));
-    //     vm.startPrank(creator);
-    //     //amountIn = 0;
-    //     endpoint.createCurve{value: 1.02 ether}("TEST", "TEST", 1 ether, 0, 0.02 ether);
-    //     vm.stopPrank();
-    // }
+    function testInvalidFeeCreateCurve() public {
+        vm.deal(creator, 1.025 ether);
+        vm.expectRevert(bytes(ERR_INVALID_FEE));
+        vm.startPrank(creator);
+        //amountIn = 0;
+        endpoint.createCurve{value: 1.025 ether}("TEST", "TEST", 1 ether, 0.005 ether, 0.02 ether);
+        vm.stopPrank();
+    }
     /**
      * @dev Buy Test
      */
+
     function testInvalidDeployFeeCreateCurve() public {
         vm.deal(creator, 1.02 ether);
-        vm.expectRevert(bytes(ERR_INSUFFICIENT_FEE));
+        vm.expectRevert(bytes(ERR_INVALID_DEPLOY_FEE));
         vm.startPrank(creator);
         //amountIn = 0;
         endpoint.createCurve{value: 1.02 ether}("TEST", "TEST", 1 ether, 0.01 ether, 0.01 ether);
@@ -139,18 +124,20 @@ contract EndpointTest is Test {
 
     function testBuy() public {
         vm.startPrank(trader);
-
+        uint256 ownerBalance = owner.balance;
         vm.deal(trader, 1.01 ether);
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
 
         uint256 deadline = block.timestamp + 1;
+
         endpoint.buy{value: 1.01 ether}(1 ether, 0.01 ether, address(token), trader, deadline);
         vm.stopPrank();
+
         assertEq(token.balanceOf(trader), amountOut);
         assertEq(trader.balance, 0);
         //fee 로 받은 0.01 ether 는 owner 에게 전송됨.
-        //wrap 상태로 받음
-        assertEq(IERC20(address(wNad)).balanceOf(owner), 0.01 ether);
+
+        assertEq(owner.balance, ownerBalance + 0.01 ether);
     }
 
     function InvalidValueBuy() public {
@@ -163,7 +150,7 @@ contract EndpointTest is Test {
         //1.01 ether 보내야함
         vm.expectRevert(bytes(ERR_INVALID_SEND_NAD));
         endpoint.buy{value: 1 ether}(1 ether, 0.01 ether, address(token), trader, deadline);
-        assertEq(wNad.balanceOf(owner), 0.01 ether);
+        assertEq(owner.balance, 0.01 ether);
     }
 
     function InvalidAmountInAndFeeBuy() public {
@@ -179,25 +166,142 @@ contract EndpointTest is Test {
         vm.expectRevert(bytes(ERR_INVALID_FEE));
         endpoint.buy{value: 1.01 ether}(1, 0, address(token), trader, deadline);
     }
+
+    /**
+     * @dev BuyWNad Test
+     */
+    function testBuyWNad() public {
+        vm.startPrank(trader);
+        uint256 ownerBalance = owner.balance;
+        uint256 traderWNad = 1.01 ether;
+        vm.deal(trader, traderWNad);
+        wNad.deposit{value: traderWNad}();
+        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
+        uint256 deadline = block.timestamp + 1;
+        wNad.approve(address(endpoint), traderWNad);
+        endpoint.buyWNad(1 ether, 0.01 ether, address(token), trader, deadline);
+        vm.stopPrank();
+        assertEq(token.balanceOf(trader), amountOut);
+        assertEq(wNad.balanceOf(trader), 0);
+        assertEq(owner.balance, ownerBalance + 0.01 ether);
+    }
+
+    function testInvalidAmountInBuyWNad() public {
+        vm.startPrank(trader);
+        uint256 traderWNad = 1.01 ether;
+        vm.deal(trader, traderWNad);
+        wNad.deposit{value: traderWNad}();
+        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
+        uint256 deadline = block.timestamp + 1;
+
+        wNad.approve(address(endpoint), traderWNad);
+
+        uint256 amountIn = 2 ether;
+        uint256 fee = 0.02 ether;
+
+        vm.expectRevert(bytes(ERR_INVALID_ALLOWANCE));
+        endpoint.buyWNad(amountIn, fee, address(token), trader, deadline);
+    }
+
+    function testInvalidFeeBuyWNad() public {
+        vm.startPrank(trader);
+
+        uint256 traderWNad = 1.01 ether;
+        vm.deal(trader, traderWNad);
+        wNad.deposit{value: traderWNad}();
+        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
+        uint256 deadline = block.timestamp + 1;
+        wNad.approve(address(endpoint), traderWNad);
+        uint256 amountIn = 1 ether;
+        uint256 fee = 0.009 ether;
+        vm.expectRevert(bytes(ERR_INVALID_FEE));
+        endpoint.buyWNad(amountIn, fee, address(token), trader, deadline);
+    }
+
+    /**
+     * @dev buyNadWNadPermit Test
+     */
+    function testbuyWNadWithPermit() public {
+        vm.startPrank(trader);
+        uint256 ownerBalance = owner.balance;
+        uint256 traderWNad = 1.01 ether;
+        vm.deal(trader, traderWNad);
+        wNad.deposit{value: traderWNad}();
+        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
+        uint256 deadline = block.timestamp + 1;
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                wNad.DOMAIN_SEPARATOR(),
+                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(endpoint), traderWNad, 0, deadline))
+            )
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
+        endpoint.buyWNadWithPermit(1 ether, 0.01 ether, address(token), trader, trader, deadline, v, r, s);
+        vm.stopPrank();
+        assertEq(token.balanceOf(trader), amountOut);
+        assertEq(wNad.balanceOf(trader), 0);
+        assertEq(owner.balance, ownerBalance + 0.01 ether);
+    }
+
+    function testInvalidPermitBuyWNadWithPermit() public {
+        vm.startPrank(trader);
+        uint256 traderWNad = 1.01 ether;
+        vm.deal(trader, traderWNad);
+        wNad.deposit{value: traderWNad}();
+        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
+        uint256 deadline = block.timestamp + 1;
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                wNad.DOMAIN_SEPARATOR(),
+                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(endpoint), traderWNad + 1, 0, deadline))
+            )
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
+
+        vm.expectRevert(bytes(ERR_INVALID_SIGNATURE));
+
+        endpoint.buyWNadWithPermit(1 ether, 0.01 ether, address(token), trader, trader, deadline, v, r, s);
+    }
+
+    function testInvalidFeeBuyWNadWithPermit() public {
+        vm.startPrank(trader);
+        uint256 traderWNad = 2.01 ether;
+        vm.deal(trader, traderWNad);
+        wNad.deposit{value: traderWNad}();
+        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
+        uint256 deadline = block.timestamp + 1;
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                wNad.DOMAIN_SEPARATOR(),
+                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(endpoint), traderWNad, 0, deadline))
+            )
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
+        vm.expectRevert(bytes(ERR_INVALID_FEE));
+        endpoint.buyWNadWithPermit(2 ether, 0.01 ether, address(token), trader, trader, deadline, v, r, s);
+    }
+
     /**
      * @dev BuyAmountOutMin Test
      */
-
     function testBuyAmountOutMin() public {
         vm.startPrank(trader);
         vm.deal(trader, 1.01 ether);
+        uint256 owerBalance = owner.balance;
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
         // console.log("Calculated amountOut: ", amountOut);
         uint256 deadline = block.timestamp + 1;
 
-        endpoint.buyAmountOutMin{value: 1.01 ether}(
-            1 ether, amountOut - 1, 0.01 ether, address(token), trader, deadline
-        );
+        endpoint.buyAmountOutMin{value: 1.01 ether}(1 ether, 10, 0.01 ether, address(token), trader, deadline);
         vm.stopPrank();
 
         assertEq(token.balanceOf(trader), amountOut);
         assertEq(trader.balance, 0);
-        assertEq(wNad.balanceOf(owner), 0.01 ether);
+        assertEq(owner.balance, owerBalance + 0.01 ether);
     }
 
     function testInvalidValueBuyAmountOutMin() public {
@@ -225,34 +329,149 @@ contract EndpointTest is Test {
     }
 
     /**
+     * @dev Buy AmountOutMinWNad Test
+     */
+    function testBuyWNadAmountOutMin() public {
+        vm.startPrank(trader);
+        uint256 ownerBalance = owner.balance;
+        uint256 traderWNad = 1.01 ether;
+        vm.deal(trader, traderWNad);
+        wNad.deposit{value: traderWNad}();
+        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
+        uint256 deadline = block.timestamp + 1;
+        wNad.approve(address(endpoint), traderWNad);
+        uint256 amountOutMin = 10;
+        endpoint.buyWNadAmountOutMin(1 ether, amountOutMin, 0.01 ether, address(token), trader, deadline);
+        vm.stopPrank();
+        assertEq(token.balanceOf(trader), amountOut);
+        assertEq(wNad.balanceOf(trader), 0);
+        assertEq(owner.balance, ownerBalance + 0.01 ether);
+    }
+
+    function testInvalidAllowanceBuyWNadAmountOutMin() public {
+        vm.startPrank(trader);
+        uint256 traderWNad = 1.01 ether;
+        vm.deal(trader, traderWNad);
+        wNad.deposit{value: traderWNad}();
+        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
+        uint256 deadline = block.timestamp + 1;
+        uint256 amountOutMin = 10;
+        wNad.approve(address(endpoint), traderWNad - 1);
+        vm.expectRevert(bytes(ERR_INVALID_ALLOWANCE));
+        endpoint.buyWNadAmountOutMin(1 ether, amountOutMin, 0.01 ether, address(token), trader, deadline);
+    }
+
+    function testInvalidFeeBuyWNadAmountOutMin() public {
+        vm.startPrank(trader);
+        uint256 traderWNad = 2.01 ether;
+        vm.deal(trader, traderWNad);
+        wNad.deposit{value: traderWNad}();
+        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
+        uint256 deadline = block.timestamp + 1;
+        uint256 amountOutMin = 10;
+        wNad.approve(address(endpoint), traderWNad);
+        vm.expectRevert(bytes(ERR_INVALID_FEE));
+        endpoint.buyWNadAmountOutMin(2 ether, amountOutMin, 0.01 ether, address(token), trader, deadline);
+    }
+
+    /**
+     * @dev BuyAmountOutMinWithPermit Test
+     */
+    function testBuyAmountOutMinNadPermit() public {
+        vm.startPrank(trader);
+        uint256 ownerBalance = owner.balance;
+        uint256 traderNad = 1.01 ether;
+        vm.deal(trader, traderNad);
+        wNad.deposit{value: traderNad}();
+        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
+        uint256 deadline = block.timestamp + 1;
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                wNad.DOMAIN_SEPARATOR(),
+                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(endpoint), traderNad, 0, deadline))
+            )
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
+
+        endpoint.buyWNadAmountOutMinPermit(1 ether, 10, 0.01 ether, address(token), trader, trader, deadline, v, r, s);
+
+        vm.stopPrank();
+
+        assertEq(token.balanceOf(trader), amountOut);
+        assertEq(wNad.balanceOf(trader), 0);
+        assertEq(owner.balance, ownerBalance + 0.01 ether);
+    }
+
+    function testInvalidPermitBuyAmountOutMinNadPermit() public {
+        vm.startPrank(trader);
+        uint256 traderNad = 1.01 ether;
+        vm.deal(trader, traderNad);
+        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
+        uint256 deadline = block.timestamp + 1;
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                wNad.DOMAIN_SEPARATOR(),
+                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(endpoint), traderNad + 1, 0, deadline))
+            )
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
+        vm.expectRevert(bytes(ERR_INVALID_SIGNATURE));
+        endpoint.buyWNadAmountOutMinPermit(1 ether, 10, 0.01 ether, address(token), trader, trader, deadline, v, r, s);
+    }
+
+    function testInvalidFeeBuyAmountOutMinNadPermit() public {
+        vm.startPrank(trader);
+        uint256 traderNad = 2.01 ether;
+        vm.deal(trader, traderNad);
+        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
+        uint256 deadline = block.timestamp + 1;
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                wNad.DOMAIN_SEPARATOR(),
+                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(endpoint), traderNad + 1, 0, deadline))
+            )
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
+        vm.expectRevert(bytes(ERR_INVALID_SIGNATURE));
+        endpoint.buyWNadAmountOutMinPermit(2 ether, 10, 0.01 ether, address(token), trader, trader, deadline, v, r, s);
+    }
+
+    /**
      * @dev Buy ExactAmountOut Test
      */
     function testBuyExactAmountOut() public {
         vm.startPrank(trader);
+        uint256 ownerBalance = owner.balance;
         //1 ether 로 살 수 있는 토큰의 양 계산
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
+
         uint256 amountIn = NadsPumpLibrary.getAmountIn(amountOut, k, virtualNad, virtualToken); //1 ether
-        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(amountIn, feeDominator, feeNumerator); //0.01 ether;
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(amountIn, feeDenominator, feeNumerator); //0.01 ether;
 
         uint256 totalAmountIn = amountIn + feeAmount;
         uint256 traderBalance = 2 ether;
+
         vm.deal(trader, traderBalance);
 
         uint256 deadline = block.timestamp + 1;
 
         endpoint.buyExactAmountOut{value: traderBalance}(amountOut, traderBalance, address(token), trader, deadline);
         vm.stopPrank();
+
         assertEq(token.balanceOf(trader), amountOut);
         //2ether 를 보냈지만 1.01 만썻으므로 trader.balance = 990000000000000000
         assertEq(trader.balance, traderBalance - totalAmountIn);
-        assertEq(wNad.balanceOf(owner), feeAmount);
+        assertEq(owner.balance, ownerBalance + feeAmount);
     }
 
     function testInvalidValuebuyExactAmountOut() public {
         vm.startPrank(trader);
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
         uint256 amountIn = NadsPumpLibrary.getAmountIn(amountOut, k, virtualNad, virtualToken);
-        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(amountIn, feeDominator, feeNumerator);
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(amountIn, feeDenominator, feeNumerator);
         uint256 totalAmountIn = amountIn + feeAmount;
         uint256 traderBalance = 2 ether;
         vm.deal(trader, traderBalance);
@@ -267,7 +486,7 @@ contract EndpointTest is Test {
         vm.startPrank(trader);
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
         uint256 amountIn = NadsPumpLibrary.getAmountIn(amountOut, k, virtualNad, virtualToken);
-        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(amountIn, feeDominator, feeNumerator);
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(amountIn, feeDenominator, feeNumerator);
         uint256 totalAmountIn = amountIn + feeAmount;
         uint256 traderBalance = 1.01 ether;
         vm.deal(trader, traderBalance);
@@ -280,23 +499,168 @@ contract EndpointTest is Test {
     }
 
     /**
+     * @dev buy ExactAmountOut Nad  Test
+     */
+    function testBuyExactAmountOutWNad() public {
+        vm.startPrank(trader);
+        uint256 ownerBalance = owner.balance;
+        //1 ether 로 살 수 있는 토큰의 양 계산
+        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
+
+        uint256 amountIn = NadsPumpLibrary.getAmountIn(amountOut, k, virtualNad, virtualToken); //1 ether
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(amountIn, feeDenominator, feeNumerator); //0.01 ether;
+
+        uint256 totalAmountIn = amountIn + feeAmount;
+        uint256 traderBalance = 2 ether;
+
+        vm.deal(trader, traderBalance);
+
+        uint256 deadline = block.timestamp + 1;
+        wNad.deposit{value: traderBalance}();
+
+        wNad.approve(address(endpoint), traderBalance);
+        endpoint.buyExactAmountOutWNad(amountOut, traderBalance, address(token), trader, deadline);
+        vm.stopPrank();
+
+        assertEq(token.balanceOf(trader), amountOut);
+        //2ether 를 보냈지만 1.01 만썻으므로 trader.balance = 990000000000000000
+        assertEq(wNad.balanceOf(trader), traderBalance - totalAmountIn);
+        assertEq(owner.balance, ownerBalance + feeAmount);
+    }
+
+    function testInvalidAmountOutBuyExactAmountOutWNad() public {
+        vm.startPrank(trader);
+        uint256 ownerBalance = owner.balance;
+        //1 ether 로 살 수 있는 토큰의 양 계산
+        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
+
+        uint256 amountIn = NadsPumpLibrary.getAmountIn(amountOut, k, virtualNad, virtualToken); //1 ether
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(amountIn, feeDenominator, feeNumerator); //0.01 ether;
+
+        uint256 totalAmountIn = amountIn + feeAmount;
+        uint256 traderBalance = 1.01 ether;
+
+        vm.deal(trader, traderBalance);
+
+        uint256 deadline = block.timestamp + 1;
+        wNad.deposit{value: traderBalance}();
+        wNad.approve(address(endpoint), traderBalance);
+        vm.expectRevert(bytes(ERR_INVALID_AMOUNT_OUT));
+        endpoint.buyExactAmountOutWNad(0, traderBalance, address(token), trader, deadline);
+    }
+
+    function testInvalidAmountInMaxBuyExactAmountOutWNad() public {
+        vm.startPrank(trader);
+        uint256 ownerBalance = owner.balance;
+        //1 ether 로 살 수 있는 토큰의 양 계산
+        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
+
+        uint256 amountIn = NadsPumpLibrary.getAmountIn(amountOut, k, virtualNad, virtualToken); //1 ether
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(amountIn, feeDenominator, feeNumerator); //0.01 ether;
+
+        uint256 totalAmountIn = amountIn + feeAmount;
+        uint256 traderBalance = 1.01 ether;
+
+        vm.deal(trader, traderBalance);
+
+        uint256 deadline = block.timestamp + 1;
+        wNad.deposit{value: traderBalance}();
+        wNad.approve(address(endpoint), traderBalance);
+        vm.expectRevert(bytes(ERR_INVALID_AMOUNT_IN_MAX));
+        uint256 amountInMax = traderBalance - 1;
+        endpoint.buyExactAmountOutWNad(amountOut, amountInMax, address(token), trader, deadline);
+    }
+    /**
+     * @dev Buy ExactAmountOut Permit Test
+     */
+
+    function testBuyExactAmountOutWNadPermit() public {
+        vm.startPrank(trader);
+        uint256 ownerBalance = owner.balance;
+        //1 ether 로 살 수 있는 토큰의 양 계산
+        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
+
+        uint256 amountIn = NadsPumpLibrary.getAmountIn(amountOut, k, virtualNad, virtualToken); //1 ether
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(amountIn, feeDenominator, feeNumerator); //0.01 ether;
+
+        uint256 totalAmountIn = amountIn + feeAmount;
+        uint256 traderBalance = 2 ether;
+
+        vm.deal(trader, traderBalance);
+
+        uint256 deadline = block.timestamp + 1;
+        wNad.deposit{value: traderBalance}();
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                wNad.DOMAIN_SEPARATOR(),
+                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(endpoint), traderBalance, 0, deadline))
+            )
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
+
+        endpoint.buyExactAmountOutWNadPermit(
+            amountOut, traderBalance, address(token), trader, trader, deadline, v, r, s
+        );
+        vm.stopPrank();
+
+        assertEq(token.balanceOf(trader), amountOut);
+
+        assertEq(wNad.balanceOf(trader), traderBalance - totalAmountIn);
+        assertEq(owner.balance, ownerBalance + feeAmount);
+    }
+
+    function testInvalidPermitBuyExactAmountOutWNadPermit() public {
+        vm.startPrank(trader);
+        uint256 ownerBalance = owner.balance;
+        //1 ether 로 살 수 있는 토큰의 양 계산
+        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
+
+        uint256 amountIn = NadsPumpLibrary.getAmountIn(amountOut, k, virtualNad, virtualToken); //1 ether
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(amountIn, feeDenominator, feeNumerator); //0.01 ether;
+
+        uint256 totalAmountIn = amountIn + feeAmount;
+        uint256 traderBalance = 2 ether;
+
+        vm.deal(trader, traderBalance);
+        wNad.deposit{value: traderBalance}();
+
+        uint256 deadline = block.timestamp + 1;
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                wNad.DOMAIN_SEPARATOR(),
+                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(endpoint), traderBalance, 0, deadline))
+            )
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
+        vm.expectRevert(bytes(ERR_INVALID_SIGNATURE));
+        endpoint.buyExactAmountOutWNadPermit(
+            amountOut, traderBalance - 1, address(token), trader, trader, deadline, v, r, s
+        );
+        vm.stopPrank();
+    }
+
+    /**
      * @dev Sell Test
      */
     function testSell() public {
         testBuy();
         vm.startPrank(trader);
+        uint256 ownerBalance = owner.balance;
         uint256 traderTokenBalance = token.balanceOf(trader);
         (virtualNad, virtualToken) = curve.getVirtualReserves();
         uint256 nadAmount = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
-        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(nadAmount, feeDominator, feeNumerator);
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(nadAmount, feeDenominator, feeNumerator);
 
         uint256 deadline = block.timestamp + 1;
         token.approve(address(endpoint), traderTokenBalance);
         endpoint.sell(traderTokenBalance, address(token), trader, deadline);
         vm.stopPrank();
+
         assertEq(token.balanceOf(trader), 0);
         assertEq(trader.balance, nadAmount - feeAmount);
-        assertEq(wNad.balanceOf(owner), feeAmount + 0.01 ether);
+        assertEq(owner.balance, ownerBalance + feeAmount);
     }
 
     function testInvalidAllowanceSell() public {
@@ -305,7 +669,7 @@ contract EndpointTest is Test {
         uint256 traderTokenBalance = token.balanceOf(trader);
         (virtualNad, virtualToken) = curve.getVirtualReserves();
         uint256 nadAmount = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
-        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(nadAmount, feeDominator, feeNumerator);
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(nadAmount, feeDenominator, feeNumerator);
 
         uint256 deadline = block.timestamp + 1;
         vm.startPrank(trader);
@@ -319,21 +683,23 @@ contract EndpointTest is Test {
     function testSellAmountOutMin() public {
         testBuy();
         vm.startPrank(trader);
+        uint256 ownerBalance = owner.balance;
         uint256 traderTokenBalance = token.balanceOf(trader);
         console.log(traderTokenBalance);
         (virtualNad, virtualToken) = curve.getVirtualReserves();
         uint256 nadAmountOut = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
         console.log("NadAmountOut = ", nadAmountOut);
-        uint256 feeAmountOut = NadsPumpLibrary.getFeeAmount(nadAmountOut, feeDominator, feeNumerator);
-        console.log("FeeAmountOut = ", feeAmountOut);
-        nadAmountOut -= feeAmountOut;
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(nadAmountOut, feeDenominator, feeNumerator);
+        console.log("FeeAmount = ", feeAmount);
+        nadAmountOut -= feeAmount;
         uint256 deadline = block.timestamp + 1;
         token.approve(address(endpoint), traderTokenBalance);
-        endpoint.sellAmountOutMin(traderTokenBalance, nadAmountOut - 1, address(token), trader, deadline);
+        endpoint.sellAmountOutMin(traderTokenBalance, 10, address(token), trader, deadline);
         vm.stopPrank();
+
         assertEq(token.balanceOf(trader), 0);
         assertEq(trader.balance, nadAmountOut);
-        assertEq(wNad.balanceOf(owner), feeAmountOut + 0.01 ether);
+        assertEq(owner.balance, ownerBalance + feeAmount);
     }
 
     function testInvalidAllonwaceSellAmountOutMin() public {
@@ -342,7 +708,7 @@ contract EndpointTest is Test {
         uint256 traderTokenBalance = token.balanceOf(trader);
         (virtualNad, virtualToken) = curve.getVirtualReserves();
         uint256 nadAmount = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
-        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(nadAmount, feeDominator, feeNumerator);
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(nadAmount, feeDenominator, feeNumerator);
 
         uint256 deadline = block.timestamp + 1;
         vm.startPrank(trader);
@@ -358,7 +724,7 @@ contract EndpointTest is Test {
         uint256 traderTokenBalance = token.balanceOf(trader);
         (virtualNad, virtualToken) = curve.getVirtualReserves();
         uint256 nadAmount = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
-        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(nadAmount, feeDominator, feeNumerator);
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(nadAmount, feeDenominator, feeNumerator);
 
         uint256 deadline = block.timestamp + 1;
         vm.startPrank(trader);
@@ -376,11 +742,11 @@ contract EndpointTest is Test {
         //---------Buy End----------------------
         vm.startPrank(trader);
         uint256 traderTokenBalance = token.balanceOf(trader);
-
+        uint256 ownerBalance = owner.balance;
         (virtualNad, virtualToken) = curve.getVirtualReserves();
         uint256 nadAmountOut = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
 
-        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(nadAmountOut, feeDominator, feeNumerator);
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(nadAmountOut, feeDenominator, feeNumerator);
 
         nadAmountOut -= feeAmount;
         uint256 deadline = block.timestamp + 1;
@@ -397,13 +763,11 @@ contract EndpointTest is Test {
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
 
-        endpoint.sellAmountOutMinWithPermit(
-            traderTokenBalance, nadAmountOut - 1, address(token), trader, trader, deadline, v, r, s
-        );
-        vm.stopPrank();
+        endpoint.sellAmountOutMinWithPermit(traderTokenBalance, 10, address(token), trader, trader, deadline, v, r, s);
+
         assertEq(token.balanceOf(trader), 0);
         assertEq(trader.balance, nadAmountOut);
-        assertEq(wNad.balanceOf(owner), feeAmount + 0.01 ether);
+        assertEq(owner.balance, ownerBalance + feeAmount);
     }
 
     function testInvalidAmountOutSellAmountOutMinWithPermit() public {
@@ -415,7 +779,7 @@ contract EndpointTest is Test {
         (virtualNad, virtualToken) = curve.getVirtualReserves();
         uint256 nadAmountOut = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
 
-        uint256 feeAmountOut = NadsPumpLibrary.getFeeAmount(nadAmountOut, feeDominator, feeNumerator);
+        uint256 feeAmountOut = NadsPumpLibrary.getFeeAmount(nadAmountOut, feeDenominator, feeNumerator);
 
         nadAmountOut -= feeAmountOut;
         uint256 deadline = block.timestamp + 1;
@@ -441,27 +805,34 @@ contract EndpointTest is Test {
     function testSellExactAmountOut() public {
         testBuy();
         vm.startPrank(trader);
+
+        uint256 ownerBalance = owner.balance;
         uint256 traderTokenBalance = token.balanceOf(trader);
         (virtualNad, virtualToken) = curve.getVirtualReserves();
         //nadAmount
         uint256 amountOut = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
 
-        uint256 wantedAmountOut = amountOut / 2;
+        uint256 wantedAmountOut = 500_000_000_000_000_000;
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(wantedAmountOut, feeDenominator, feeNumerator);
+        vm.deal(trader, feeAmount);
+        console.log("wanted Amount = ", 500_000_000_000_000_000);
         // console.log("wanted Amount = ", amountOut / 2);
         uint256 deadline = block.timestamp + 1;
         token.approve(address(endpoint), traderTokenBalance);
-        endpoint.sellExactAmountOut(wantedAmountOut, traderTokenBalance, address(token), trader, deadline);
+        endpoint.sellExactAmountOut{value: feeAmount}(
+            wantedAmountOut, traderTokenBalance, address(token), trader, deadline
+        );
         // console.log("Recieved Nad", trader.balance);
         vm.stopPrank();
 
         //Sell 일경우 amountOut 에 1%를 더한 금액을 인출할 amountIn 을 해야 함.
-        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(wantedAmountOut, feeDominator, feeNumerator);
-        uint256 totalAmountIn = NadsPumpLibrary.getAmountIn(wantedAmountOut + feeAmount, k, virtualToken, virtualNad);
+        uint256 amountIn = NadsPumpLibrary.getAmountIn(wantedAmountOut, k, virtualToken, virtualNad);
 
+        vm.stopPrank();
         // console.log("totalAmountIn = ", totalAmountIn);
-        assertEq(token.balanceOf(trader), traderTokenBalance - totalAmountIn);
+        assertEq(token.balanceOf(trader), traderTokenBalance - amountIn);
         assertEq(trader.balance, wantedAmountOut);
-        assertEq(wNad.balanceOf(owner), feeAmount + 0.01 ether);
+        assertEq(owner.balance, ownerBalance + feeAmount);
     }
 
     function testInvalidAllowacneSellExactAmountOut() public {
@@ -473,11 +844,14 @@ contract EndpointTest is Test {
         uint256 amountOut = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
 
         uint256 wantedAmountOut = amountOut / 2;
-
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(wantedAmountOut, feeDenominator, feeNumerator);
+        vm.deal(trader, feeAmount);
         uint256 deadline = block.timestamp + 1;
         token.approve(address(endpoint), traderTokenBalance - 1);
         vm.expectRevert(bytes(ERR_INVALID_ALLOWANCE));
-        endpoint.sellExactAmountOut(wantedAmountOut, traderTokenBalance, address(token), trader, deadline);
+        endpoint.sellExactAmountOut{value: feeAmount}(
+            wantedAmountOut, traderTokenBalance, address(token), trader, deadline
+        );
         // console.log("Recieved Nad", trader.balance);
         vm.stopPrank();
     }
@@ -486,16 +860,20 @@ contract EndpointTest is Test {
         testBuy();
         vm.startPrank(trader);
         uint256 traderTokenBalance = token.balanceOf(trader);
+        console.log("Trader Token Balance =", traderTokenBalance);
         (virtualNad, virtualToken) = curve.getVirtualReserves();
-
-        uint256 amountOut = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
-
-        uint256 wantedAmountOut = amountOut;
-
+        //Nad
+        uint256 maxAmountOut = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad) + 1;
+        console.log("Max AmountOut = ", maxAmountOut);
+        //Nad
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(maxAmountOut, feeDenominator, feeNumerator);
+        vm.deal(trader, feeAmount);
         uint256 deadline = block.timestamp + 1;
         token.approve(address(endpoint), traderTokenBalance);
         vm.expectRevert(bytes(ERR_INVALID_AMOUNT_IN_MAX));
-        endpoint.sellExactAmountOut(amountOut + 1, traderTokenBalance, address(token), trader, deadline);
+        endpoint.sellExactAmountOut{value: feeAmount}(
+            maxAmountOut, traderTokenBalance, address(token), trader, deadline
+        );
         // console.log("Recieved Nad", trader.balance);
         vm.stopPrank();
     }
@@ -506,13 +884,17 @@ contract EndpointTest is Test {
     function testSellExactAmountOutWithPermit() public {
         testBuy();
         vm.startPrank(trader);
+        uint256 ownerBalance = owner.balance;
         uint256 traderTokenBalance = token.balanceOf(trader);
+        // console.log("TraderTokenBalance = ", traderTokenBalance);
         (virtualNad, virtualToken) = curve.getVirtualReserves();
         //nadAmount
 
-        uint256 amountOut = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
-        uint256 wantedAmountOut = amountOut / 2;
+        // uint256 amountOut = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
+        uint256 wantedAmountOut = 500_000_000_000_000_000;
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(wantedAmountOut, feeDenominator, feeNumerator);
         // console.log("wanted Amount = ", amountOut / 2);
+        vm.deal(trader, feeAmount);
         uint256 deadline = block.timestamp + 1;
 
         bytes32 digest = keccak256(
@@ -526,20 +908,26 @@ contract EndpointTest is Test {
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
 
-        endpoint.sellExactAmountOutwithPermit(
+        endpoint.sellExactAmountOutwithPermit{value: feeAmount}(
             wantedAmountOut, traderTokenBalance, address(token), trader, trader, deadline, v, r, s
         );
 
         vm.stopPrank();
 
         //Sell 일경우 amountOut 에 1%를 더한 금액을 인출할 amountIn 을 해야 함.
-        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(wantedAmountOut, feeDominator, feeNumerator);
-        uint256 totalAmountIn = NadsPumpLibrary.getAmountIn(wantedAmountOut + feeAmount, k, virtualToken, virtualNad);
 
-        assertEq(token.balanceOf(trader), traderTokenBalance - totalAmountIn);
+        uint256 amountIn = NadsPumpLibrary.getAmountIn(wantedAmountOut, k, virtualToken, virtualNad);
+
+        assertEq(token.balanceOf(trader), traderTokenBalance - amountIn);
         assertEq(trader.balance, wantedAmountOut);
         //buy 1 ether -> 0.01 protocol fee
-        assertEq(wNad.balanceOf(owner), feeAmount + 0.01 ether);
+        assertEq(owner.balance, ownerBalance + feeAmount);
+        // (uint256 virtualNad, uint256 virtualToken) = curve.getVirtualReserves();
+        // console.log(virtualNad);
+        // console.log(virtualToken);
+        // console.log(trader.balance);
+        // console.log(token.balanceOf(trader));
+        // console.log(owner.balance);
     }
 
     function testOverflowAmountInMaxSellExactAmountOutWithPermit() public {
@@ -549,7 +937,8 @@ contract EndpointTest is Test {
         (virtualNad, virtualToken) = curve.getVirtualReserves();
         //nadAmount
         uint256 amountOut = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
-
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(amountOut + 1, feeDenominator, feeNumerator);
+        vm.deal(trader, feeAmount);
         // console.log("wanted Amount = ", amountOut / 2);
         uint256 deadline = block.timestamp + 1;
         // token.approve(address(endpoint), traderTokenBalance);
@@ -564,7 +953,7 @@ contract EndpointTest is Test {
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
         vm.expectRevert(bytes(ERR_INVALID_AMOUNT_IN_MAX));
-        endpoint.sellExactAmountOutwithPermit(
+        endpoint.sellExactAmountOutwithPermit{value: feeAmount}(
             amountOut + 1, traderTokenBalance, address(token), trader, trader, deadline, v, r, s
         );
 
@@ -576,8 +965,7 @@ contract EndpointTest is Test {
 
     function testOverflowTrargetBondingCurveBuy() public {
         vm.startPrank(trader);
-        // uint256 amountIn = 86 ether;
-        // uint256 fee = amountIn / 100;
+
         uint256 maximalAmountOut = tokenTotalSupply - targetToken;
         uint256 amountIn = NadsPumpLibrary.getAmountIn(maximalAmountOut, k, virtualNad, virtualToken) + 1;
         uint256 fee = amountIn / 100;
