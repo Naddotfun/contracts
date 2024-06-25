@@ -680,6 +680,66 @@ contract EndpointTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @dev Sell Permit Test
+     */
+    function testSellPermit() public {
+        testBuy();
+        vm.startPrank(trader);
+        uint256 ownerBalance = owner.balance;
+        uint256 traderTokenBalance = token.balanceOf(trader);
+        (virtualNad, virtualToken) = curve.getVirtualReserves();
+        uint256 nadAmount = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(nadAmount, feeDenominator, feeNumerator);
+
+        uint256 deadline = block.timestamp + 1;
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                token.DOMAIN_SEPARATOR(),
+                keccak256(
+                    abi.encode(token.PERMIT_TYPEHASH(), trader, address(endpoint), traderTokenBalance, 0, deadline)
+                )
+            )
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
+
+        token.approve(address(endpoint), traderTokenBalance);
+        endpoint.sellPermit(traderTokenBalance, address(token), trader, trader, deadline, v, r, s);
+        vm.stopPrank();
+
+        assertEq(token.balanceOf(trader), 0);
+        assertEq(trader.balance, nadAmount - feeAmount);
+        assertEq(owner.balance, ownerBalance + feeAmount);
+    }
+
+    function testInvalidSignatureSellPermit() public {
+        testBuy();
+        vm.startPrank(trader);
+        uint256 ownerBalance = owner.balance;
+        uint256 traderTokenBalance = token.balanceOf(trader);
+        (virtualNad, virtualToken) = curve.getVirtualReserves();
+        uint256 nadAmount = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
+        uint256 feeAmount = NadsPumpLibrary.getFeeAmount(nadAmount, feeDenominator, feeNumerator);
+
+        uint256 deadline = block.timestamp + 1;
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                token.DOMAIN_SEPARATOR(),
+                keccak256(
+                    abi.encode(token.PERMIT_TYPEHASH(), trader, address(endpoint), traderTokenBalance - 1, 0, deadline)
+                )
+            )
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
+
+        token.approve(address(endpoint), traderTokenBalance);
+        vm.expectRevert(bytes(ERR_INVALID_SIGNATURE));
+        endpoint.sellPermit(traderTokenBalance, address(token), trader, trader, deadline, v, r, s);
+        vm.stopPrank();
+    }
+
     function testSellAmountOutMin() public {
         testBuy();
         vm.startPrank(trader);
@@ -688,9 +748,9 @@ contract EndpointTest is Test {
         console.log(traderTokenBalance);
         (virtualNad, virtualToken) = curve.getVirtualReserves();
         uint256 nadAmountOut = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
-        console.log("NadAmountOut = ", nadAmountOut);
+
         uint256 feeAmount = NadsPumpLibrary.getFeeAmount(nadAmountOut, feeDenominator, feeNumerator);
-        console.log("FeeAmount = ", feeAmount);
+
         nadAmountOut -= feeAmount;
         uint256 deadline = block.timestamp + 1;
         token.approve(address(endpoint), traderTokenBalance);

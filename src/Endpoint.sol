@@ -345,7 +345,34 @@ contract Endpoint {
         emit Sell(msg.sender, amountIn, amountOut - fee, token, curve);
     }
 
-    function sellPermit() external {}
+    function sellPermit(
+        uint256 amountIn,
+        address token,
+        address from,
+        address to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        IERC20Permit(token).permit(from, address(this), amountIn, deadline, v, r, s);
+        IERC20(token).safeTransferFrom(from, address(this), amountIn);
+        (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
+
+        uint256 amountOut = getAmountOut(amountIn, k, virtualToken, virtualNad);
+
+        (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
+
+        IERC20(token).safeTransferERC20(curve, amountIn);
+
+        IBondingCurve(curve).sell(address(this), amountOut);
+        uint256 fee = NadsPumpLibrary.getFeeAmount(amountOut, denominator, numerator);
+        IWNAD(WNAD).withdraw(amountOut);
+        TransferHelper.safeTransferNad(owner, fee);
+
+        TransferHelper.safeTransferNad(to, amountOut - fee);
+        emit Sell(msg.sender, amountIn, amountOut - fee, token, curve);
+    }
 
     function sellAmountOutMin(uint256 amountIn, uint256 amountOutMin, address token, address to, uint256 deadline)
         external
