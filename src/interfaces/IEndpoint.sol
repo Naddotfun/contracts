@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 interface IEndpoint {
     event Buy(address indexed sender, uint256 amountIn, uint256 amountOut, address token, address curve);
     event Sell(address indexed sender, uint256 amountIn, uint256 amountOut, address token, address curve);
-    event CreateCurve(address indexed curve, address indexed token);
+    event CreateCurve(address indexed sender, address indexed curve, address indexed token);
 
     function createCurve(string memory name, string memory symbol, uint256 amountIn, uint256 fee, uint256 deployFee)
         external

@@ -26,7 +26,7 @@ contract Endpoint {
 
     event Buy(address indexed sender, uint256 amountIn, uint256 amountOut, address token, address curve);
     event Sell(address indexed sender, uint256 amountIn, uint256 amountOut, address token, address curve);
-    event CreateCurve(address indexed curve, address indexed token);
+    event CreateCurve(address indexed sender, address indexed curve, address indexed token);
 
     receive() external payable {
         assert(msg.sender == WNAD); // only accept NAD via fallback from the WNAD contract
@@ -52,7 +52,7 @@ contract Endpoint {
         require(deployFee >= _deployFee, ERR_INVALID_DEPLOY_FEE);
         TransferHelper.safeTransferNad(owner, deployFee);
         (curve, token) = IBondingCurveFactory(factory).create(name, symbol);
-        emit CreateCurve(curve, token);
+        emit CreateCurve(msg.sender, curve, token);
 
         if (amountIn == 0 || fee == 0) {
             return (curve, token);
