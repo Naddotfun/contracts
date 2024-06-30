@@ -8,6 +8,7 @@ import "./errors/Errors.sol";
 contract Token is IToken, ERC20 {
     address private _factory;
     bool private _minted;
+    string public tokenURI;
     bytes32 public DOMAIN_SEPARATOR;
     // keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
     bytes32 public constant PERMIT_TYPEHASH =
@@ -23,7 +24,8 @@ contract Token is IToken, ERC20 {
 
     mapping(address => uint256) public nonces;
 
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {
+    constructor(string memory name, string memory symbol, string memory _tokenURI) ERC20(name, symbol) {
+        tokenURI = _tokenURI;
         _minted = false;
         _factory = msg.sender;
         uint256 chainId = block.chainid;

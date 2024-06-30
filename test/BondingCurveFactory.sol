@@ -49,7 +49,7 @@ contract BondingCurveFactoryTest is Test {
         // createCurve 함수 호출
 
         (address curveAddress, address tokenAddress) =
-            endpoint.createCurve{value: 0.02 ether}("test", "test", 0, 0, 0.02 ether);
+            endpoint.createCurve{value: 0.02 ether}("test", "test", "testurl", 0, 0, 0.02 ether);
         curve = BondingCurve(curveAddress);
         token = Token(tokenAddress);
 

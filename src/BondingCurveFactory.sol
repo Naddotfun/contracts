@@ -57,7 +57,7 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
             Config(deployFee, tokenTotalSupply, virtualNad, virtualToken, k, targetToken, feeNumerator, feeDominator);
     }
 
-    function create(string memory name, string memory symbol)
+    function create(string memory name, string memory symbol, string memory tokenURI)
         external
         onlyEndpoint
         returns (address curve, address token)
@@ -65,7 +65,7 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         Config memory _config = getConfig();
 
         curve = address(new BondingCurve());
-        token = address(new Token(name, symbol));
+        token = address(new Token(name, symbol, tokenURI));
 
         IToken(token).mint(curve);
 

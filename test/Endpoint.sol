@@ -57,7 +57,7 @@ contract EndpointTest is Test {
 
         // createCurve 함수 호출
         (address curveAddress, address tokenAddress) =
-            endpoint.createCurve{value: 0.02 ether}("test", "test", 0, 0, 0.02 ether);
+            endpoint.createCurve{value: 0.02 ether}("test", "test", "testurl", 0, 0, 0.02 ether);
         curve = BondingCurve(curveAddress);
         token = Token(tokenAddress);
         // creator로의 프랭크 종료
@@ -70,7 +70,7 @@ contract EndpointTest is Test {
         // vm.recordLogs();
         vm.startPrank(creator);
         (address curve, address token) =
-            endpoint.createCurve{value: 1.03 ether}("Test", "Test", 1 ether, 0.01 ether, 0.02 ether);
+            endpoint.createCurve{value: 1.03 ether}("Test", "Test", "testurl", 1 ether, 0.01 ether, 0.02 ether);
 
         vm.stopPrank();
         //orgin balance = 0.02 , deploy fee = 0.02 , fee = 0.01
@@ -106,7 +106,7 @@ contract EndpointTest is Test {
         vm.expectRevert(bytes(ERR_INVALID_FEE));
         vm.startPrank(creator);
         //amountIn = 0;
-        endpoint.createCurve{value: 1.025 ether}("TEST", "TEST", 1 ether, 0.005 ether, 0.02 ether);
+        endpoint.createCurve{value: 1.025 ether}("TEST", "TEST", "testurl", 1 ether, 0.005 ether, 0.02 ether);
         vm.stopPrank();
     }
     /**
@@ -118,7 +118,7 @@ contract EndpointTest is Test {
         vm.expectRevert(bytes(ERR_INVALID_DEPLOY_FEE));
         vm.startPrank(creator);
         //amountIn = 0;
-        endpoint.createCurve{value: 1.02 ether}("TEST", "TEST", 1 ether, 0.01 ether, 0.01 ether);
+        endpoint.createCurve{value: 1.02 ether}("TEST", "TEST", "testurl", 1 ether, 0.01 ether, 0.01 ether);
         vm.stopPrank();
     }
 
