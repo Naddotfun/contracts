@@ -17,4 +17,10 @@ docs/
 .github/
 node_modules/
 FoundryREADME.md
-```
+broadcast/
+out/
+
+script/
+.github/
+lib/
+
