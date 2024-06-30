@@ -6,12 +6,13 @@ import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC2
 import {IBondingCurve} from "./interfaces/IBondingCurve.sol";
 import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
 import {IWNAD} from "./interfaces/IWNAD.sol";
+import {IEndpoint} from "./interfaces/IEndpoint.sol";
 import {NadsPumpLibrary} from "./utils/NadsPumpLibrary.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
 import "./errors/Errors.sol";
 import {Test, console} from "forge-std/Test.sol";
 
-contract Endpoint {
+contract Endpoint is IEndpoint {
     using TransferHelper for IERC20;
 
     address private owner;
@@ -23,10 +24,6 @@ contract Endpoint {
         WNAD = _WNAD;
         owner = msg.sender;
     }
-
-    event Buy(address indexed sender, uint256 amountIn, uint256 amountOut, address token, address curve);
-    event Sell(address indexed sender, uint256 amountIn, uint256 amountOut, address token, address curve);
-    event CreateCurve(address indexed sender, address indexed curve, address indexed token);
 
     receive() external payable {
         assert(msg.sender == WNAD); // only accept NAD via fallback from the WNAD contract
@@ -42,17 +39,20 @@ contract Endpoint {
         require(fee >= amount * denominator / numerator, ERR_INVALID_FEE);
     }
 
-    function createCurve(string memory name, string memory symbol, uint256 amountIn, uint256 fee, uint256 deployFee)
-        external
-        payable
-        returns (address curve, address token)
-    {
+    function createCurve(
+        string memory name,
+        string memory symbol,
+        string memory tokenURI,
+        uint256 amountIn,
+        uint256 fee,
+        uint256 deployFee
+    ) external payable returns (address curve, address token) {
         require(msg.value >= amountIn + fee + deployFee, ERR_INVALID_SEND_NAD);
         uint256 _deployFee = IBondingCurveFactory(factory).getDelpyFee();
         require(deployFee >= _deployFee, ERR_INVALID_DEPLOY_FEE);
         TransferHelper.safeTransferNad(owner, deployFee);
-        (curve, token) = IBondingCurveFactory(factory).create(name, symbol);
-        emit CreateCurve(msg.sender, curve, token);
+        (curve, token) = IBondingCurveFactory(factory).create(name, symbol, tokenURI);
+        emit CreateCurve(msg.sender, curve, token, tokenURI, name, symbol);
 
         if (amountIn == 0 || fee == 0) {
             return (curve, token);

@@ -4,12 +4,23 @@ pragma solidity ^0.8.20;
 interface IEndpoint {
     event Buy(address indexed sender, uint256 amountIn, uint256 amountOut, address token, address curve);
     event Sell(address indexed sender, uint256 amountIn, uint256 amountOut, address token, address curve);
-    event CreateCurve(address indexed sender, address indexed curve, address indexed token);
+    event CreateCurve(
+        address indexed sender,
+        address indexed curve,
+        address indexed token,
+        string tokenURI,
+        string name,
+        string symbol
+    );
 
-    function createCurve(string memory name, string memory symbol, uint256 amountIn, uint256 fee, uint256 deployFee)
-        external
-        payable
-        returns (address curve, address token);
+    function createCurve(
+        string memory name,
+        string memory symbol,
+        string memory tokenURI,
+        uint256 amountIn,
+        uint256 fee,
+        uint256 deployFee
+    ) external payable returns (address curve, address token);
 
     function buy(uint256 amountIn, uint256 fee, address token, address to, uint256 deadline) external payable;
 
@@ -79,6 +90,17 @@ interface IEndpoint {
 
     function sell(uint256 amountIn, address token, address to, uint256 deadline) external;
 
+    function sellPermit(
+        uint256 amountIn,
+        address token,
+        address from,
+        address to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+
     function sellAmountOutMin(uint256 amountIn, uint256 amountOutMin, address token, address to, uint256 deadline)
         external;
 
@@ -98,7 +120,7 @@ interface IEndpoint {
         external
         payable;
 
-    function sellExactAmountOutWithPermit(
+    function sellExactAmountOutwithPermit(
         uint256 amountOut,
         uint256 amountInMax,
         address token,
@@ -108,7 +130,7 @@ interface IEndpoint {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external;
+    ) external payable;
 
     function getCurveData(address _factory, address token)
         external
