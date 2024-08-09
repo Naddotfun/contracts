@@ -21,7 +21,7 @@ contract BondingCurve is IBondingCurve {
     uint256 private virtualNad;
     uint256 private virtualToken;
     uint256 private k;
-    uint256 private targetToken; //targetToken = 2_069_000_000
+    uint256 private targetToken;
     Fee feeConfig;
 
     struct Fee {
@@ -29,8 +29,8 @@ contract BondingCurve is IBondingCurve {
         uint16 numerator;
     }
 
-    uint256 realNadReserves; //realNadReserves = 30
-    uint256 realTokenReserves; //realTokenReserves = 1073000191
+    uint256 realNadReserves;
+    uint256 realTokenReserves;
 
     bool lock;
 
@@ -89,25 +89,18 @@ contract BondingCurve is IBondingCurve {
         {
             require(to != _wnad && to != _token, ERR_INVALID_TO);
             IERC20(_token).safeTransferERC20(to, amountOut);
-            // IERC20(_wnad).safeTransferERC20(IBondingCurveFactory(factory).getOwner(), fee);
+
             balanceNad = IERC20(wnad).balanceOf(address(this));
         }
 
         uint256 amountNadIn = balanceNad - _realNadReserves;
         require(amountNadIn > 0, INSUFFICIENT_INPUT_AMOUNT);
 
-        // {
-        //     (uint8 denominator, uint16 numerator) = getFee();
-        //     require(fee >= amountNadIn * denominator / numerator, ERR_INVALID_FEE);
-        // }
-
         _update(amountNadIn, amountOut, true);
 
         require(virtualNad * virtualToken >= k, ERR_INVALID_K);
-        // emit Buy(to, amountNadIn, amountOut);
     }
 
-    //fee는 amountOut 의 1 % 가 되어야함.
     //fee = 1% * amountOut
     function sell(address to, uint256 amountOut) external islock onlyEndpoint {
         require(amountOut > 0, ERR_INVALID_AMOUNT_OUT);
@@ -122,10 +115,7 @@ contract BondingCurve is IBondingCurve {
 
         {
             require(to != _wnad && to != _token, ERR_INVALID_TO);
-            // (uint8 denominator, uint16 numerator) = getFee();
-            // require(fee >= amountOut * denominator / numerator, ERR_INVALID_FEE);
-            // checkFee(amountOut, fee);
-            // IERC20(_wnad).safeTransferERC20(IBondingCurveFactory(factory).getOwner(), fee);
+
             IERC20(_wnad).safeTransferERC20(to, amountOut);
 
             balanceToken = IERC20(_token).balanceOf(address(this));
@@ -134,9 +124,7 @@ contract BondingCurve is IBondingCurve {
         uint256 amountTokenIn = balanceToken - _realTokenReserves;
 
         require(amountTokenIn > 0, INSUFFICIENT_INPUT_AMOUNT);
-        console.log("amountOut", amountOut);
-        // console.log("fee", fee);
-        console.log("amountTokenIn", amountTokenIn);
+
         _update(amountTokenIn, amountOut, false);
         require(virtualNad * virtualToken >= k, ERR_INVALID_K);
     }
@@ -163,12 +151,8 @@ contract BondingCurve is IBondingCurve {
         emit Sync(realNadReserves, realTokenReserves, virtualNad, virtualToken);
     }
 
-    // // TODO : Target Dex Factory 가 정재지면 그때 작성
-    // function dexListing() external {
-    //     //
-    // }
-    // //fee is 1%
-    // //
+    // // TODO : Once you've decided which Dex to use, write
+    // function dexListing() external {}
 
     function getReserves() public view override returns (uint256 _realNadReserves, uint256 _realTokenReserves) {
         _realNadReserves = realNadReserves;

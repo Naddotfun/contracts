@@ -19,6 +19,7 @@ contract CurveTest is Test {
     Endpoint endpoint;
     address creator = address(0xb);
     address trader = address(0xc);
+    address vault = address(0xc);
     uint256 deployFee = 2 * 10 ** 16;
     uint256 tokenTotalSupply = 10 ** 27;
     uint256 virtualNad = 30 * 10 ** 18;
@@ -41,7 +42,7 @@ contract CurveTest is Test {
             deployFee, tokenTotalSupply, virtualNad, virtualToken, targetToken, feeNumerator, feeDominator
         );
 
-        endpoint = new Endpoint(address(factory), address(wNad));
+        endpoint = new Endpoint(address(factory), address(wNad), vault);
 
         factory.setEndpoint(address(endpoint));
         // owner로의 프랭크 종료

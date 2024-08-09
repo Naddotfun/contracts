@@ -29,7 +29,7 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
     }
 
     constructor(address _owner, address _wnad) {
-        owner = _owner; // owner 인자로 초기화
+        owner = _owner;
         WNAD = _wnad;
     }
 
@@ -55,6 +55,9 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         uint256 k = virtualNad * virtualToken;
         config =
             Config(deployFee, tokenTotalSupply, virtualNad, virtualToken, k, targetToken, feeNumerator, feeDominator);
+        emit SetInitialize(
+            deployFee, tokenTotalSupply, virtualNad, virtualToken, k, targetToken, feeNumerator, feeDominator
+        );
     }
 
     function create(string memory name, string memory symbol, string memory tokenURI)
@@ -81,8 +84,6 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         );
 
         curves[token] = curve;
-
-        // emit Create(curve, token, msg.sender);
     }
 
     function setOwner(address _owner) external onlyOwner {
@@ -91,6 +92,7 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
 
     function setEndpoint(address _endpoint) external onlyOwner {
         endpoint = _endpoint;
+        emit SetEndpoint(_endpoint);
     }
 
     function getConfig() public view returns (Config memory) {

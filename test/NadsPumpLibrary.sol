@@ -27,6 +27,7 @@ contract NadsPumpLibraryTest is Test {
     function setUp() public {
         // owner로 시작하는 프랭크 설정
         address owner = address(0xa);
+        address vault = address(0xc);
         vm.startPrank(owner);
         uint256 tokenTotalSupply = 100 ether;
 
@@ -40,7 +41,7 @@ contract NadsPumpLibraryTest is Test {
             deployFee, tokenTotalSupply, virtualNad, virtualToken, targetToken, feeNumerator, feeDominator
         );
 
-        endpoint = new Endpoint(address(factory), address(wNad));
+        endpoint = new Endpoint(address(factory), address(wNad), vault);
 
         factory.setEndpoint(address(endpoint));
 
