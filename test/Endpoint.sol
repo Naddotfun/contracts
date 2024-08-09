@@ -4,8 +4,11 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 import {BondingCurve} from "src/BondingCurve.sol";
 import {BondingCurveFactory} from "src/BondingCurveFactory.sol";
-import "src/interfaces/IWNAD.sol";
+import {IWNAD} from "src/interfaces/IWNAD.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {FeeVault} from "src/FeeVault.sol";
 import {Token} from "src/Token.sol";
+
 import "src/errors/Errors.sol";
 import "src/WNAD.sol";
 import "src/utils/NadsPumpLibrary.sol";
@@ -17,9 +20,9 @@ contract EndpointTest is Test {
     BondingCurveFactory factory;
     WNAD wNad;
     Endpoint endpoint;
+    FeeVault vault;
     address owner = address(0xa);
     address creator = address(0xb);
-    address vault = address(0xc);
     uint256 traderPrivateKey = 0xA11CE;
     address trader = vm.addr(traderPrivateKey);
     uint256 deployFee = 2 * 10 ** 16;
@@ -44,7 +47,8 @@ contract EndpointTest is Test {
             deployFee, tokenTotalSupply, virtualNad, virtualToken, targetToken, feeNumerator, feeDenominator
         );
 
-        endpoint = new Endpoint(address(factory), address(wNad), vault);
+        vault = new FeeVault(wNad);
+        endpoint = new Endpoint(address(factory), address(wNad), address(vault));
 
         factory.setEndpoint(address(endpoint));
         // owner로의 프랭크 종료
@@ -77,7 +81,8 @@ contract EndpointTest is Test {
 
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
         assertEq(IERC20(token).balanceOf(creator), amountOut);
-        assertEq(vault.balance, 0.05 ether); // setup 0.02 + 0.03
+        console.log("Vault Balance: ", IERC4626(vault).totalAssets());
+        assertEq(IERC4626(vault).totalAssets(), 0.05 ether); // setup 0.02 + 0.03
         assertEq(creator.balance, 0);
     }
 
@@ -104,7 +109,7 @@ contract EndpointTest is Test {
 
     function testBuy() public {
         vm.startPrank(trader);
-        uint256 ownerBalance = vault.balance;
+        uint256 vaultBalance = IERC4626(vault).totalAssets();
         vm.deal(trader, 1.01 ether);
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
 
@@ -117,7 +122,7 @@ contract EndpointTest is Test {
         assertEq(trader.balance, 0);
         //fee 로 받은 0.01 ether 는 owner 에게 전송됨.
 
-        assertEq(vault.balance, ownerBalance + 0.01 ether);
+        assertEq(IERC4626(vault).totalAssets(), vaultBalance + 0.01 ether);
     }
 
     function InvalidValueBuy() public {
@@ -130,7 +135,7 @@ contract EndpointTest is Test {
         //1.01 ether 보내야함
         vm.expectRevert(bytes(ERR_INVALID_SEND_NAD));
         endpoint.buy{value: 1 ether}(1 ether, 0.01 ether, address(token), trader, deadline);
-        assertEq(vault.balance, 0.01 ether);
+        assertEq(IERC4626(vault).totalAssets(), 0.01 ether);
     }
 
     function InvalidAmountInAndFeeBuy() public {
@@ -152,7 +157,7 @@ contract EndpointTest is Test {
      */
     function testBuyWNad() public {
         vm.startPrank(trader);
-        uint256 ownerBalance = vault.balance;
+        uint256 ownerBalance = IERC4626(vault).totalAssets();
         uint256 traderWNad = 1.01 ether;
         vm.deal(trader, traderWNad);
         wNad.deposit{value: traderWNad}();
@@ -163,7 +168,7 @@ contract EndpointTest is Test {
         vm.stopPrank();
         assertEq(token.balanceOf(trader), amountOut);
         assertEq(wNad.balanceOf(trader), 0);
-        assertEq(vault.balance, ownerBalance + 0.01 ether);
+        assertEq(IERC4626(vault).totalAssets(), ownerBalance + 0.01 ether);
     }
 
     function testInvalidAmountInBuyWNad() public {
@@ -203,7 +208,7 @@ contract EndpointTest is Test {
      */
     function testbuyWNadWithPermit() public {
         vm.startPrank(trader);
-        uint256 ownerBalance = vault.balance;
+        uint256 ownerBalance = IERC4626(vault).totalAssets();
         uint256 traderWNad = 1.01 ether;
         vm.deal(trader, traderWNad);
         wNad.deposit{value: traderWNad}();
@@ -221,7 +226,7 @@ contract EndpointTest is Test {
         vm.stopPrank();
         assertEq(token.balanceOf(trader), amountOut);
         assertEq(wNad.balanceOf(trader), 0);
-        assertEq(vault.balance, ownerBalance + 0.01 ether);
+        assertEq(IERC4626(vault).totalAssets(), ownerBalance + 0.01 ether);
     }
 
     function testInvalidPermitBuyWNadWithPermit() public {
@@ -271,7 +276,7 @@ contract EndpointTest is Test {
     function testBuyAmountOutMin() public {
         vm.startPrank(trader);
         vm.deal(trader, 1.01 ether);
-        uint256 owerBalance = vault.balance;
+        uint256 owerBalance = IERC4626(vault).totalAssets();
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
         // console.log("Calculated amountOut: ", amountOut);
         uint256 deadline = block.timestamp + 1;
@@ -281,7 +286,7 @@ contract EndpointTest is Test {
 
         assertEq(token.balanceOf(trader), amountOut);
         assertEq(trader.balance, 0);
-        assertEq(vault.balance, owerBalance + 0.01 ether);
+        assertEq(IERC4626(vault).totalAssets(), owerBalance + 0.01 ether);
     }
 
     function testInvalidValueBuyAmountOutMin() public {
@@ -313,7 +318,7 @@ contract EndpointTest is Test {
      */
     function testBuyWNadAmountOutMin() public {
         vm.startPrank(trader);
-        uint256 ownerBalance = vault.balance;
+        uint256 ownerBalance = IERC4626(vault).totalAssets();
         uint256 traderWNad = 1.01 ether;
         vm.deal(trader, traderWNad);
         wNad.deposit{value: traderWNad}();
@@ -325,7 +330,7 @@ contract EndpointTest is Test {
         vm.stopPrank();
         assertEq(token.balanceOf(trader), amountOut);
         assertEq(wNad.balanceOf(trader), 0);
-        assertEq(vault.balance, ownerBalance + 0.01 ether);
+        assertEq(IERC4626(vault).totalAssets(), ownerBalance + 0.01 ether);
     }
 
     function testInvalidAllowanceBuyWNadAmountOutMin() public {
@@ -359,7 +364,7 @@ contract EndpointTest is Test {
      */
     function testBuyAmountOutMinNadPermit() public {
         vm.startPrank(trader);
-        uint256 ownerBalance = vault.balance;
+        uint256 ownerBalance = IERC4626(vault).totalAssets();
         uint256 traderNad = 1.01 ether;
         vm.deal(trader, traderNad);
         wNad.deposit{value: traderNad}();
@@ -380,7 +385,7 @@ contract EndpointTest is Test {
 
         assertEq(token.balanceOf(trader), amountOut);
         assertEq(wNad.balanceOf(trader), 0);
-        assertEq(vault.balance, ownerBalance + 0.01 ether);
+        assertEq(IERC4626(vault).totalAssets(), ownerBalance + 0.01 ether);
     }
 
     function testInvalidPermitBuyAmountOutMinNadPermit() public {
@@ -424,7 +429,7 @@ contract EndpointTest is Test {
      */
     function testBuyExactAmountOut() public {
         vm.startPrank(trader);
-        uint256 ownerBalance = vault.balance;
+        uint256 ownerBalance = IERC4626(vault).totalAssets();
         //1 ether 로 살 수 있는 토큰의 양 계산
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
 
@@ -444,7 +449,7 @@ contract EndpointTest is Test {
         assertEq(token.balanceOf(trader), amountOut);
         //2ether 를 보냈지만 1.01 만썻으므로 trader.balance = 990000000000000000
         assertEq(trader.balance, traderBalance - totalAmountIn);
-        assertEq(vault.balance, ownerBalance + feeAmount);
+        assertEq(IERC4626(vault).totalAssets(), ownerBalance + feeAmount);
     }
 
     function testInvalidValuebuyExactAmountOut() public {
@@ -483,7 +488,7 @@ contract EndpointTest is Test {
      */
     function testBuyExactAmountOutWNad() public {
         vm.startPrank(trader);
-        uint256 ownerBalance = vault.balance;
+        uint256 ownerBalance = IERC4626(vault).totalAssets();
         //1 ether 로 살 수 있는 토큰의 양 계산
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
 
@@ -505,12 +510,12 @@ contract EndpointTest is Test {
         assertEq(token.balanceOf(trader), amountOut);
         //2ether 를 보냈지만 1.01 만썻으므로 trader.balance = 990000000000000000
         assertEq(wNad.balanceOf(trader), traderBalance - totalAmountIn);
-        assertEq(vault.balance, ownerBalance + feeAmount);
+        assertEq(IERC4626(vault).totalAssets(), ownerBalance + feeAmount);
     }
 
     function testInvalidAmountOutBuyExactAmountOutWNad() public {
         vm.startPrank(trader);
-        uint256 ownerBalance = vault.balance;
+        uint256 ownerBalance = IERC4626(vault).totalAssets();
         //1 ether 로 살 수 있는 토큰의 양 계산
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
 
@@ -531,7 +536,7 @@ contract EndpointTest is Test {
 
     function testInvalidAmountInMaxBuyExactAmountOutWNad() public {
         vm.startPrank(trader);
-        uint256 ownerBalance = vault.balance;
+        uint256 ownerBalance = IERC4626(vault).totalAssets();
         //1 ether 로 살 수 있는 토큰의 양 계산
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
 
@@ -556,7 +561,7 @@ contract EndpointTest is Test {
 
     function testBuyExactAmountOutWNadPermit() public {
         vm.startPrank(trader);
-        uint256 ownerBalance = vault.balance;
+        uint256 ownerBalance = IERC4626(vault).totalAssets();
         //1 ether 로 살 수 있는 토큰의 양 계산
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
 
@@ -587,12 +592,12 @@ contract EndpointTest is Test {
         assertEq(token.balanceOf(trader), amountOut);
 
         assertEq(wNad.balanceOf(trader), traderBalance - totalAmountIn);
-        assertEq(vault.balance, ownerBalance + feeAmount);
+        assertEq(IERC4626(vault).totalAssets(), ownerBalance + feeAmount);
     }
 
     function testInvalidPermitBuyExactAmountOutWNadPermit() public {
         vm.startPrank(trader);
-        uint256 ownerBalance = vault.balance;
+        uint256 ownerBalance = IERC4626(vault).totalAssets();
         //1 ether 로 살 수 있는 토큰의 양 계산
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
 
@@ -627,7 +632,7 @@ contract EndpointTest is Test {
     function testSell() public {
         testBuy();
         vm.startPrank(trader);
-        uint256 ownerBalance = vault.balance;
+        uint256 ownerBalance = IERC4626(vault).totalAssets();
         uint256 traderTokenBalance = token.balanceOf(trader);
         (virtualNad, virtualToken) = curve.getVirtualReserves();
         uint256 nadAmount = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
@@ -640,7 +645,7 @@ contract EndpointTest is Test {
 
         assertEq(token.balanceOf(trader), 0);
         assertEq(trader.balance, nadAmount - feeAmount);
-        assertEq(vault.balance, ownerBalance + feeAmount);
+        assertEq(IERC4626(vault).totalAssets(), ownerBalance + feeAmount);
     }
 
     function testInvalidAllowanceSell() public {
@@ -666,7 +671,7 @@ contract EndpointTest is Test {
     function testSellPermit() public {
         testBuy();
         vm.startPrank(trader);
-        uint256 ownerBalance = vault.balance;
+        uint256 ownerBalance = IERC4626(vault).totalAssets();
         uint256 traderTokenBalance = token.balanceOf(trader);
         (virtualNad, virtualToken) = curve.getVirtualReserves();
         uint256 nadAmount = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
@@ -690,13 +695,13 @@ contract EndpointTest is Test {
 
         assertEq(token.balanceOf(trader), 0);
         assertEq(trader.balance, nadAmount - feeAmount);
-        assertEq(vault.balance, ownerBalance + feeAmount);
+        assertEq(IERC4626(vault).totalAssets(), ownerBalance + feeAmount);
     }
 
     function testInvalidSignatureSellPermit() public {
         testBuy();
         vm.startPrank(trader);
-        uint256 ownerBalance = vault.balance;
+        uint256 ownerBalance = IERC4626(vault).totalAssets();
         uint256 traderTokenBalance = token.balanceOf(trader);
         (virtualNad, virtualToken) = curve.getVirtualReserves();
         uint256 nadAmount = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
@@ -723,7 +728,7 @@ contract EndpointTest is Test {
     function testSellAmountOutMin() public {
         testBuy();
         vm.startPrank(trader);
-        uint256 ownerBalance = vault.balance;
+        uint256 ownerBalance = IERC4626(vault).totalAssets();
         uint256 traderTokenBalance = token.balanceOf(trader);
         console.log(traderTokenBalance);
         (virtualNad, virtualToken) = curve.getVirtualReserves();
@@ -739,7 +744,7 @@ contract EndpointTest is Test {
 
         assertEq(token.balanceOf(trader), 0);
         assertEq(trader.balance, nadAmountOut);
-        assertEq(vault.balance, ownerBalance + feeAmount);
+        assertEq(IERC4626(vault).totalAssets(), ownerBalance + feeAmount);
     }
 
     function testInvalidAllonwaceSellAmountOutMin() public {
@@ -782,7 +787,7 @@ contract EndpointTest is Test {
         //---------Buy End----------------------
         vm.startPrank(trader);
         uint256 traderTokenBalance = token.balanceOf(trader);
-        uint256 ownerBalance = vault.balance;
+        uint256 ownerBalance = IERC4626(vault).totalAssets();
         (virtualNad, virtualToken) = curve.getVirtualReserves();
         uint256 nadAmountOut = NadsPumpLibrary.getAmountOut(traderTokenBalance, k, virtualToken, virtualNad);
 
@@ -807,7 +812,7 @@ contract EndpointTest is Test {
 
         assertEq(token.balanceOf(trader), 0);
         assertEq(trader.balance, nadAmountOut);
-        assertEq(vault.balance, ownerBalance + feeAmount);
+        assertEq(IERC4626(vault).totalAssets(), ownerBalance + feeAmount);
     }
 
     function testInvalidAmountOutSellAmountOutMinWithPermit() public {
@@ -846,7 +851,7 @@ contract EndpointTest is Test {
         testBuy();
         vm.startPrank(trader);
 
-        uint256 ownerBalance = vault.balance;
+        uint256 ownerBalance = IERC4626(vault).totalAssets();
         uint256 traderTokenBalance = token.balanceOf(trader);
         (virtualNad, virtualToken) = curve.getVirtualReserves();
         //nadAmount
@@ -872,7 +877,7 @@ contract EndpointTest is Test {
         // console.log("totalAmountIn = ", totalAmountIn);
         assertEq(token.balanceOf(trader), traderTokenBalance - amountIn);
         assertEq(trader.balance, wantedAmountOut);
-        assertEq(vault.balance, ownerBalance + feeAmount);
+        assertEq(IERC4626(vault).totalAssets(), ownerBalance + feeAmount);
     }
 
     function testInvalidAllowacneSellExactAmountOut() public {
@@ -924,7 +929,7 @@ contract EndpointTest is Test {
     function testSellExactAmountOutWithPermit() public {
         testBuy();
         vm.startPrank(trader);
-        uint256 ownerBalance = vault.balance;
+        uint256 ownerBalance = IERC4626(vault).totalAssets();
         uint256 traderTokenBalance = token.balanceOf(trader);
         // console.log("TraderTokenBalance = ", traderTokenBalance);
         (virtualNad, virtualToken) = curve.getVirtualReserves();
@@ -961,13 +966,13 @@ contract EndpointTest is Test {
         assertEq(token.balanceOf(trader), traderTokenBalance - amountIn);
         assertEq(trader.balance, wantedAmountOut);
         //buy 1 ether -> 0.01 protocol fee
-        assertEq(vault.balance, ownerBalance + feeAmount);
+        assertEq(IERC4626(vault).totalAssets(), ownerBalance + feeAmount);
         // (uint256 virtualNad, uint256 virtualToken) = curve.getVirtualReserves();
         // console.log(virtualNad);
         // console.log(virtualToken);
         // console.log(trader.balance);
         // console.log(token.balanceOf(trader));
-        // console.log(vault.balance);
+        // console.log(IERC4626(vault).totalAssets());
     }
 
     function testOverflowAmountInMaxSellExactAmountOutWithPermit() public {

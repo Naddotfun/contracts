@@ -9,6 +9,8 @@ import "src/errors/Errors.sol";
 import "src/WNAD.sol";
 import "src/utils/NadsPumpLibrary.sol";
 import "src/Endpoint.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {FeeVault} from "src/FeeVault.sol";
 
 contract BondingCurveFactoryTest is Test {
     Token token;
@@ -16,9 +18,10 @@ contract BondingCurveFactoryTest is Test {
     BondingCurve curve;
     WNAD wNad;
     Endpoint endpoint;
+    IERC4626 vault;
     address owner;
     address creator;
-    address vault;
+
     uint256 deployFee = 2 * 10 ** 16;
     uint256 tokenTotalSupply = 10 ** 27;
     uint256 virtualBase = 30 * 10 ** 18;
@@ -30,16 +33,16 @@ contract BondingCurveFactoryTest is Test {
     function setUp() public {
         owner = address(0xa);
         creator = address(0xb);
-        vault = address(0xc);
         vm.startPrank(owner);
 
         wNad = new WNAD();
+        vault = new FeeVault(wNad);
         factory = new BondingCurveFactory(owner, address(wNad));
 
         factory.initialize(
             deployFee, tokenTotalSupply, virtualBase, virtualToken, targetToken, feeNumerator, feeDominator
         );
-        endpoint = new Endpoint(address(factory), address(wNad), vault);
+        endpoint = new Endpoint(address(factory), address(wNad), address(vault));
         factory.setEndpoint(address(endpoint));
         vm.stopPrank();
     }
@@ -49,13 +52,13 @@ contract BondingCurveFactoryTest is Test {
         vm.startPrank(creator);
         vm.deal(creator, 0.02 ether);
         // createCurve 함수 호출
-
+        console.log(IERC4626(vault).totalAssets());
         (address curveAddress, address tokenAddress) =
             endpoint.createCurve{value: 0.02 ether}("test", "test", "testurl", 0, 0, 0.02 ether);
         curve = BondingCurve(curveAddress);
         token = Token(tokenAddress);
 
-        assertEq(vault.balance, deployFee);
+        assertEq(IERC4626(vault).totalAssets(), deployFee);
         assertEq(creator.balance, 0);
         // creator로의 프랭크 종료
         vm.stopPrank();
