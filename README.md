@@ -119,6 +119,7 @@ event CreateCurve(
 This smart contract is part of the Nad.Pump system, designed to create and manage bonding curve-based tokens. For more detailed information about the implementation and usage, please refer to the full contract code and additional documentation.
 
 document comming soon!
+
 ---
 
 📌 For questions or support, please open an issue in the GitHub repository.
