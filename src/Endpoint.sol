@@ -59,7 +59,7 @@ contract Endpoint is IEndpoint {
         }
         checkFee(curve, amountIn, fee);
         TransferHelper.safeTransferNad(owner, fee);
-        //amountIn 이 0 이거나 fee 가 0 이라면  return 하는 로직
+
         IWNAD(WNAD).deposit{value: amountIn}();
 
         (uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(curve);
