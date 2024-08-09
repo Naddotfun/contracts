@@ -18,11 +18,13 @@ contract Endpoint is IEndpoint {
     address private owner;
     address public immutable factory;
     address public immutable WNAD;
+    address public immutable vault;
 
-    constructor(address _factory, address _WNAD) {
+    constructor(address _factory, address _WNAD, address _vault) {
         factory = _factory;
         WNAD = _WNAD;
         owner = msg.sender;
+        vault = _vault;
     }
 
     receive() external payable {
@@ -39,6 +41,10 @@ contract Endpoint is IEndpoint {
         require(fee >= amount * denominator / numerator, ERR_INVALID_FEE);
     }
 
+    function sendFeeByVault(uint256 fee) internal {
+        TransferHelper.safeTransferNad(vault, fee);
+    }
+
     function createCurve(
         string memory name,
         string memory symbol,
@@ -50,15 +56,16 @@ contract Endpoint is IEndpoint {
         require(msg.value >= amountIn + fee + deployFee, ERR_INVALID_SEND_NAD);
         uint256 _deployFee = IBondingCurveFactory(factory).getDelpyFee();
         require(deployFee >= _deployFee, ERR_INVALID_DEPLOY_FEE);
-        TransferHelper.safeTransferNad(owner, deployFee);
+        // TransferHelper.safeTransferNad(vault, deployFee);
+
         (curve, token) = IBondingCurveFactory(factory).create(name, symbol, tokenURI);
         emit CreateCurve(msg.sender, curve, token, tokenURI, name, symbol);
-
+        sendFeeByVault(fee + deployFee);
         if (amountIn == 0 || fee == 0) {
             return (curve, token);
         }
         checkFee(curve, amountIn, fee);
-        TransferHelper.safeTransferNad(owner, fee);
+        // TransferHelper.safeTransferNad(owner, fee);
 
         IWNAD(WNAD).deposit{value: amountIn}();
 
@@ -82,7 +89,8 @@ contract Endpoint is IEndpoint {
 
         (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
         checkFee(curve, amountIn, fee);
-        TransferHelper.safeTransferNad(owner, fee);
+
+        sendFeeByVault(fee);
         IWNAD(WNAD).deposit{value: amountIn}();
 
         // Get curve and reserves
@@ -107,7 +115,8 @@ contract Endpoint is IEndpoint {
         checkFee(curve, amountIn, fee);
         IERC20(WNAD).safeTransferFrom(msg.sender, address(this), amountIn + fee);
         IWNAD(WNAD).withdraw(fee);
-        TransferHelper.safeTransferNad(owner, fee);
+        // TransferHelper.safeTransferNad(owner, fee);
+        sendFeeByVault(fee);
         uint256 amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
         IERC20(WNAD).safeTransferERC20(curve, amountIn);
         IBondingCurve(curve).buy(to, amountOut);
@@ -135,7 +144,8 @@ contract Endpoint is IEndpoint {
 
         IERC20(WNAD).safeTransferFrom(msg.sender, address(this), amountIn + fee);
         IWNAD(WNAD).withdraw(fee);
-        TransferHelper.safeTransferNad(owner, fee);
+        // TransferHelper.safeTransferNad(owner, fee);
+        sendFeeByVault(fee);
 
         uint256 amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
 
@@ -157,11 +167,10 @@ contract Endpoint is IEndpoint {
 
         (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
         checkFee(curve, amountIn, fee);
-        TransferHelper.safeTransferNad(owner, fee);
+        // TransferHelper.safeTransferNad(owner, fee);
+        sendFeeByVault(fee);
 
         IWNAD(WNAD).deposit{value: amountIn}();
-
-        // Get curve and reserves
 
         uint256 amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
 
@@ -189,7 +198,8 @@ contract Endpoint is IEndpoint {
         IERC20(WNAD).safeTransferFrom(msg.sender, address(this), amountIn + fee);
 
         IWNAD(WNAD).withdraw(fee);
-        TransferHelper.safeTransferNad(owner, fee);
+        // TransferHelper.safeTransferNad(owner, fee);
+        sendFeeByVault(fee);
 
         uint256 amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
 
@@ -225,7 +235,8 @@ contract Endpoint is IEndpoint {
 
         IWNAD(WNAD).withdraw(fee);
 
-        TransferHelper.safeTransferNad(owner, fee);
+        // TransferHelper.safeTransferNad(owner, fee);
+        sendFeeByVault(fee);
 
         uint256 amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
 
@@ -249,7 +260,8 @@ contract Endpoint is IEndpoint {
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
 
         uint256 fee = NadsPumpLibrary.getFeeAmount(amountIn, denominator, numerator);
-        TransferHelper.safeTransferNad(owner, fee);
+        // TransferHelper.safeTransferNad(owner, fee);
+        sendFeeByVault(fee);
 
         require(amountIn + fee <= amountInMax, ERR_INVALID_AMOUNT_IN_MAX);
 
@@ -281,7 +293,8 @@ contract Endpoint is IEndpoint {
         IERC20(WNAD).safeTransferFrom(msg.sender, address(this), amountIn + fee);
 
         IWNAD(WNAD).withdraw(fee);
-        TransferHelper.safeTransferNad(owner, fee);
+        // TransferHelper.safeTransferNad(owner, fee);
+        sendFeeByVault(fee);
 
         IERC20(WNAD).safeTransferERC20(curve, amountIn);
         IBondingCurve(curve).buy(to, amountOut);
@@ -314,7 +327,8 @@ contract Endpoint is IEndpoint {
         IERC20(WNAD).safeTransferFrom(msg.sender, address(this), amountIn + fee);
 
         IWNAD(WNAD).withdraw(fee);
-        TransferHelper.safeTransferNad(owner, fee);
+        // TransferHelper.safeTransferNad(owner, fee);
+        sendFeeByVault(fee);
 
         IERC20(WNAD).safeTransferERC20(curve, amountIn);
         IBondingCurve(curve).buy(to, amountOut);
@@ -339,7 +353,8 @@ contract Endpoint is IEndpoint {
         IBondingCurve(curve).sell(address(this), amountOut);
         uint256 fee = NadsPumpLibrary.getFeeAmount(amountOut, denominator, numerator);
         IWNAD(WNAD).withdraw(amountOut);
-        TransferHelper.safeTransferNad(owner, fee);
+        // TransferHelper.safeTransferNad(owner, fee);
+        sendFeeByVault(fee);
 
         TransferHelper.safeTransferNad(to, amountOut - fee);
         emit Sell(msg.sender, amountIn, amountOut - fee, token, curve);
@@ -368,7 +383,8 @@ contract Endpoint is IEndpoint {
         IBondingCurve(curve).sell(address(this), amountOut);
         uint256 fee = NadsPumpLibrary.getFeeAmount(amountOut, denominator, numerator);
         IWNAD(WNAD).withdraw(amountOut);
-        TransferHelper.safeTransferNad(owner, fee);
+        // TransferHelper.safeTransferNad(owner, fee);
+        sendFeeByVault(fee);
 
         TransferHelper.safeTransferNad(to, amountOut - fee);
         emit Sell(msg.sender, amountIn, amountOut - fee, token, curve);
@@ -396,7 +412,8 @@ contract Endpoint is IEndpoint {
 
         IBondingCurve(curve).sell(address(this), amountOut);
         IWNAD(WNAD).withdraw(amountOut);
-        TransferHelper.safeTransferNad(owner, fee);
+        // TransferHelper.safeTransferNad(owner, fee);
+        sendFeeByVault(fee);
         TransferHelper.safeTransferNad(to, amountOut - fee);
         emit Sell(msg.sender, amountIn, amountOut - fee, token, curve);
     }
@@ -432,7 +449,8 @@ contract Endpoint is IEndpoint {
         IBondingCurve(curve).sell(address(this), amountOut);
 
         IWNAD(WNAD).withdraw(amountOut);
-        TransferHelper.safeTransferNad(owner, fee);
+        // TransferHelper.safeTransferNad(owner, fee);
+        sendFeeByVault(fee);
         TransferHelper.safeTransferNad(to, amountOut - fee);
         emit Sell(msg.sender, amountIn, amountOut - fee, token, curve);
     }
@@ -449,7 +467,8 @@ contract Endpoint is IEndpoint {
         (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
         uint256 fee = msg.value;
         checkFee(curve, amountOut, fee);
-        TransferHelper.safeTransferNad(owner, fee);
+        // TransferHelper.safeTransferNad(owner, fee);
+        sendFeeByVault(fee);
         uint256 amountIn = getAmountIn(amountOut, k, virtualToken, virtualNad);
 
         require(amountIn <= amountInMax, ERR_INVALID_AMOUNT_IN_MAX);
@@ -482,7 +501,8 @@ contract Endpoint is IEndpoint {
         (address curve, uint256 virtualNad, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
         uint256 fee = msg.value;
         checkFee(curve, amountOut, fee);
-        TransferHelper.safeTransferNad(owner, fee);
+        // TransferHelper.safeTransferNad(owner, fee);
+        sendFeeByVault(fee);
         uint256 amountIn = getAmountIn(amountOut, k, virtualToken, virtualNad);
 
         require(amountIn <= amountInMax, ERR_INVALID_AMOUNT_IN_MAX);
@@ -496,6 +516,7 @@ contract Endpoint is IEndpoint {
         TransferHelper.safeTransferNad(to, amountOut);
         emit Sell(msg.sender, amountIn, amountOut, token, curve);
     }
+
     //----------------------------Common Functions ---------------------------------------------------
 
     function getCurveData(address _factory, address token)

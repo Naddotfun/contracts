@@ -18,6 +18,7 @@ contract BondingCurveFactoryTest is Test {
     Endpoint endpoint;
     address owner;
     address creator;
+    address vault;
     uint256 deployFee = 2 * 10 ** 16;
     uint256 tokenTotalSupply = 10 ** 27;
     uint256 virtualBase = 30 * 10 ** 18;
@@ -29,6 +30,7 @@ contract BondingCurveFactoryTest is Test {
     function setUp() public {
         owner = address(0xa);
         creator = address(0xb);
+        vault = address(0xc);
         vm.startPrank(owner);
 
         wNad = new WNAD();
@@ -37,7 +39,7 @@ contract BondingCurveFactoryTest is Test {
         factory.initialize(
             deployFee, tokenTotalSupply, virtualBase, virtualToken, targetToken, feeNumerator, feeDominator
         );
-        endpoint = new Endpoint(address(factory), address(wNad));
+        endpoint = new Endpoint(address(factory), address(wNad), vault);
         factory.setEndpoint(address(endpoint));
         vm.stopPrank();
     }
@@ -53,7 +55,7 @@ contract BondingCurveFactoryTest is Test {
         curve = BondingCurve(curveAddress);
         token = Token(tokenAddress);
 
-        assertEq(owner.balance, deployFee);
+        assertEq(vault.balance, deployFee);
         assertEq(creator.balance, 0);
         // creator로의 프랭크 종료
         vm.stopPrank();
