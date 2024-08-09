@@ -12,6 +12,7 @@
 ## System Overview
 
 NadsPump is a smart contract system for creating and managing bonding curve-based tokens. It enables creators to mint new tokens with associated bonding curves and allows traders to buy and sell these tokens through a centralized endpoint.
+![스크린샷 2024-08-09 오후 4 00 18](https://github.com/user-attachments/assets/01ba5d9d-40b1-4429-a5f8-78664f5f4c06)
 
 ## Key Components
 
