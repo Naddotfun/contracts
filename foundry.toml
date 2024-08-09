@@ -8,3 +8,4 @@ libs = ["lib"]
 base = "${BASE_RPC_URL}"
 
 # forge script script/Deploy.s.sol:EndpointDeploymentScript --rpc-url $BASE_RPC_URL --broadcast  --via-ir
+# forge script script/Deploy.s.sol:EndpointDeploymentScript --fork-url $BASE_RPC_URL --broadcast --via-ir
