@@ -17,17 +17,17 @@ Nad.Pump is a smart contract system for creating and managing bonding curve-base
 
 ## Key Components
 
-| Component           | Description                                                                              |
-| ------------------- | ---------------------------------------------------------------------------------------- |
-| Creator             | Initiates the creation of new coins and curves                                           |
-| Trader              | Interacts with the system to buy and sell tokens                                         |
-| Endpoint            | Main contract handling all interactions                                                  |
-| WNAD                | Wrapped NAD token used for transactions                                                  |
-| BondingCurveFactory | Deploys new Bonding Curve contracts                                                      |
-| BondingCurve        | Manages token supply and price calculations                                              |
-| ERC20               | Standard token contract deployed for each new coin                                       |
-| CPMM DEX            | External decentralized exchange for token trading                                        |
-| Vault               | Repository for accumulated trading fees that facilitates revenue sharing for NFT holders |
+| Component           | Description                                                                            |
+| ------------------- | -------------------------------------------------------------------------------------- |
+| Creator             | Initiates the creation of new coins and curves                                         |
+| Trader              | Interacts with the system to buy and sell tokens                                       |
+| Endpoint            | Main contract handling all interactions                                                |
+| WNAD                | Wrapped NAD token used for transactions                                                |
+| BondingCurveFactory | Deploys new Bonding Curve contracts                                                    |
+| BondingCurve        | Manages token supply and price calculations                                            |
+| ERC20               | Standard token contract deployed for each new coin                                     |
+| CPMM DEX            | External decentralized exchange for token trading                                      |
+| Vault               | Repository for accumulated trading fees; facilitates revenue sharing for token holders |
 
 ## Main Functions
 
@@ -117,8 +117,6 @@ event CreateCurve(
 
 This smart contract is part of the Nad.Pump system, designed to create and manage bonding curve-based tokens. For more detailed information about the implementation and usage, please refer to the full contract code and additional documentation.
 
-document comming soon!
-
----
+## document comming soon!
 
 📌 For questions or support, please open an issue in the GitHub repository.
