@@ -12,7 +12,8 @@
 ## System Overview
 
 Nad.Pump is a smart contract system for creating and managing bonding curve-based tokens. It enables creators to mint new tokens with associated bonding curves and allows traders to buy and sell these tokens through a centralized endpoint.
-![스크린샷 2024-08-09 오후 8 26 17](https://github.com/user-attachments/assets/3c83dcf0-ed49-406c-b48a-4e8938e89797)
+
+![스크린샷 2024-08-09 오후 8 41 04](https://github.com/user-attachments/assets/5fca3aa4-787c-4e23-8e17-3e9cfe21408d)
 
 ## Key Components
 
@@ -118,6 +119,10 @@ event Sell(
 
 This smart contract is part of the Nad.Pump system, designed to create and manage bonding curve-based tokens. For more detailed information about the implementation and usage, please refer to the full contract code and additional documentation.
 
-## document comming soon!
+## Document
+
+document comming soon!
+
+> > > > > > > main
 
 📌 For questions or support, please open an issue in the GitHub repository.
