@@ -10,7 +10,9 @@ interface IEndpoint {
         address indexed token,
         string tokenURI,
         string name,
-        string symbol
+        string symbol,
+        uint256 virtualNad,
+        uint256 virtualToken
     );
 
     function createCurve(
@@ -20,7 +22,7 @@ interface IEndpoint {
         uint256 amountIn,
         uint256 fee,
         uint256 deployFee
-    ) external payable returns (address curve, address token);
+    ) external payable returns (address curve, address token, uint256 virtualNad, uint256 virtualToken);
 
     function buy(uint256 amountIn, uint256 fee, address token, address to, uint256 deadline) external payable;
 

@@ -63,7 +63,7 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
     function create(string memory name, string memory symbol, string memory tokenURI)
         external
         onlyEndpoint
-        returns (address curve, address token)
+        returns (address curve, address token, uint256 virtualNad, uint256 virtualToken)
     {
         Config memory _config = getConfig();
 
@@ -84,6 +84,8 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         );
 
         curves[token] = curve;
+        virtualNad = _config.virtualNad;
+        virtualToken = _config.virtualToken;
     }
 
     function setOwner(address _owner) external onlyOwner {

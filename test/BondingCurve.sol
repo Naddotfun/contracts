@@ -55,7 +55,7 @@ contract CurveTest is Test {
         vm.startPrank(creator);
 
         // createCurve 함수 호출
-        (address curveAddress, address tokenAddress) =
+        (address curveAddress, address tokenAddress, uint256 virtualNad, uint256 virtualToken) =
             endpoint.createCurve{value: 0.02 ether}("test", "test", "testurl", 0, 0, 0.02 ether);
         curve = BondingCurve(curveAddress);
         token = Token(tokenAddress);

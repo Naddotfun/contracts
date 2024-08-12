@@ -53,7 +53,7 @@ contract BondingCurveFactoryTest is Test {
         vm.deal(creator, 0.02 ether);
         // createCurve 함수 호출
         console.log(IERC4626(vault).totalAssets());
-        (address curveAddress, address tokenAddress) =
+        (address curveAddress, address tokenAddress, uint256 virtualNad, uint256 virtualToken) =
             endpoint.createCurve{value: 0.02 ether}("test", "test", "testurl", 0, 0, 0.02 ether);
         curve = BondingCurve(curveAddress);
         token = Token(tokenAddress);
