@@ -95,14 +95,16 @@ event Sell(
 ### CreateCurve
 
 ```solidity
-event CreateCurve(
-    address indexed sender,
-    address indexed curve,
-    address indexed token,
-    string tokenURI,
-    string name,
-    string symbol
-);
+  event CreateCurve(
+        address indexed sender,
+        address indexed curve,
+        address indexed token,
+        string tokenURI,
+        string name,
+        string symbol,
+        uint256 virtualNad,
+        uint256 virtualToken
+    );
 ```
 
 ## Usage Notes
