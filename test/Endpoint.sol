@@ -61,7 +61,7 @@ contract EndpointTest is Test {
         vm.startPrank(creator);
 
         // createCurve 함수 호출
-        (address curveAddress, address tokenAddress) =
+        (address curveAddress, address tokenAddress, uint256 virtualNad, uint256 virtualToken) =
             endpoint.createCurve{value: 0.02 ether}("test", "test", "testurl", 0, 0, 0.02 ether);
         curve = BondingCurve(curveAddress);
         token = Token(tokenAddress);
@@ -74,14 +74,14 @@ contract EndpointTest is Test {
         vm.deal(creator, 1.03 ether);
         // vm.recordLogs();
         vm.startPrank(creator);
-        (address curve, address token) =
+        (address curveAddress, address tokenAddress, uint256 _virtualNad, uint256 _virtualToken) =
             endpoint.createCurve{value: 1.03 ether}("Test", "Test", "testurl", 1 ether, 0.01 ether, 0.02 ether);
 
         vm.stopPrank();
 
-        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
-        assertEq(IERC20(token).balanceOf(creator), amountOut);
-        console.log("Vault Balance: ", IERC4626(vault).totalAssets());
+        uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, _virtualNad, _virtualToken);
+        assertEq(IERC20(tokenAddress).balanceOf(creator), amountOut);
+
         assertEq(IERC4626(vault).totalAssets(), 0.05 ether); // setup 0.02 + 0.03
         assertEq(creator.balance, 0);
     }

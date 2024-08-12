@@ -2,7 +2,6 @@
 pragma solidity ^0.8.20;
 
 interface IBondingCurveFactory {
-    event Create(address indexed market, address indexed token, address indexed creator);
     event SetInitialize(
         uint256 deployFee,
         uint256 tokenTotalSupply,
@@ -17,7 +16,7 @@ interface IBondingCurveFactory {
 
     function create(string memory name, string memory symbol, string memory tokenUrl)
         external
-        returns (address curve, address token);
+        returns (address curve, address token, uint256 virtualNad, uint256 virtualToken);
     function getCurve(address token) external view returns (address market);
     function getOwner() external view returns (address owner); // `view` 추가
     function getK() external view returns (uint256 k);
