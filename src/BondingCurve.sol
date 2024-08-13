@@ -3,9 +3,12 @@ pragma solidity ^0.8.20;
 
 // import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
-
+import {IUniswapV2Factory} from "./uniswap/interfaces/IUniswapV2Factory.sol";
+import {IUniswapV2Pair} from "./uniswap/interfaces/IUniswapV2Pair.sol";
+import {IEndpoint} from "./interfaces/IEndpoint.sol";
 import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
 import {IBondingCurve} from "./interfaces/IBondingCurve.sol";
+
 import {TransferHelper} from "./utils/TransferHelper.sol";
 import "./errors/Errors.sol";
 import {Test, console} from "forge-std/Test.sol";
@@ -80,8 +83,8 @@ contract BondingCurve is IBondingCurve {
         address _token = token; //gas savings
 
         (uint256 _realNadReserves, uint256 _realTokenReserves) = getReserves();
-
-        require(_realTokenReserves - amountOut >= targetToken, ERR_OVERFLOW_TARGET);
+        //100 - 50 <= 50
+        require(_realTokenReserves - amountOut <= targetToken, ERR_OVERFLOW_TARGET);
 
         //Current balance of the curve
         uint256 balanceNad;
@@ -129,9 +132,29 @@ contract BondingCurve is IBondingCurve {
         require(virtualNad * virtualToken >= k, ERR_INVALID_K);
     }
 
+    function listing() external returns (address pair) {
+        require(lock == true, ERR_LISTING_ONLY_LOCK);
+        IBondingCurveFactory _factory = IBondingCurveFactory(factory);
+        pair = IUniswapV2Factory(_factory.getDexFactory()).createPair(wnad, token);
+        //dexlisting fee -> fee vault
+        IERC20(wnad).transfer(IEndpoint(_factory.getEndpoint()).getFeeVault(), _factory.getListingFee());
+        //rest token amount -> pair
+        console.log("Nad balance", IERC20(wnad).balanceOf(address(this)));
+        console.log("Token balance", IERC20(token).balanceOf(address(this)));
+        IERC20(wnad).transfer(pair, IERC20(wnad).balanceOf(address(this)));
+        //rest token amount -> pair
+        IERC20(token).transfer(pair, IERC20(token).balanceOf(address(this)));
+        realNadReserves = 0;
+        realTokenReserves = 0;
+        uint256 liquidity = IUniswapV2Pair(pair).mint(address(this));
+        console.log("Liquidity", liquidity);
+
+        IERC20(pair).transfer(address(0), liquidity);
+    }
+
     function _update(uint256 amountIn, uint256 amountOut, bool isBuy) private {
         realNadReserves = IERC20(wnad).balanceOf(address(this));
-        // console.log("RealNadReserves = ", realNadReserves);
+
         realTokenReserves = IERC20(token).balanceOf(address(this));
 
         if (isBuy) {
@@ -150,9 +173,6 @@ contract BondingCurve is IBondingCurve {
 
         emit Sync(realNadReserves, realTokenReserves, virtualNad, virtualToken);
     }
-
-    // // TODO : Once you've decided which Dex to use, write
-    // function dexListing() external {}
 
     function getReserves() public view override returns (uint256 _realNadReserves, uint256 _realTokenReserves) {
         _realNadReserves = realNadReserves;

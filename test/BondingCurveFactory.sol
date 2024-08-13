@@ -11,6 +11,7 @@ import "src/utils/NadsPumpLibrary.sol";
 import "src/Endpoint.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {FeeVault} from "src/FeeVault.sol";
+import {UniswapV2Factory} from "src/uniswap/UniswapV2Factory.sol";
 
 contract BondingCurveFactoryTest is Test {
     Token token;
@@ -19,15 +20,17 @@ contract BondingCurveFactoryTest is Test {
     WNAD wNad;
     Endpoint endpoint;
     IERC4626 vault;
+    UniswapV2Factory uniFactory;
     address owner;
     address creator;
 
     uint256 deployFee = 2 * 10 ** 16;
+    uint256 listingFee = 1 ether;
     uint256 tokenTotalSupply = 10 ** 27;
-    uint256 virtualBase = 30 * 10 ** 18;
+    uint256 virtualNad = 30 * 10 ** 18;
     uint256 virtualToken = 1073000191 * 10 ** 18;
     uint256 targetToken = 206900000 * 10 ** 18;
-    uint8 feeDominator = 10;
+    uint8 feeDenominator = 10;
     uint16 feeNumerator = 1000;
 
     function setUp() public {
@@ -40,8 +43,17 @@ contract BondingCurveFactoryTest is Test {
         factory = new BondingCurveFactory(owner, address(wNad));
 
         factory.initialize(
-            deployFee, tokenTotalSupply, virtualBase, virtualToken, targetToken, feeNumerator, feeDominator
+            deployFee,
+            listingFee,
+            tokenTotalSupply,
+            virtualNad,
+            virtualToken,
+            targetToken,
+            feeNumerator,
+            feeDenominator,
+            address(uniFactory)
         );
+
         endpoint = new Endpoint(address(factory), address(wNad), address(vault));
         factory.setEndpoint(address(endpoint));
         vm.stopPrank();
@@ -81,12 +93,12 @@ contract BondingCurveFactoryTest is Test {
     function testGetConfig() public {
         BondingCurveFactory.Config memory config = factory.getConfig();
         assertEq(config.deployFee, deployFee);
-        assertEq(config.feeDominator, feeDominator);
+        assertEq(config.feeDenominator, feeDenominator);
         assertEq(config.feeNumerator, feeNumerator);
-        assertEq(config.k, virtualBase * virtualToken);
+        assertEq(config.k, virtualNad * virtualToken);
         assertEq(config.targetToken, targetToken);
         assertEq(config.tokenTotalSupply, tokenTotalSupply);
-        assertEq(config.virtualNad, virtualBase);
+        assertEq(config.virtualNad, virtualNad);
         assertEq(config.virtualToken, virtualToken);
     }
 

@@ -8,7 +8,7 @@ import {IWNAD} from "src/interfaces/IWNAD.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {FeeVault} from "src/FeeVault.sol";
 import {Token} from "src/Token.sol";
-
+import {UniswapV2Factory} from "src/uniswap/UniswapV2Factory.sol";
 import "src/errors/Errors.sol";
 import "src/WNAD.sol";
 import "src/utils/NadsPumpLibrary.sol";
@@ -21,11 +21,13 @@ contract EndpointTest is Test {
     WNAD wNad;
     Endpoint endpoint;
     FeeVault vault;
+    UniswapV2Factory uniFactory;
     address owner = address(0xa);
     address creator = address(0xb);
     uint256 traderPrivateKey = 0xA11CE;
     address trader = vm.addr(traderPrivateKey);
     uint256 deployFee = 2 * 10 ** 16;
+    uint256 listingFee = 1 ether;
     uint256 virtualNad = 30 * 10 ** 18;
     uint256 virtualToken = 1_073_000_191 * 10 ** 18;
     uint256 k = virtualNad * virtualToken;
@@ -42,9 +44,18 @@ contract EndpointTest is Test {
 
         // BondingCurveFactory 컨트랙트 배포 및 초기화
         wNad = new WNAD();
+        uniFactory = new UniswapV2Factory(owner);
         factory = new BondingCurveFactory(owner, address(wNad));
         factory.initialize(
-            deployFee, tokenTotalSupply, virtualNad, virtualToken, targetToken, feeNumerator, feeDenominator
+            deployFee,
+            listingFee,
+            tokenTotalSupply,
+            virtualNad,
+            virtualToken,
+            targetToken,
+            feeNumerator,
+            feeDenominator,
+            address(uniFactory)
         );
 
         vault = new FeeVault(wNad);

@@ -6,10 +6,14 @@ import {BondingCurve} from "src/BondingCurve.sol";
 import {BondingCurveFactory} from "src/BondingCurveFactory.sol";
 import {Token} from "src/Token.sol";
 import "src/errors/Errors.sol";
-import "src/interfaces/IWNAD.sol";
+import {IWNAD} from "src/interfaces/IWNAD.sol";
 import {WNAD} from "src/WNAD.sol";
-import "src/utils/NadsPumpLibrary.sol";
-import "src/Endpoint.sol";
+import {NadsPumpLibrary} from "src/utils/NadsPumpLibrary.sol";
+import {Endpoint} from "src/Endpoint.sol";
+import {FeeVault} from "src/FeeVault.sol";
+import {UniswapV2Factory} from "src/uniswap/UniswapV2Factory.sol";
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 contract CurveTest is Test {
     BondingCurve curve;
@@ -17,15 +21,17 @@ contract CurveTest is Test {
     BondingCurveFactory factory;
     WNAD wNad;
     Endpoint endpoint;
+    FeeVault vault;
+    UniswapV2Factory uniFactory;
     address creator = address(0xb);
     address trader = address(0xc);
-    address vault = address(0xc);
     uint256 deployFee = 2 * 10 ** 16;
+    uint256 listingFee = 1 ether;
     uint256 tokenTotalSupply = 10 ** 27;
     uint256 virtualNad = 30 * 10 ** 18;
-    uint256 virtualToken = 1073000191 * 10 ** 18;
+    uint256 virtualToken = 1_073_000_191 * 10 ** 18;
     uint256 k = virtualNad * virtualToken;
-    uint256 targetToken = 206900000 * 10 ** 18;
+    uint256 targetToken = 206_900_000 * 10 ** 18;
 
     uint8 feeDominator = 10;
     uint16 feeNumerator = 1000;
@@ -35,14 +41,24 @@ contract CurveTest is Test {
         address owner = address(0xa);
         vm.startPrank(owner);
 
+        uniFactory = new UniswapV2Factory(owner);
+
         // BondingCurveFactory 컨트랙트 배포 및 초기화
         wNad = new WNAD();
         factory = new BondingCurveFactory(owner, address(wNad));
         factory.initialize(
-            deployFee, tokenTotalSupply, virtualNad, virtualToken, targetToken, feeNumerator, feeDominator
+            deployFee,
+            listingFee,
+            tokenTotalSupply,
+            virtualNad,
+            virtualToken,
+            targetToken,
+            feeNumerator,
+            feeDominator,
+            address(uniFactory)
         );
-
-        endpoint = new Endpoint(address(factory), address(wNad), vault);
+        vault = new FeeVault(IERC20(address(wNad)));
+        endpoint = new Endpoint(address(factory), address(wNad), address(vault));
 
         factory.setEndpoint(address(endpoint));
         // owner로의 프랭크 종료
@@ -61,6 +77,41 @@ contract CurveTest is Test {
         token = Token(tokenAddress);
         // creator로의 프랭크 종료
         vm.stopPrank();
+    }
+
+    function testListing() public {
+        vm.startPrank(trader);
+        (uint256 virtualNadAmount, uint256 virtualTokenAmount) = curve.getVirtualReserves();
+
+        uint256 amountIn =
+            endpoint.getAmountIn(1_000_000_000 ether - targetToken, curve.getK(), virtualNadAmount, virtualTokenAmount);
+        console.log(amountIn);
+        uint256 fee = amountIn / 100;
+        vm.deal(trader, amountIn + fee);
+
+        uint256 deadline = block.timestamp + 1;
+
+        endpoint.buyExactAmountOut{value: amountIn + fee}(
+            1_000_000_000 ether - targetToken, amountIn + fee, address(token), trader, deadline
+        );
+
+        assertEq(curve.getLock(), true);
+
+        address pair = curve.listing();
+
+        assertEq(IERC4626(vault).totalAssets(), listingFee + 0.02 ether + fee);
+
+        assertEq(IERC20(wNad).balanceOf(pair), amountIn - listingFee);
+        assertEq(IERC20(token).balanceOf(pair), targetToken);
+        //sqrt(84005301050330472980 * 206900000000000000000000000)
+        // assertEq(IERC20(pair).balanceOf(address(0)),)
+
+        assert(IERC20(pair).balanceOf(address(0)) >= 131835870639645623191986);
+        (uint256 realNadAmount, uint256 realTokenAmount) = curve.getReserves();
+        assertEq(realNadAmount, 0);
+        assertEq(realTokenAmount, 0);
+        assertEq(IERC20(wNad).balanceOf(address(curve)), 0);
+        assertEq(IERC20(token).balanceOf(address(curve)), 0);
     }
 
     /**

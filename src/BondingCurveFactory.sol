@@ -13,19 +13,21 @@ import "./errors/Errors.sol";
 contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
     address private owner;
     address private endpoint;
+    address private dexFactory;
     address public immutable WNAD;
     Config private config;
     mapping(address => address) private curves;
 
     struct Config {
         uint256 deployFee;
+        uint256 listingFee;
         uint256 tokenTotalSupply;
         uint256 virtualNad;
         uint256 virtualToken;
         uint256 k;
         uint256 targetToken;
         uint16 feeNumerator;
-        uint8 feeDominator;
+        uint8 feeDenominator;
     }
 
     constructor(address _owner, address _wnad) {
@@ -45,18 +47,39 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
 
     function initialize(
         uint256 deployFee,
+        uint256 listingFee,
         uint256 tokenTotalSupply,
         uint256 virtualNad,
         uint256 virtualToken,
         uint256 targetToken,
         uint16 feeNumerator,
-        uint8 feeDominator
+        uint8 feeDenominator,
+        address _dexFactory
     ) external onlyOwner {
         uint256 k = virtualNad * virtualToken;
-        config =
-            Config(deployFee, tokenTotalSupply, virtualNad, virtualToken, k, targetToken, feeNumerator, feeDominator);
+        config = Config(
+            deployFee,
+            listingFee,
+            tokenTotalSupply,
+            virtualNad,
+            virtualToken,
+            k,
+            targetToken,
+            feeNumerator,
+            feeDenominator
+        );
+        dexFactory = _dexFactory;
         emit SetInitialize(
-            deployFee, tokenTotalSupply, virtualNad, virtualToken, k, targetToken, feeNumerator, feeDominator
+            deployFee,
+            listingFee,
+            tokenTotalSupply,
+            virtualNad,
+            virtualToken,
+            k,
+            targetToken,
+            feeNumerator,
+            feeDenominator,
+            dexFactory
         );
     }
 
@@ -79,7 +102,7 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
             _config.virtualToken,
             _config.k,
             _config.targetToken,
-            _config.feeDominator,
+            _config.feeDenominator,
             _config.feeNumerator
         );
 
@@ -117,7 +140,15 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         _endpoint = endpoint;
     }
 
+    function getDexFactory() public view returns (address) {
+        return dexFactory;
+    }
+
     function getDelpyFee() public view returns (uint256 deployFee) {
         deployFee = config.deployFee;
+    }
+
+    function getListingFee() public view returns (uint256 listingFee) {
+        listingFee = config.listingFee;
     }
 }

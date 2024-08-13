@@ -150,4 +150,6 @@ interface IEndpoint {
         external
         pure
         returns (uint256 amountIn);
+
+    function getFeeVault() external view returns (address feeVault);
 }

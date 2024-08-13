@@ -9,6 +9,7 @@ import "src/Endpoint.sol";
 import "src/WNAD.sol";
 import "src/Token.sol";
 import "src/errors/Errors.sol";
+import {UniswapV2Factory} from "src/uniswap/UniswapV2Factory.sol";
 
 contract NadsPumpLibraryTest is Test {
     BondingCurve curve;
@@ -16,6 +17,7 @@ contract NadsPumpLibraryTest is Test {
     BondingCurveFactory factory;
     WNAD wNad;
     Endpoint endpoint;
+    UniswapV2Factory uniFactory;
     address creator = address(0xb);
     address trader = address(0xc);
     // uint256 deployFee = 2 * 10 ** 16;
@@ -34,11 +36,21 @@ contract NadsPumpLibraryTest is Test {
         uint8 feeDominator = 1;
         uint16 feeNumerator = 100;
         uint256 deployFee = 0.02 ether;
+        uint256 listingFee = 0.01 ether;
         // BondingCurveFactory 컨트랙트 배포 및 초기화
         wNad = new WNAD();
+        uniFactory = new UniswapV2Factory(owner);
         factory = new BondingCurveFactory(owner, address(wNad));
         factory.initialize(
-            deployFee, tokenTotalSupply, virtualNad, virtualToken, targetToken, feeNumerator, feeDominator
+            deployFee,
+            listingFee,
+            tokenTotalSupply,
+            virtualNad,
+            virtualToken,
+            targetToken,
+            feeNumerator,
+            feeDominator,
+            address(uniFactory)
         );
 
         endpoint = new Endpoint(address(factory), address(wNad), vault);

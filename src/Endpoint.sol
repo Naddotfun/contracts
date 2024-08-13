@@ -537,4 +537,8 @@ contract Endpoint is IEndpoint {
     {
         amountIn = NadsPumpLibrary.getAmountIn(amountOut, k, reserveIn, reserveOut);
     }
+
+    function getFeeVault() public view returns (address) {
+        return address(vault);
+    }
 }
