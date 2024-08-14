@@ -44,8 +44,8 @@ contract EndpointTest is Test {
 
         // BondingCurveFactory 컨트랙트 배포 및 초기화
         wNad = new WNAD();
-        uniFactory = new UniswapV2Factory(owner);
         factory = new BondingCurveFactory(owner, address(wNad));
+        uniFactory = new UniswapV2Factory(owner);
         factory.initialize(
             deployFee,
             listingFee,

@@ -2,19 +2,19 @@
 pragma solidity ^0.8.20;
 
 interface IBondingCurve {
-    event Lock(address indexed market);
+    event Lock(address indexed curve);
     event Sync(uint256 reserveBase, uint256 reserveToken, uint256 virtualBase, uint256 virtualToken);
     // event Swap(address indexed sender, uint256 amountIn, uint256 amountOut, uint256 fee, bool isBuy);
     event Buy(address indexed sender, uint256 amountIn, uint256 amountOut);
     event Sell(address indexed sender, uint256 amountIn, uint256 amountOut);
-    // event Swap(
-    //     address indexed sender,
-    //     uint256 amount0In,
-    //     uint256 amount1In,
-    //     uint256 amount0Out,
-    //     uint256 amount1Out,
-    //     address indexed to
-    // );
+    event Listing(
+        address indexed curve,
+        address indexed token,
+        address indexed pair,
+        uint256 listingWNadAamount,
+        uint256 listingTokenAmount,
+        uint256 burnLiquidity
+    );
 
     function initialize(
         address wnad,
@@ -30,6 +30,8 @@ interface IBondingCurve {
     function buy(address to, uint256 amountOut) external;
 
     function sell(address to, uint256 amountOut) external;
+    function listing() external returns (address pair);
+    function getLock() external view returns (bool);
     function getK() external view returns (uint256);
     function getFeeConfig() external view returns (uint8 denominator, uint16 numerator);
     function getVirtualReserves() external view returns (uint256 virtualBase, uint256 virtualToken);

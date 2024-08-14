@@ -138,18 +138,20 @@ contract BondingCurve is IBondingCurve {
         pair = IUniswapV2Factory(_factory.getDexFactory()).createPair(wnad, token);
         //dexlisting fee -> fee vault
         IERC20(wnad).transfer(IEndpoint(_factory.getEndpoint()).getFeeVault(), _factory.getListingFee());
+
         //rest token amount -> pair
-        console.log("Nad balance", IERC20(wnad).balanceOf(address(this)));
-        console.log("Token balance", IERC20(token).balanceOf(address(this)));
-        IERC20(wnad).transfer(pair, IERC20(wnad).balanceOf(address(this)));
+
+        uint256 listingWNadAmount = IERC20(wnad).balanceOf(address(this));
+        IERC20(wnad).transfer(pair, listingWNadAmount);
         //rest token amount -> pair
-        IERC20(token).transfer(pair, IERC20(token).balanceOf(address(this)));
+        uint256 listingTokenAmount = IERC20(token).balanceOf(address(this));
+        IERC20(token).transfer(pair, listingTokenAmount);
         realNadReserves = 0;
         realTokenReserves = 0;
         uint256 liquidity = IUniswapV2Pair(pair).mint(address(this));
-        console.log("Liquidity", liquidity);
 
         IERC20(pair).transfer(address(0), liquidity);
+        emit Listing(address(this), token, pair, listingWNadAmount, listingTokenAmount, liquidity);
     }
 
     function _update(uint256 amountIn, uint256 amountOut, bool isBuy) private {
