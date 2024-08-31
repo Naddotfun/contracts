@@ -53,30 +53,33 @@ contract Endpoint is IEndpoint {
         uint256 amountIn,
         uint256 fee,
         uint256 deployFee
-    ) external payable returns (address curve, address token, uint256 virtualNad, uint256 virtualToken) {
+    )
+        external
+        payable
+        returns (address curve, address token, uint256 virtualNad, uint256 virtualToken, uint256 amountOut)
+    {
         require(msg.value >= amountIn + fee + deployFee, ERR_INVALID_SEND_NAD);
         uint256 _deployFee = IBondingCurveFactory(factory).getDelpyFee();
         require(deployFee >= _deployFee, ERR_INVALID_DEPLOY_FEE);
-        // TransferHelper.safeTransferNad(vault, deployFee);
 
         (curve, token, virtualNad, virtualToken) = IBondingCurveFactory(factory).create(name, symbol, tokenURI);
-
-        emit CreateCurve(msg.sender, curve, token, tokenURI, name, symbol, virtualNad, virtualToken);
 
         IWNAD(WNAD).deposit{value: amountIn + fee + deployFee}();
 
         sendFeeByVault(fee + deployFee);
-        if (amountIn == 0 || fee == 0) {
-            return (curve, token, virtualNad, virtualToken);
+
+        if (amountIn > 0 && fee > 0) {
+            checkFee(curve, amountIn, fee);
+            uint256 k = virtualNad * virtualToken;
+            amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
+            IERC20(WNAD).safeTransferERC20(curve, amountIn);
+            IBondingCurve(curve).buy(msg.sender, amountOut);
         }
-        checkFee(curve, amountIn, fee);
-        uint256 k = virtualNad * virtualToken;
-        uint256 amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
-        IERC20(WNAD).safeTransferERC20(curve, amountIn);
 
-        IBondingCurve(curve).buy(msg.sender, amountOut);
-
-        emit Buy(msg.sender, amountIn, amountOut, token, curve);
+        emit CreateCurve(
+            msg.sender, curve, token, tokenURI, name, symbol, virtualNad, virtualToken, amountIn, amountOut
+        );
+        return (curve, token, virtualNad, virtualToken, amountOut);
     }
 
     //----------------------------Buy Functions ---------------------------------------------------

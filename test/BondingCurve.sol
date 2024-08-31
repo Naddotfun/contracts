@@ -27,11 +27,13 @@ contract CurveTest is Test {
     address trader = address(0xc);
     uint256 deployFee = 2 * 10 ** 16;
     uint256 listingFee = 1 ether;
+    // uint256 listingFee = 1;
     uint256 tokenTotalSupply = 10 ** 27;
     uint256 virtualNad = 30 * 10 ** 18;
     uint256 virtualToken = 1_073_000_191 * 10 ** 18;
     uint256 k = virtualNad * virtualToken;
     uint256 targetToken = 206_900_000 * 10 ** 18;
+    // uint256 targetToken = (10 ** 27) - 100000000;
 
     uint8 feeDominator = 10;
     uint16 feeNumerator = 1000;
@@ -96,7 +98,8 @@ contract CurveTest is Test {
         );
 
         assertEq(curve.getLock(), true);
-
+        console.log("curve wnad", IERC20(wNad).balanceOf(address(curve)));
+        console.log("curve token", IERC20(token).balanceOf(address(curve)));
         address pair = curve.listing();
 
         assertEq(IERC4626(vault).totalAssets(), listingFee + 0.02 ether + fee);
@@ -114,9 +117,42 @@ contract CurveTest is Test {
         assertEq(IERC20(token).balanceOf(address(curve)), 0);
     }
 
+    function testListing2() public {
+        vm.startPrank(trader);
+        (uint256 virtualNadAmount, uint256 virtualTokenAmount) = curve.getVirtualReserves();
+
+        uint256 amountIn = endpoint.getAmountIn(100000000, curve.getK(), virtualNadAmount, virtualTokenAmount);
+        console.log(amountIn);
+        uint256 fee = amountIn / 100;
+        vm.deal(trader, amountIn + fee);
+
+        uint256 deadline = block.timestamp + 1;
+
+        endpoint.buyExactAmountOut{value: amountIn + fee}(100000000, amountIn + fee, address(token), trader, deadline);
+
+        assertEq(curve.getLock(), true);
+        console.log("curve wnad", IERC20(wNad).balanceOf(address(curve)));
+        console.log("curve token", IERC20(token).balanceOf(address(curve)));
+        address pair = curve.listing();
+
+        assertEq(IERC4626(vault).totalAssets(), listingFee + 0.02 ether + fee);
+
+        assertEq(IERC20(wNad).balanceOf(pair), amountIn - listingFee);
+        assertEq(IERC20(token).balanceOf(pair), targetToken);
+        //sqrt(84005301050330472980 * 206900000000000000000000000)
+        // assertEq(IERC20(pair).balanceOf(address(0)),)
+
+        assert(IERC20(pair).balanceOf(address(0)) >= 131835870639645623191986);
+        (uint256 realNadAmount, uint256 realTokenAmount) = curve.getReserves();
+        assertEq(realNadAmount, 0);
+        assertEq(realTokenAmount, 0);
+        assertEq(IERC20(wNad).balanceOf(address(curve)), 0);
+        assertEq(IERC20(token).balanceOf(address(curve)), 0);
+    }
     /**
      * @dev Curve Status Test
      */
+
     function testInitFee() public {
         (uint8 dominator, uint16 numerator) = curve.getFee();
         assertEq(dominator, 10);
