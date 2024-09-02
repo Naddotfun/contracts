@@ -74,6 +74,8 @@ contract Endpoint is IEndpoint {
             amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
             IERC20(WNAD).safeTransferERC20(curve, amountIn);
             IBondingCurve(curve).buy(msg.sender, amountOut);
+            virtualNad += amountIn;
+            virtualToken -= amountOut;
         }
 
         emit CreateCurve(
