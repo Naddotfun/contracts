@@ -9,6 +9,7 @@ import "src/errors/Errors.sol";
 import "src/WNAD.sol";
 import "src/utils/NadsPumpLibrary.sol";
 import "src/Endpoint.sol";
+import "src/Lock.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {FeeVault} from "src/FeeVault.sol";
 import {UniswapV2Factory} from "src/uniswap/UniswapV2Factory.sol";
@@ -53,8 +54,8 @@ contract BondingCurveFactoryTest is Test {
             feeDenominator,
             address(uniFactory)
         );
-
-        endpoint = new Endpoint(address(factory), address(wNad), address(vault));
+        Lock lock = new Lock();
+        endpoint = new Endpoint(address(factory), address(wNad), address(vault), address(lock));
         factory.setEndpoint(address(endpoint));
         vm.stopPrank();
     }
@@ -65,7 +66,7 @@ contract BondingCurveFactoryTest is Test {
         vm.deal(creator, 0.02 ether);
         // createCurve 함수 호출
         console.log(IERC4626(vault).totalAssets());
-        (address curveAddress, address tokenAddress, uint256 virtualNad, uint256 virtualToken) =
+        (address curveAddress, address tokenAddress, uint256 virtualNad, uint256 virtualToken, uint256 amountOut) =
             endpoint.createCurve{value: 0.02 ether}("test", "test", "testurl", 0, 0, 0.02 ether);
         curve = BondingCurve(curveAddress);
         token = Token(tokenAddress);

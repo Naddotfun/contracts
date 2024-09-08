@@ -29,6 +29,20 @@ interface IEndpoint {
         payable
         returns (address curve, address token, uint256 virtualNad, uint256 virtualToken, uint256 amountOut);
 
+    function createCurveWithLock(
+        string memory name,
+        string memory symbol,
+        string memory tokenURI,
+        uint256 amountIn,
+        uint256 fee,
+        uint256 deployFee,
+        uint256 lockTime,
+        uint256 lockAmount
+    )
+        external
+        payable
+        returns (address curve, address token, uint256 virtualNad, uint256 virtualToken, uint256 amountOut);
+
     function buy(uint256 amountIn, uint256 fee, address token, address to, uint256 deadline) external payable;
 
     function buyWNad(uint256 amountIn, uint256 fee, address token, address to, uint256 deadline) external;

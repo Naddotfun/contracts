@@ -8,6 +8,7 @@ import "src/BondingCurveFactory.sol";
 import "src/Endpoint.sol";
 import "src/WNAD.sol";
 import "src/Token.sol";
+import "src/Lock.sol";
 import "src/errors/Errors.sol";
 import {UniswapV2Factory} from "src/uniswap/UniswapV2Factory.sol";
 
@@ -52,8 +53,8 @@ contract NadsPumpLibraryTest is Test {
             feeDominator,
             address(uniFactory)
         );
-
-        endpoint = new Endpoint(address(factory), address(wNad), vault);
+        Lock lock = new Lock();
+        endpoint = new Endpoint(address(factory), address(wNad), vault, address(lock));
 
         factory.setEndpoint(address(endpoint));
 
@@ -64,7 +65,7 @@ contract NadsPumpLibraryTest is Test {
         vm.startPrank(creator);
 
         // createCurve 함수 호출
-        (address curveAddress, address tokenAddress, uint256 virtualNad, uint256 virtualToken) =
+        (address curveAddress, address tokenAddress, uint256 virtualNad, uint256 virtualToken, uint256 amoutnOut) =
             endpoint.createCurve{value: 0.02 ether}("test", "test", "testurl", 0, 0, 0.02 ether);
         curve = BondingCurve(curveAddress);
         token = Token(tokenAddress);

@@ -13,6 +13,7 @@ import "src/errors/Errors.sol";
 import "src/WNAD.sol";
 import "src/utils/NadsPumpLibrary.sol";
 import "src/Endpoint.sol";
+import "src/Lock.sol";
 
 contract EndpointTest is Test {
     BondingCurve curve;
@@ -57,9 +58,9 @@ contract EndpointTest is Test {
             feeDenominator,
             address(uniFactory)
         );
-
+        Lock lock = new Lock();
         vault = new FeeVault(wNad);
-        endpoint = new Endpoint(address(factory), address(wNad), address(vault));
+        endpoint = new Endpoint(address(factory), address(wNad), address(vault), address(lock));
 
         factory.setEndpoint(address(endpoint));
         // owner로의 프랭크 종료
@@ -72,7 +73,7 @@ contract EndpointTest is Test {
         vm.startPrank(creator);
 
         // createCurve 함수 호출
-        (address curveAddress, address tokenAddress, uint256 virtualNad, uint256 virtualToken) =
+        (address curveAddress, address tokenAddress, uint256 _virtualNad, uint256 virtualToken, uint256 initAmountOut) =
             endpoint.createCurve{value: 0.02 ether}("test", "test", "testurl", 0, 0, 0.02 ether);
         curve = BondingCurve(curveAddress);
         token = Token(tokenAddress);
@@ -85,8 +86,8 @@ contract EndpointTest is Test {
         vm.deal(creator, 1.03 ether);
         // vm.recordLogs();
         vm.startPrank(creator);
-        (address curveAddress, address tokenAddress, uint256 _virtualNad, uint256 _virtualToken) =
-            endpoint.createCurve{value: 1.03 ether}("Test", "Test", "testurl", 1 ether, 0.01 ether, 0.02 ether);
+        (address curveAddress, address tokenAddress, uint256 _virtualNad, uint256 _virtualToken, uint256 initAmountOut)
+        = endpoint.createCurve{value: 1.03 ether}("Test", "Test", "testurl", 1 ether, 0.01 ether, 0.02 ether);
 
         vm.stopPrank();
 
@@ -95,6 +96,17 @@ contract EndpointTest is Test {
 
         assertEq(IERC4626(vault).totalAssets(), 0.05 ether); // setup 0.02 + 0.03
         assertEq(creator.balance, 0);
+    }
+
+    function testCreateCurveWithLock() public {
+        vm.deal(creator, 1.03 ether);
+        vm.startPrank(creator);
+        (address curveAddress, address tokenAddress, uint256 _virtualNad, uint256 _virtualToken, uint256 initAmountOut)
+        = endpoint.createCurveWithLock{value: 1.03 ether}(
+            "Test", "Test", "testurl", 1 ether, 0.01 ether, 0.02 ether, 100, 10 ether
+        );
+
+        vm.stopPrank();
     }
 
     function testInvalidFeeCreateCurve() public {
