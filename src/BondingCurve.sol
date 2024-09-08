@@ -83,8 +83,9 @@ contract BondingCurve is IBondingCurve {
         address _token = token; //gas savings
 
         (uint256 _realNadReserves, uint256 _realTokenReserves) = getReserves();
+
         //100 - 50 <= 50
-        require(_realTokenReserves - amountOut <= targetToken, ERR_OVERFLOW_TARGET);
+        require(_realTokenReserves - amountOut >= targetToken, ERR_OVERFLOW_TARGET);
 
         //Current balance of the curve
         uint256 balanceNad;
