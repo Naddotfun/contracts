@@ -35,7 +35,8 @@ contract BondingCurve is IBondingCurve {
     uint256 realNadReserves;
     uint256 realTokenReserves;
 
-    bool lock;
+    bool public lock;
+    bool public isListing;
 
     modifier islock() {
         require(!lock, ERR_LOCK);
@@ -73,6 +74,7 @@ contract BondingCurve is IBondingCurve {
         //this is
         targetToken = _targetToken;
         feeConfig = Fee(_feeDenominator, _feeNumerator);
+        isListing = false;
     }
 
     // this low-level function should be called from a contract which performs important safety checks
@@ -152,6 +154,7 @@ contract BondingCurve is IBondingCurve {
         uint256 liquidity = IUniswapV2Pair(pair).mint(address(this));
 
         IERC20(pair).transfer(address(0), liquidity);
+        isListing = true;
         emit Listing(address(this), token, pair, listingWNadAmount, listingTokenAmount, liquidity);
     }
 
@@ -209,5 +212,9 @@ contract BondingCurve is IBondingCurve {
 
     function getLock() public view returns (bool) {
         return lock;
+    }
+
+    function getIsListing() public view returns (bool) {
+        return isListing;
     }
 }

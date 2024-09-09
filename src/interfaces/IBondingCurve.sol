@@ -36,4 +36,5 @@ interface IBondingCurve {
     function getFeeConfig() external view returns (uint8 denominator, uint16 numerator);
     function getVirtualReserves() external view returns (uint256 virtualBase, uint256 virtualToken);
     function getReserves() external view returns (uint256 reserveBase, uint256 reserveToken);
+    function getIsListing() external view returns (bool);
 }

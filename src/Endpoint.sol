@@ -12,7 +12,6 @@ import {IEndpoint} from "./interfaces/IEndpoint.sol";
 import {NadsPumpLibrary} from "./utils/NadsPumpLibrary.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
 import "./errors/Errors.sol";
-import {Test, console} from "forge-std/Test.sol";
 
 contract Endpoint is IEndpoint {
     using TransferHelper for IERC20;
@@ -81,7 +80,7 @@ contract Endpoint is IEndpoint {
             //일단 bonding curve 에 보냄.
             IBondingCurve(curve).buy(address(this), amountOut);
             IERC20(token).safeTransferERC20(address(lock), lockAmount);
-            lock.lock(token, msg.sender, lockTime);
+            lock.lock(token, msg.sender, lockAmount, lockTime, false);
             IERC20(token).safeTransferERC20(msg.sender, amountOut - lockAmount);
         }
 

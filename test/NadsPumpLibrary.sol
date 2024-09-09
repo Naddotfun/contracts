@@ -53,7 +53,7 @@ contract NadsPumpLibraryTest is Test {
             feeDominator,
             address(uniFactory)
         );
-        Lock lock = new Lock();
+        Lock lock = new Lock(address(factory));
         endpoint = new Endpoint(address(factory), address(wNad), vault, address(lock));
 
         factory.setEndpoint(address(endpoint));

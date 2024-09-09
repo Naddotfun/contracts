@@ -54,7 +54,7 @@ contract BondingCurveFactoryTest is Test {
             feeDenominator,
             address(uniFactory)
         );
-        Lock lock = new Lock();
+        Lock lock = new Lock(address(factory));
         endpoint = new Endpoint(address(factory), address(wNad), address(vault), address(lock));
         factory.setEndpoint(address(endpoint));
         vm.stopPrank();

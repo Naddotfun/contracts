@@ -58,7 +58,7 @@ contract EndpointTest is Test {
             feeDenominator,
             address(uniFactory)
         );
-        Lock lock = new Lock();
+        Lock lock = new Lock(address(factory));
         vault = new FeeVault(wNad);
         endpoint = new Endpoint(address(factory), address(wNad), address(vault), address(lock));
 
