@@ -8,7 +8,7 @@ import "src/BondingCurveFactory.sol";
 import "src/Endpoint.sol";
 import "src/WNAD.sol";
 import "src/Token.sol";
-import "src/Lock.sol";
+
 import "src/errors/Errors.sol";
 import {UniswapV2Factory} from "src/uniswap/UniswapV2Factory.sol";
 
@@ -53,8 +53,8 @@ contract NadsPumpLibraryTest is Test {
             feeDominator,
             address(uniFactory)
         );
-        Lock lock = new Lock(address(factory));
-        endpoint = new Endpoint(address(factory), address(wNad), vault, address(lock));
+
+        endpoint = new Endpoint(address(factory), address(wNad), vault);
 
         factory.setEndpoint(address(endpoint));
 

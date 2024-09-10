@@ -7,7 +7,7 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IBondingCurve} from "./interfaces/IBondingCurve.sol";
 import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
 import {IWNAD} from "./interfaces/IWNAD.sol";
-import {ILock} from "./interfaces/ILock.sol";
+
 import {IEndpoint} from "./interfaces/IEndpoint.sol";
 import {NadsPumpLibrary} from "./utils/NadsPumpLibrary.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
@@ -20,14 +20,12 @@ contract Endpoint is IEndpoint {
     address public immutable factory;
     address public immutable WNAD;
     IERC4626 public immutable vault;
-    ILock public immutable lock;
 
-    constructor(address _factory, address _WNAD, address _vault, address _lock) {
+    constructor(address _factory, address _WNAD, address _vault) {
         factory = _factory;
         WNAD = _WNAD;
         owner = msg.sender;
         vault = IERC4626(_vault);
-        lock = ILock(_lock);
     }
 
     receive() external payable {
@@ -46,57 +44,6 @@ contract Endpoint is IEndpoint {
 
     function sendFeeByVault(uint256 fee) internal {
         IERC20(WNAD).safeTransferERC20(address(vault), fee);
-    }
-
-    function createCurveWithLock(
-        string memory name,
-        string memory symbol,
-        string memory tokenURI,
-        uint256 amountIn,
-        uint256 fee,
-        uint256 deployFee,
-        uint256 lockTime,
-        uint256 lockAmount
-    )
-        external
-        payable
-        returns (address curve, address token, uint256 virtualNad, uint256 virtualToken, uint256 amountOut)
-    {
-        require(msg.value >= amountIn + fee + deployFee, ERR_INVALID_SEND_NAD);
-        uint256 _deployFee = IBondingCurveFactory(factory).getDelpyFee();
-        require(deployFee >= _deployFee, ERR_INVALID_DEPLOY_FEE);
-
-        (curve, token, virtualNad, virtualToken) = IBondingCurveFactory(factory).create(name, symbol, tokenURI);
-
-        IWNAD(WNAD).deposit{value: amountIn + fee + deployFee}();
-
-        sendFeeByVault(fee + deployFee);
-
-        if (amountIn > 0 && fee > 0) {
-            checkFee(curve, amountIn, fee);
-            uint256 k = virtualNad * virtualToken;
-            amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
-            IERC20(WNAD).safeTransferERC20(curve, amountIn);
-            //일단 bonding curve 에 보냄.
-            IBondingCurve(curve).buy(address(this), amountOut);
-            IERC20(token).safeTransferERC20(address(lock), lockAmount);
-            lock.lock(token, msg.sender, lockAmount, lockTime, false);
-            IERC20(token).safeTransferERC20(msg.sender, amountOut - lockAmount);
-        }
-
-        emit CreateCurve(
-            msg.sender,
-            curve,
-            token,
-            tokenURI,
-            name,
-            symbol,
-            virtualNad + amountIn,
-            virtualToken - amountOut,
-            amountIn,
-            amountOut
-        );
-        return (curve, token, virtualNad, virtualToken, amountOut);
     }
 
     function createCurve(
