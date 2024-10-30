@@ -39,6 +39,7 @@ contract QuestPool is IQuestPool {
         require(block.timestamp < claimableTimeStamp, ERR_INVALID_BLOCK_TIMESTAMP);
 
         uint256 balance = token.allowance(account, address(this));
+        require(balance > 0, ERR_INVALID_QUEST_BALANCE);
         token.safeTransferFrom(account, address(this), balance);
 
         questBalances[account] += balance;
