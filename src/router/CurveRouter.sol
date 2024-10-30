@@ -88,7 +88,6 @@ contract CurveRouter is ICurveRouter {
         IWNAD(WNAD).deposit{value: totalAmountIn}();
         IERC20(WNAD).safeTransferERC20(curve, totalAmountIn);
         IBondingCurve(curve).buy(msg.sender, amountOut, fee);
-        // emit Buy(msg.sender, amountIn, amountOut, token, curve);
     }
 
     function buyWNad(uint256 amountIn, uint256 fee, address token, address to, uint256 deadline)
@@ -107,7 +106,6 @@ contract CurveRouter is ICurveRouter {
         uint256 totalAmountIn = amountIn + fee;
         IERC20(WNAD).safeTransferERC20(curve, totalAmountIn);
         IBondingCurve(curve).buy(to, amountOut, fee);
-        // emit Buy(msg.sender, amountIn, amountOut, token, curve);
     }
 
     function buyWNadWithPermit(
@@ -136,7 +134,6 @@ contract CurveRouter is ICurveRouter {
         IERC20(WNAD).safeTransferERC20(curve, totalAmountIn);
 
         IBondingCurve(curve).buy(to, amountOut, fee);
-        // emit Buy(msg.sender, amountIn, amountOut, token, curve);
     }
 
     function buyAmountOutMin(
@@ -161,7 +158,6 @@ contract CurveRouter is ICurveRouter {
         IERC20(WNAD).safeTransferERC20(curve, totalAmountIn);
 
         IBondingCurve(curve).buy(to, amountOut, fee);
-        // emit Buy(msg.sender, amountIn, amountOut, token, curve);
     }
 
     function buyWNadAmountOutMin(
@@ -186,7 +182,6 @@ contract CurveRouter is ICurveRouter {
         IERC20(WNAD).safeTransferERC20(curve, totalAmountIn);
 
         IBondingCurve(curve).buy(to, amountOut, fee);
-        // emit Buy(msg.sender, amountIn, amountOut, token, curve);
     }
 
     function buyWNadAmountOutMinPermit(
@@ -217,7 +212,6 @@ contract CurveRouter is ICurveRouter {
         IERC20(WNAD).safeTransferERC20(curve, totalAmountIn);
 
         IBondingCurve(curve).buy(to, amountOut, fee);
-        // emit Buy(msg.sender, amountIn, amountOut, token, curve);
     }
 
     function buyExactAmountOut(uint256 amountOut, uint256 amountInMax, address token, address to, uint256 deadline)
@@ -243,7 +237,6 @@ contract CurveRouter is ICurveRouter {
         // sendFeeByVault(fee);
         IERC20(WNAD).safeTransferERC20(curve, totalAmountIn);
         IBondingCurve(curve).buy(to, amountOut, fee);
-        // emit Buy(msg.sender, amountIn, amountOut, token, curve);
     }
 
     function buyExactAmountOutWNad(uint256 amountOut, uint256 amountInMax, address token, address to, uint256 deadline)
@@ -266,7 +259,6 @@ contract CurveRouter is ICurveRouter {
 
         IERC20(WNAD).safeTransferERC20(curve, totalAmountIn);
         IBondingCurve(curve).buy(to, amountOut, fee);
-        // emit Buy(msg.sender, amountIn, amountOut, token, curve);
     }
 
     function buyExactAmountOutWNadPermit(
@@ -295,8 +287,8 @@ contract CurveRouter is ICurveRouter {
 
         IERC20(WNAD).safeTransferERC20(curve, totalAmountIn);
         IBondingCurve(curve).buy(to, amountOut, fee);
-        // emit Buy(msg.sender, amountIn, amountOut, token, curve);
     }
+
     // //-------------Sell Functions ---------------------------------------------
 
     function sell(uint256 amountIn, address token, uint256 deadline) external ensure(deadline) {
@@ -320,7 +312,6 @@ contract CurveRouter is ICurveRouter {
         IWNAD(WNAD).withdraw(amountOut);
 
         TransferHelper.safeTransferNad(msg.sender, amountOut);
-        // emit Sell(msg.sender, amountIn, amountOut, token, curve);
     }
 
     function sellPermit(
@@ -349,7 +340,6 @@ contract CurveRouter is ICurveRouter {
         IWNAD(WNAD).withdraw(amountOut);
 
         TransferHelper.safeTransferNad(to, amountOut);
-        // emit Sell(msg.sender, amountIn, amountOut, token, curve);
     }
 
     function sellAmountOutMin(uint256 amountIn, uint256 amountOutMin, address token, address to, uint256 deadline)
@@ -377,7 +367,6 @@ contract CurveRouter is ICurveRouter {
         IWNAD(WNAD).withdraw(amountOut);
 
         TransferHelper.safeTransferNad(to, amountOut);
-        // emit Sell(msg.sender, amountIn, amountOut, token, curve);
     }
 
     function sellAmountOutMinWithPermit(
@@ -414,9 +403,7 @@ contract CurveRouter is ICurveRouter {
         IWNAD(WNAD).withdraw(amountOut);
 
         TransferHelper.safeTransferNad(to, amountOut);
-        // emit Sell(msg.sender, amountIn, amountOut, token, curve);
     }
-    //amountOut 은 fee + amountOut 이어야함.
 
     function sellExactAmountOut(uint256 amountOut, uint256 amountInMax, address token, address to, uint256 deadline)
         external
@@ -442,7 +429,6 @@ contract CurveRouter is ICurveRouter {
         IWNAD(WNAD).withdraw(amountOut);
 
         TransferHelper.safeTransferNad(to, amountOut);
-        // emit Sell(msg.sender, amountIn, amountOut, token, curve);
     }
 
     function sellExactAmountOutwithPermit(
@@ -476,7 +462,6 @@ contract CurveRouter is ICurveRouter {
         IWNAD(WNAD).withdraw(amountOut);
 
         TransferHelper.safeTransferNad(to, amountOut);
-        // emit Sell(msg.sender, amountIn, amountOut, token, curve);
     }
 
     //----------------------------Common Functions ---------------------------------------------------
