@@ -9,29 +9,45 @@ import {IBondingCurve} from "./interfaces/IBondingCurve.sol";
 
 import "./errors/Errors.sol";
 
+/**
+ * @title Lock Contract
+ * @dev Implements token locking mechanism with time-based and listing-based unlock conditions
+ * Allows users to lock their tokens and unlock them based on either time elapsed or token listing status
+ */
 contract Lock is ILock {
     using TransferHelper for IERC20;
 
     address private bondingCurveFactory;
     address private owner;
-    // uint256 public amount;
     uint256 public reserves;
     uint256 public defaultLockTime;
 
+    /// @dev Mapping of token address => user address => array of lock information
     mapping(address => mapping(address => LockInfo[])) public locked;
 
-    //토큰 별로 락 된 잔고
+    /// @dev Mapping of token address => total locked balance
     mapping(address => uint256) public lockeTokendBalance;
 
+    /**
+     * @dev Constructor sets the deployer as the owner
+     */
     constructor() {
         owner = msg.sender;
     }
 
+    /**
+     * @dev Modifier to restrict function access to contract owner only
+     */
     modifier onlyOwner() {
         require(msg.sender == owner, ERR_LOCK_ONLY_OWNER);
         _;
     }
 
+    /**
+     * @dev Initializes the contract with bonding curve factory address and default lock time
+     * @param _bondingCurveFactory Address of the bonding curve factory contract
+     * @param _defaultLockTime Default duration for which tokens will be locked
+     */
     function initialize(
         address _bondingCurveFactory,
         uint256 _defaultLockTime
@@ -40,10 +56,14 @@ contract Lock is ILock {
         defaultLockTime = _defaultLockTime;
     }
 
+    /**
+     * @dev Locks tokens for a specified account
+     * @param token Address of the token to be locked
+     * @param account Address of the account for which tokens are being locked
+     * Calculates the amount to lock based on the contract's current balance
+     */
     function lock(address token, address account) external {
         uint256 balance = IERC20(token).balanceOf(address(this));
-
-        // require(balance >= lockeTokendBalance[token] + amount, ERR_INVALID_AMOUNT_IN);
 
         uint256 amountIn = balance - lockeTokendBalance[token];
         require(amountIn > 0, ERR_LOCK_INVALID_AMOUNT_IN);
@@ -54,10 +74,15 @@ contract Lock is ILock {
 
         emit Locked(token, account, amountIn, unlockTime);
     }
-    //unlock 해제 조건
-    // 1. Bonding Curve 가 리스팅 되었을때
-    // 2. 락 시간이 지났을때
 
+    /**
+     * @dev Unlocks tokens for a specified account
+     * Unlock conditions:
+     * 1. When the token is listed on Bonding Curve
+     * 2. When the lock time has expired
+     * @param token Address of the token to be unlocked
+     * @param account Address of the account for which tokens are being unlocked
+     */
     function unlock(address token, address account) external {
         uint256 availableAmount;
         uint256 writeIndex = 0;
@@ -68,15 +93,14 @@ contract Lock is ILock {
         bool isListing = IBondingCurve(curve).getIsListing();
 
         if (isListing) {
-            // 리스팅된 경우 모든 토큰 언락
+            // If token is listed, unlock all tokens
             availableAmount = 0;
             for (uint256 i = 0; i < locked[token][account].length; i++) {
                 availableAmount += locked[token][account][i].amount;
             }
-            // 모든 락 정보 삭제
             delete locked[token][account];
         } else {
-            // 기존 로직: 시간에 따른 부분 언락
+            // If token is not listed, unlock based on time
             for (
                 uint256 readIndex = 0;
                 readIndex < locked[token][account].length;
@@ -85,9 +109,7 @@ contract Lock is ILock {
                 LockInfo storage info = locked[token][account][readIndex];
                 if (info.unlockTime <= block.timestamp) {
                     availableAmount += info.amount;
-                    // 언락 조건을 만족하는 항목은 건너뜀
                 } else {
-                    // 언락 조건을 만족하지 않는 항목은 유지
                     if (writeIndex != readIndex) {
                         locked[token][account][writeIndex] = info;
                     }
@@ -95,7 +117,6 @@ contract Lock is ILock {
                 }
             }
 
-            // 배열의 크기를 조정합니다
             while (locked[token][account].length > writeIndex) {
                 locked[token][account].pop();
             }
@@ -108,6 +129,12 @@ contract Lock is ILock {
         }
     }
 
+    /**
+     * @dev Returns the amount of tokens that can be unlocked for a specific account
+     * @param token Address of the token
+     * @param account Address of the account to check
+     * @return Amount of tokens that can be unlocked
+     */
     function getAvailabeUnlockAmount(
         address token,
         address account
@@ -123,6 +150,12 @@ contract Lock is ILock {
         return availableAmount;
     }
 
+    /**
+     * @dev Returns all lock information for a specific token and account
+     * @param token Address of the token
+     * @param account Address of the account
+     * @return Array of LockInfo structs containing lock details
+     */
     function getLocked(
         address token,
         address account
@@ -130,6 +163,11 @@ contract Lock is ILock {
         return locked[token][account];
     }
 
+    /**
+     * @dev Returns the total amount of tokens locked for a specific token
+     * @param token Address of the token
+     * @return Total amount of tokens locked
+     */
     function getTokenLockedBalance(
         address token
     ) external view returns (uint256) {
