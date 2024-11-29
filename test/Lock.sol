@@ -2,132 +2,62 @@
 pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
-import {Lock} from "src/Lock.sol";
-import {Token} from "src/Token.sol";
+import {SetUp} from "./SetUp.sol";
 
-contract LockTest is Test {
-    address public alice = address(0x1);
-    Lock public lockContract;
-    Token public token;
-    uint256 tokenInitBalance = 10 ** 27;
+contract LockTest is Test, SetUp {
+    uint256 TOKEN_AMOUNT;
 
-    function setUp() public {
-        lockContract = new Lock();
-        token = new Token("Test Token", "TEST", "IMAGE_URI");
-
-        token.mint(alice);
+    function lock(uint256 amount) internal {
+        // CurveCreate(TRADER_A);
+        Buy(TRADER_A, amount);
+        vm.startPrank(TRADER_A);
+        TOKEN_AMOUNT = MEME_TOKEN.balanceOf(TRADER_A);
+        MEME_TOKEN.transfer(address(LOCK), TOKEN_AMOUNT);
+        LOCK.lock(address(MEME_TOKEN), TRADER_A);
+        vm.stopPrank();
     }
 
     function testLock() public {
-        vm.startPrank(alice);
-        token.transfer(address(lockContract), 10 ether);
-        lockContract.lock(address(token), alice, 100);
-
-        vm.stopPrank();
-
-        assertEq(token.balanceOf(address(lockContract)), 10 ether);
-        assertEq(lockContract.getAvailabeUnlockAmount(address(token), alice), 0);
-
-        //현재 블록을 100 이후로 변경
-        vm.warp(101);
-
-        uint256 availabeAmount = lockContract.getAvailabeUnlockAmount(address(token), alice);
-        assertEq(availabeAmount, 10 ether);
-        assertEq(token.balanceOf(alice), tokenInitBalance - 10 ether);
+        lock(1000);
+        assertEq(MEME_TOKEN.balanceOf(address(LOCK)), TOKEN_AMOUNT);
+        assertEq(
+            LOCK.getAvailabeUnlockAmount(address(MEME_TOKEN), TRADER_A),
+            0
+        );
+        assertEq(LOCK.getLocked(address(MEME_TOKEN), TRADER_A).length, 1);
+        assertEq(
+            LOCK.getLocked(address(MEME_TOKEN), TRADER_A)[0].amount,
+            TOKEN_AMOUNT
+        );
+        assertEq(LOCK.getTokenLockedBalance(address(MEME_TOKEN)), TOKEN_AMOUNT);
     }
 
-    function testUnlock() public {
-        vm.startPrank(alice);
-        token.transfer(address(lockContract), 10 ether);
-        lockContract.lock(address(token), alice, 100);
+    function testTimeUnlock() public {
+        lock(1000);
+        vm.warp(block.timestamp + DEFAULT_LOCK_TIME);
+        vm.startPrank(TRADER_A);
+        LOCK.unlock(address(MEME_TOKEN), TRADER_A);
+        assertEq(MEME_TOKEN.balanceOf(TRADER_A), TOKEN_AMOUNT);
+        assertEq(LOCK.getTokenLockedBalance(address(MEME_TOKEN)), 0);
+        assertEq(
+            LOCK.getAvailabeUnlockAmount(address(MEME_TOKEN), TRADER_A),
+            0
+        );
         vm.stopPrank();
-
-        vm.warp(101);
-        vm.startPrank(alice);
-        lockContract.unlock(address(token), alice);
-        vm.stopPrank();
-
-        // assertEq(token.balanceOf(alice), 10 ether);
-        assertEq(token.balanceOf(alice), tokenInitBalance);
-        assertEq(token.balanceOf(address(lockContract)), 0);
-        assertEq(lockContract.getAvailabeUnlockAmount(address(token), alice), 0);
     }
 
-    function testMultipleLocks() public {
-        vm.startPrank(alice);
-
-        // First lock
-        token.transfer(address(lockContract), 5 ether);
-        lockContract.lock(address(token), alice, 100);
-
-        // Second lock
-        token.transfer(address(lockContract), 3 ether);
-        lockContract.lock(address(token), alice, 200);
-
-        // Third lock
-        token.transfer(address(lockContract), 2 ether);
-        lockContract.lock(address(token), alice, 300);
-
+    function testListingUnlock() public {
+        uint256 listingAmount = TOKEN_TOTAL_SUPPLY - TARGET_TOKEN;
+        lock(listingAmount);
+        vm.startPrank(TRADER_A);
+        CURVE.listing();
+        LOCK.unlock(address(MEME_TOKEN), TRADER_A);
+        assertEq(MEME_TOKEN.balanceOf(TRADER_A), TOKEN_AMOUNT);
+        assertEq(LOCK.getTokenLockedBalance(address(MEME_TOKEN)), 0);
+        assertEq(
+            LOCK.getAvailabeUnlockAmount(address(MEME_TOKEN), TRADER_A),
+            0
+        );
         vm.stopPrank();
-
-        assertEq(token.balanceOf(address(lockContract)), 10 ether);
-        assertEq(lockContract.getAvailabeUnlockAmount(address(token), alice), 0);
-
-        // 첫 번째 lock 해제 시점
-        vm.warp(101);
-        assertEq(lockContract.getAvailabeUnlockAmount(address(token), alice), 5 ether);
-
-        // 두 번째 lock 해제 시점
-        vm.warp(201);
-        assertEq(lockContract.getAvailabeUnlockAmount(address(token), alice), 8 ether);
-
-        // 세 번째 lock 해제 시점
-        vm.warp(301);
-        assertEq(lockContract.getAvailabeUnlockAmount(address(token), alice), 10 ether);
-
-        // Unlock all
-        vm.prank(alice);
-        lockContract.unlock(address(token), alice);
-
-        assertEq(token.balanceOf(alice), tokenInitBalance);
-        assertEq(token.balanceOf(address(lockContract)), 0);
-        assertEq(lockContract.getAvailabeUnlockAmount(address(token), alice), 0);
-    }
-
-    function testPartialUnlock() public {
-        vm.startPrank(alice);
-
-        // First lock
-        token.transfer(address(lockContract), 5 ether);
-        lockContract.lock(address(token), alice, 100);
-
-        // Second lock
-        token.transfer(address(lockContract), 5 ether);
-        lockContract.lock(address(token), alice, 200);
-
-        vm.stopPrank();
-
-        // 첫 번째 lock 해제 시점
-        vm.warp(101);
-        assertEq(lockContract.getAvailabeUnlockAmount(address(token), alice), 5 ether);
-
-        // Partial unlock
-        vm.prank(alice);
-        lockContract.unlock(address(token), alice);
-
-        assertEq(token.balanceOf(alice), tokenInitBalance - 5 ether);
-        assertEq(token.balanceOf(address(lockContract)), 5 ether);
-
-        // 두 번째 lock 해제 시점
-        vm.warp(201);
-        assertEq(lockContract.getAvailabeUnlockAmount(address(token), alice), 5 ether);
-
-        // Final unlock
-        vm.prank(alice);
-        lockContract.unlock(address(token), alice);
-
-        assertEq(token.balanceOf(alice), tokenInitBalance);
-        assertEq(token.balanceOf(address(lockContract)), 0);
-        assertEq(lockContract.getAvailabeUnlockAmount(address(token), alice), 0);
     }
 }

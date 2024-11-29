@@ -3,26 +3,41 @@ pragma solidity ^0.8.20;
 
 interface IBondingCurve {
     event Lock(address indexed curve);
-    event Sync(uint256 reserveBase, uint256 reserveToken, uint256 virtualBase, uint256 virtualToken);
-    // event Swap(address indexed sender, uint256 amountIn, uint256 amountOut, uint256 fee, bool isBuy);
-    event Buy(address indexed sender, uint256 amountIn, uint256 amountOut);
-    event Sell(address indexed sender, uint256 amountIn, uint256 amountOut);
+    event Sync(
+        uint256 reserveWNad,
+        uint256 reserveToken,
+        uint256 virtualWNad,
+        uint256 virtualToken
+    );
+
+    event Buy(
+        address indexed sender,
+        address token,
+        uint256 amountIn,
+        uint256 amountOut
+    );
+    event Sell(
+        address indexed sender,
+        address token,
+        uint256 amountIn,
+        uint256 amountOut
+    );
     event Listing(
         address indexed curve,
         address indexed token,
         address indexed pair,
-        uint256 listingWNadAamount,
+        uint256 listingWWNadAamount,
         uint256 listingTokenAmount,
         uint256 burnLiquidity
     );
 
     function initialize(
-        address wnad,
+        address wwNad,
         address token,
-        uint256 virtualBase,
+        uint256 virtualWNad,
         uint256 virtualToken,
         uint256 k,
-        uint256 targetBase,
+        uint256 targetWNad,
         uint8 feeDenominator,
         uint16 feeNumerator
     ) external;
@@ -33,8 +48,17 @@ interface IBondingCurve {
     function listing() external returns (address pair);
     function getLock() external view returns (bool);
     function getK() external view returns (uint256);
-    function getFeeConfig() external view returns (uint8 denominator, uint16 numerator);
-    function getVirtualReserves() external view returns (uint256 virtualBase, uint256 virtualToken);
-    function getReserves() external view returns (uint256 reserveBase, uint256 reserveToken);
+    function getFeeConfig()
+        external
+        view
+        returns (uint8 denominator, uint16 numerator);
+    function getVirtualReserves()
+        external
+        view
+        returns (uint256 virtualWNad, uint256 virtualToken);
+    function getReserves()
+        external
+        view
+        returns (uint256 reserveWNad, uint256 reserveToken);
     function getIsListing() external view returns (bool);
 }

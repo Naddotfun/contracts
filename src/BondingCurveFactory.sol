@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.20;
 
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IBondingCurve} from "./interfaces/IBondingCurve.sol";
 import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
 import {IToken} from "./interfaces/IToken.sol";
@@ -10,14 +9,19 @@ import {BondingCurve} from "./BondingCurve.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
 import "./errors/Errors.sol";
 
-contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
+contract BondingCurveFactory is IBondingCurveFactory {
     address private owner;
-    address private endpoint;
+    address private core;
     address private dexFactory;
     address public immutable WNAD;
     Config private config;
     mapping(address => address) private curves;
 
+    constructor(address _owner, address _core, address _wnad) {
+        owner = _owner;
+        WNAD = _wnad;
+        core = _core;
+    }
     struct Config {
         uint256 deployFee;
         uint256 listingFee;
@@ -29,68 +33,62 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         uint16 feeNumerator;
         uint8 feeDenominator;
     }
-
-    constructor(address _owner, address _wnad) {
-        owner = _owner;
-        WNAD = _wnad;
-    }
-
     modifier onlyOwner() {
         require(msg.sender == owner, ERR_ONLY_OWNER);
         _;
     }
 
-    modifier onlyEndpoint() {
-        require(msg.sender == endpoint, ERR_ONLY_ENDPOINT);
+    modifier onlyCore() {
+        require(msg.sender == core, ERR_ONLY_CORE);
         _;
     }
 
-    function initialize(
-        uint256 deployFee,
-        uint256 listingFee,
-        uint256 tokenTotalSupply,
-        uint256 virtualNad,
-        uint256 virtualToken,
-        uint256 targetToken,
-        uint16 feeNumerator,
-        uint8 feeDenominator,
-        address _dexFactory
-    ) external onlyOwner {
-        uint256 k = virtualNad * virtualToken;
+    function initialize(InitializeParams memory params) public onlyOwner {
+        uint256 k = params.virtualNad * params.virtualToken;
         config = Config(
-            deployFee,
-            listingFee,
-            tokenTotalSupply,
-            virtualNad,
-            virtualToken,
+            params.deployFee,
+            params.listingFee,
+            params.tokenTotalSupply,
+            params.virtualNad,
+            params.virtualToken,
             k,
-            targetToken,
-            feeNumerator,
-            feeDenominator
+            params.targetToken,
+            params.feeNumerator,
+            params.feeDenominator
         );
-        dexFactory = _dexFactory;
+        dexFactory = params.dexFactory;
         emit SetInitialize(
-            deployFee,
-            listingFee,
-            tokenTotalSupply,
-            virtualNad,
-            virtualToken,
+            params.deployFee,
+            params.listingFee,
+            params.tokenTotalSupply,
+            params.virtualNad,
+            params.virtualToken,
             k,
-            targetToken,
-            feeNumerator,
-            feeDenominator,
+            params.targetToken,
+            params.feeNumerator,
+            params.feeDenominator,
             dexFactory
         );
     }
 
-    function create(string memory name, string memory symbol, string memory tokenURI)
+    function create(
+        address creator,
+        string memory name,
+        string memory symbol,
+        string memory tokenURI
+    )
         external
-        onlyEndpoint
-        returns (address curve, address token, uint256 virtualNad, uint256 virtualToken)
+        onlyCore
+        returns (
+            address curve,
+            address token,
+            uint256 virtualNad,
+            uint256 virtualToken
+        )
     {
         Config memory _config = getConfig();
 
-        curve = address(new BondingCurve());
+        curve = address(new BondingCurve(core));
         token = address(new Token(name, symbol, tokenURI));
 
         IToken(token).mint(curve);
@@ -109,15 +107,25 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         curves[token] = curve;
         virtualNad = _config.virtualNad;
         virtualToken = _config.virtualToken;
+        emit Create(
+            creator,
+            curve,
+            token,
+            tokenURI,
+            name,
+            symbol,
+            virtualNad,
+            virtualToken
+        );
     }
 
     function setOwner(address _owner) external onlyOwner {
         owner = _owner;
     }
 
-    function setEndpoint(address _endpoint) external onlyOwner {
-        endpoint = _endpoint;
-        emit SetEndpoint(_endpoint);
+    function setCore(address _core) external onlyOwner {
+        core = _core;
+        emit SetCore(_core);
     }
 
     function getConfig() public view returns (Config memory) {
@@ -128,7 +136,9 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         return owner;
     }
 
-    function getCurve(address token) public view override returns (address curve) {
+    function getCurve(
+        address token
+    ) public view override returns (address curve) {
         curve = curves[token];
     }
 
@@ -136,8 +146,8 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
         k = config.k;
     }
 
-    function getEndpoint() public view returns (address _endpoint) {
-        _endpoint = endpoint;
+    function getCore() public view returns (address _core) {
+        _core = core;
     }
 
     function getDexFactory() public view returns (address) {
@@ -150,5 +160,13 @@ contract BondingCurveFactory is IBondingCurveFactory, ReentrancyGuard {
 
     function getListingFee() public view returns (uint256 listingFee) {
         listingFee = config.listingFee;
+    }
+    function getFeeConfig()
+        public
+        view
+        returns (uint8 denominator, uint16 numerator)
+    {
+        denominator = config.feeDenominator;
+        numerator = config.feeNumerator;
     }
 }

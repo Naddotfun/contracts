@@ -12,81 +12,16 @@ import {UniswapV2Factory} from "src/uniswap/UniswapV2Factory.sol";
 import "src/errors/Errors.sol";
 import "src/WNAD.sol";
 import "src/utils/NadsPumpLibrary.sol";
-import "src/Endpoint.sol";
-
-contract EndpointTest is Test {
-    BondingCurve curve;
-    Token token;
-    BondingCurveFactory factory;
-    WNAD wNad;
-    Endpoint endpoint;
-    FeeVault vault;
-    UniswapV2Factory uniFactory;
-    address owner = address(0xa);
-    address creator = address(0xb);
-    uint256 traderPrivateKey = 0xA11CE;
-    address trader = vm.addr(traderPrivateKey);
-    uint256 deployFee = 2 * 10 ** 16;
-    uint256 listingFee = 1 ether;
-    uint256 virtualNad = 30 * 10 ** 18;
-    uint256 virtualToken = 1_073_000_191 * 10 ** 18;
-    uint256 k = virtualNad * virtualToken;
-    uint256 targetToken = 206_900_000 * 10 ** 18;
-    uint256 tokenTotalSupply = 10 ** 27;
-
-    uint8 feeDenominator = 10;
-    uint16 feeNumerator = 1000;
-
-    function setUp() public {
-        // owner로 시작하는 프랭크 설정
-
-        vm.startPrank(owner);
-
-        // BondingCurveFactory 컨트랙트 배포 및 초기화
-        wNad = new WNAD();
-        factory = new BondingCurveFactory(owner, address(wNad));
-        uniFactory = new UniswapV2Factory(owner);
-        factory.initialize(
-            deployFee,
-            listingFee,
-            tokenTotalSupply,
-            virtualNad,
-            virtualToken,
-            targetToken,
-            feeNumerator,
-            feeDenominator,
-            address(uniFactory)
-        );
-
-        vault = new FeeVault(wNad);
-        endpoint = new Endpoint(address(factory), address(wNad), address(vault));
-
-        factory.setEndpoint(address(endpoint));
-        // owner로의 프랭크 종료
-        vm.stopPrank();
-
-        // creator에 충분한 자금을 할당
-        vm.deal(creator, 0.02 ether);
-
-        // creator로 새로운 프랭크 설정
-        vm.startPrank(creator);
-
-        // createCurve 함수 호출
-        (address curveAddress, address tokenAddress, uint256 _virtualNad, uint256 virtualToken, uint256 initAmountOut) =
-            endpoint.createCurve{value: 0.02 ether}("test", "test", "testurl", 0, 0, 0.02 ether);
-        curve = BondingCurve(curveAddress);
-        token = Token(tokenAddress);
-        // creator로의 프랭크 종료
-        vm.stopPrank();
-    }
+import "src/Core.sol";
+import "./SetUp.sol";
+contract CoreTest is Test,SetUp {
+  
+   
 
     function testCreateCurve() public {
-        // address creator = address(0xb);
-        vm.deal(creator, 1.03 ether);
-        // vm.recordLogs();
         vm.startPrank(creator);
         (address curveAddress, address tokenAddress, uint256 _virtualNad, uint256 _virtualToken, uint256 initAmountOut)
-        = endpoint.createCurve{value: 1.03 ether}("Test", "Test", "testurl", 1 ether, 0.01 ether, 0.02 ether);
+        = core.createCurve{value: 1.03 ether}("Test", "Test", "testurl", 1 ether, 0.01 ether, 0.02 ether);
 
         vm.stopPrank();
 
@@ -102,7 +37,7 @@ contract EndpointTest is Test {
         vm.expectRevert(bytes(ERR_INVALID_FEE));
         vm.startPrank(creator);
         //amountIn = 0;
-        endpoint.createCurve{value: 1.025 ether}("TEST", "TEST", "testurl", 1 ether, 0.005 ether, 0.02 ether);
+        core.createCurve{value: 1.025 ether}("TEST", "TEST", "testurl", 1 ether, 0.005 ether, 0.02 ether);
         vm.stopPrank();
     }
     /**
@@ -114,7 +49,7 @@ contract EndpointTest is Test {
         vm.expectRevert(bytes(ERR_INVALID_DEPLOY_FEE));
         vm.startPrank(creator);
         //amountIn = 0;
-        endpoint.createCurve{value: 1.02 ether}("TEST", "TEST", "testurl", 1 ether, 0.01 ether, 0.01 ether);
+        core.createCurve{value: 1.02 ether}("TEST", "TEST", "testurl", 1 ether, 0.01 ether, 0.01 ether);
         vm.stopPrank();
     }
 
@@ -126,7 +61,7 @@ contract EndpointTest is Test {
 
         uint256 deadline = block.timestamp + 1;
 
-        endpoint.buy{value: 1.01 ether}(1 ether, 0.01 ether, address(token), trader, deadline);
+        core.buy{value: 1.01 ether}(1 ether, 0.01 ether, address(token), trader, deadline);
         vm.stopPrank();
 
         assertEq(token.balanceOf(trader), amountOut);
@@ -145,7 +80,7 @@ contract EndpointTest is Test {
         uint256 deadline = block.timestamp + 1;
         //1.01 ether 보내야함
         vm.expectRevert(bytes(ERR_INVALID_SEND_NAD));
-        endpoint.buy{value: 1 ether}(1 ether, 0.01 ether, address(token), trader, deadline);
+        core.buy{value: 1 ether}(1 ether, 0.01 ether, address(token), trader, deadline);
         assertEq(IERC4626(vault).totalAssets(), 0.01 ether);
     }
 
@@ -158,9 +93,9 @@ contract EndpointTest is Test {
         uint256 deadline = block.timestamp + 1;
         //1.01 ether 보내야함
         vm.expectRevert(bytes(ERR_INVALID_AMOUNT_IN));
-        endpoint.buy{value: 1.01 ether}(0, 0.01 ether, address(token), trader, deadline);
+        core.buy{value: 1.01 ether}(0, 0.01 ether, address(token), trader, deadline);
         vm.expectRevert(bytes(ERR_INVALID_FEE));
-        endpoint.buy{value: 1.01 ether}(1, 0, address(token), trader, deadline);
+        core.buy{value: 1.01 ether}(1, 0, address(token), trader, deadline);
     }
 
     /**
@@ -174,8 +109,8 @@ contract EndpointTest is Test {
         wNad.deposit{value: traderWNad}();
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
         uint256 deadline = block.timestamp + 1;
-        wNad.approve(address(endpoint), traderWNad);
-        endpoint.buyWNad(1 ether, 0.01 ether, address(token), trader, deadline);
+        wNad.approve(address(core), traderWNad);
+        core.buyWNad(1 ether, 0.01 ether, address(token), trader, deadline);
         vm.stopPrank();
         assertEq(token.balanceOf(trader), amountOut);
         assertEq(wNad.balanceOf(trader), 0);
@@ -190,13 +125,13 @@ contract EndpointTest is Test {
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
         uint256 deadline = block.timestamp + 1;
 
-        wNad.approve(address(endpoint), traderWNad);
+        wNad.approve(address(core), traderWNad);
 
         uint256 amountIn = 2 ether;
         uint256 fee = 0.02 ether;
 
         vm.expectRevert(bytes(ERR_INVALID_ALLOWANCE));
-        endpoint.buyWNad(amountIn, fee, address(token), trader, deadline);
+        core.buyWNad(amountIn, fee, address(token), trader, deadline);
     }
 
     function testInvalidFeeBuyWNad() public {
@@ -207,11 +142,11 @@ contract EndpointTest is Test {
         wNad.deposit{value: traderWNad}();
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
         uint256 deadline = block.timestamp + 1;
-        wNad.approve(address(endpoint), traderWNad);
+        wNad.approve(address(core), traderWNad);
         uint256 amountIn = 1 ether;
         uint256 fee = 0.009 ether;
         vm.expectRevert(bytes(ERR_INVALID_FEE));
-        endpoint.buyWNad(amountIn, fee, address(token), trader, deadline);
+        core.buyWNad(amountIn, fee, address(token), trader, deadline);
     }
 
     /**
@@ -229,11 +164,11 @@ contract EndpointTest is Test {
             abi.encodePacked(
                 "\x19\x01",
                 wNad.DOMAIN_SEPARATOR(),
-                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(endpoint), traderWNad, 0, deadline))
+                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(core), traderWNad, 0, deadline))
             )
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
-        endpoint.buyWNadWithPermit(1 ether, 0.01 ether, address(token), trader, trader, deadline, v, r, s);
+        core.buyWNadWithPermit(1 ether, 0.01 ether, address(token), trader, trader, deadline, v, r, s);
         vm.stopPrank();
         assertEq(token.balanceOf(trader), amountOut);
         assertEq(wNad.balanceOf(trader), 0);
@@ -251,7 +186,7 @@ contract EndpointTest is Test {
             abi.encodePacked(
                 "\x19\x01",
                 wNad.DOMAIN_SEPARATOR(),
-                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(endpoint), traderWNad + 1, 0, deadline))
+                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(core), traderWNad + 1, 0, deadline))
             )
         );
 
@@ -259,7 +194,7 @@ contract EndpointTest is Test {
 
         vm.expectRevert(bytes(ERR_INVALID_SIGNATURE));
 
-        endpoint.buyWNadWithPermit(1 ether, 0.01 ether, address(token), trader, trader, deadline, v, r, s);
+        core.buyWNadWithPermit(1 ether, 0.01 ether, address(token), trader, trader, deadline, v, r, s);
     }
 
     function testInvalidFeeBuyWNadWithPermit() public {
@@ -273,12 +208,12 @@ contract EndpointTest is Test {
             abi.encodePacked(
                 "\x19\x01",
                 wNad.DOMAIN_SEPARATOR(),
-                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(endpoint), traderWNad, 0, deadline))
+                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(core), traderWNad, 0, deadline))
             )
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
         vm.expectRevert(bytes(ERR_INVALID_FEE));
-        endpoint.buyWNadWithPermit(2 ether, 0.01 ether, address(token), trader, trader, deadline, v, r, s);
+        core.buyWNadWithPermit(2 ether, 0.01 ether, address(token), trader, trader, deadline, v, r, s);
     }
 
     /**
@@ -292,7 +227,7 @@ contract EndpointTest is Test {
         // console.log("Calculated amountOut: ", amountOut);
         uint256 deadline = block.timestamp + 1;
 
-        endpoint.buyAmountOutMin{value: 1.01 ether}(1 ether, 10, 0.01 ether, address(token), trader, deadline);
+        core.buyAmountOutMin{value: 1.01 ether}(1 ether, 10, 0.01 ether, address(token), trader, deadline);
         vm.stopPrank();
 
         assertEq(token.balanceOf(trader), amountOut);
@@ -308,7 +243,7 @@ contract EndpointTest is Test {
         uint256 deadline = block.timestamp + 1;
 
         vm.expectRevert(bytes(ERR_INVALID_SEND_NAD));
-        endpoint.buyAmountOutMin{value: 1 ether}(1 ether, amountOut - 1, 0.01 ether, address(token), trader, deadline);
+        core.buyAmountOutMin{value: 1 ether}(1 ether, amountOut - 1, 0.01 ether, address(token), trader, deadline);
     }
 
     function testInvalidAmountOutMinBuyAmountOutMin() public {
@@ -319,7 +254,7 @@ contract EndpointTest is Test {
         uint256 deadline = block.timestamp + 1;
 
         vm.expectRevert(bytes(ERR_INVALID_AMOUNT_OUT));
-        endpoint.buyAmountOutMin{value: 1.01 ether}(
+        core.buyAmountOutMin{value: 1.01 ether}(
             1 ether, amountOut + 1, 0.01 ether, address(token), trader, deadline
         );
     }
@@ -335,9 +270,9 @@ contract EndpointTest is Test {
         wNad.deposit{value: traderWNad}();
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
         uint256 deadline = block.timestamp + 1;
-        wNad.approve(address(endpoint), traderWNad);
+        wNad.approve(address(core), traderWNad);
         uint256 amountOutMin = 10;
-        endpoint.buyWNadAmountOutMin(1 ether, amountOutMin, 0.01 ether, address(token), trader, deadline);
+        core.buyWNadAmountOutMin(1 ether, amountOutMin, 0.01 ether, address(token), trader, deadline);
         vm.stopPrank();
         assertEq(token.balanceOf(trader), amountOut);
         assertEq(wNad.balanceOf(trader), 0);
@@ -352,9 +287,9 @@ contract EndpointTest is Test {
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
         uint256 deadline = block.timestamp + 1;
         uint256 amountOutMin = 10;
-        wNad.approve(address(endpoint), traderWNad - 1);
+        wNad.approve(address(core), traderWNad - 1);
         vm.expectRevert(bytes(ERR_INVALID_ALLOWANCE));
-        endpoint.buyWNadAmountOutMin(1 ether, amountOutMin, 0.01 ether, address(token), trader, deadline);
+        core.buyWNadAmountOutMin(1 ether, amountOutMin, 0.01 ether, address(token), trader, deadline);
     }
 
     function testInvalidFeeBuyWNadAmountOutMin() public {
@@ -365,9 +300,9 @@ contract EndpointTest is Test {
         uint256 amountOut = NadsPumpLibrary.getAmountOut(1 ether, k, virtualNad, virtualToken);
         uint256 deadline = block.timestamp + 1;
         uint256 amountOutMin = 10;
-        wNad.approve(address(endpoint), traderWNad);
+        wNad.approve(address(core), traderWNad);
         vm.expectRevert(bytes(ERR_INVALID_FEE));
-        endpoint.buyWNadAmountOutMin(2 ether, amountOutMin, 0.01 ether, address(token), trader, deadline);
+        core.buyWNadAmountOutMin(2 ether, amountOutMin, 0.01 ether, address(token), trader, deadline);
     }
 
     /**
@@ -385,12 +320,12 @@ contract EndpointTest is Test {
             abi.encodePacked(
                 "\x19\x01",
                 wNad.DOMAIN_SEPARATOR(),
-                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(endpoint), traderNad, 0, deadline))
+                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(core), traderNad, 0, deadline))
             )
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
 
-        endpoint.buyWNadAmountOutMinPermit(1 ether, 10, 0.01 ether, address(token), trader, trader, deadline, v, r, s);
+        core.buyWNadAmountOutMinPermit(1 ether, 10, 0.01 ether, address(token), trader, trader, deadline, v, r, s);
 
         vm.stopPrank();
 
@@ -409,12 +344,12 @@ contract EndpointTest is Test {
             abi.encodePacked(
                 "\x19\x01",
                 wNad.DOMAIN_SEPARATOR(),
-                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(endpoint), traderNad + 1, 0, deadline))
+                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(core), traderNad + 1, 0, deadline))
             )
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
         vm.expectRevert(bytes(ERR_INVALID_SIGNATURE));
-        endpoint.buyWNadAmountOutMinPermit(1 ether, 10, 0.01 ether, address(token), trader, trader, deadline, v, r, s);
+        core.buyWNadAmountOutMinPermit(1 ether, 10, 0.01 ether, address(token), trader, trader, deadline, v, r, s);
     }
 
     function testInvalidFeeBuyAmountOutMinNadPermit() public {
@@ -427,12 +362,12 @@ contract EndpointTest is Test {
             abi.encodePacked(
                 "\x19\x01",
                 wNad.DOMAIN_SEPARATOR(),
-                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(endpoint), traderNad + 1, 0, deadline))
+                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(core), traderNad + 1, 0, deadline))
             )
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
         vm.expectRevert(bytes(ERR_INVALID_SIGNATURE));
-        endpoint.buyWNadAmountOutMinPermit(2 ether, 10, 0.01 ether, address(token), trader, trader, deadline, v, r, s);
+        core.buyWNadAmountOutMinPermit(2 ether, 10, 0.01 ether, address(token), trader, trader, deadline, v, r, s);
     }
 
     /**
@@ -454,7 +389,7 @@ contract EndpointTest is Test {
 
         uint256 deadline = block.timestamp + 1;
 
-        endpoint.buyExactAmountOut{value: traderBalance}(amountOut, traderBalance, address(token), trader, deadline);
+        core.buyExactAmountOut{value: traderBalance}(amountOut, traderBalance, address(token), trader, deadline);
         vm.stopPrank();
 
         assertEq(token.balanceOf(trader), amountOut);
@@ -475,7 +410,7 @@ contract EndpointTest is Test {
         uint256 deadline = block.timestamp + 1;
 
         vm.expectRevert(bytes(ERR_INVALID_SEND_NAD));
-        endpoint.buyExactAmountOut{value: traderBalance - 1}(amountOut, traderBalance, address(token), trader, deadline);
+        core.buyExactAmountOut{value: traderBalance - 1}(amountOut, traderBalance, address(token), trader, deadline);
     }
 
     function testOverflowAmountInMaxBuyExactAmountOut() public {
@@ -489,7 +424,7 @@ contract EndpointTest is Test {
 
         uint256 deadline = block.timestamp + 1;
         vm.expectRevert(bytes(ERR_INVALID_AMOUNT_IN_MAX));
-        endpoint.buyExactAmountOut{value: traderBalance}(
+        core.buyExactAmountOut{value: traderBalance}(
             amountOut + 100, traderBalance, address(token), trader, deadline
         );
     }
@@ -514,8 +449,8 @@ contract EndpointTest is Test {
         uint256 deadline = block.timestamp + 1;
         wNad.deposit{value: traderBalance}();
 
-        wNad.approve(address(endpoint), traderBalance);
-        endpoint.buyExactAmountOutWNad(amountOut, traderBalance, address(token), trader, deadline);
+        wNad.approve(address(core), traderBalance);
+        core.buyExactAmountOutWNad(amountOut, traderBalance, address(token), trader, deadline);
         vm.stopPrank();
 
         assertEq(token.balanceOf(trader), amountOut);
@@ -540,9 +475,9 @@ contract EndpointTest is Test {
 
         uint256 deadline = block.timestamp + 1;
         wNad.deposit{value: traderBalance}();
-        wNad.approve(address(endpoint), traderBalance);
+        wNad.approve(address(core), traderBalance);
         vm.expectRevert(bytes(ERR_INVALID_AMOUNT_OUT));
-        endpoint.buyExactAmountOutWNad(0, traderBalance, address(token), trader, deadline);
+        core.buyExactAmountOutWNad(0, traderBalance, address(token), trader, deadline);
     }
 
     function testInvalidAmountInMaxBuyExactAmountOutWNad() public {
@@ -561,10 +496,10 @@ contract EndpointTest is Test {
 
         uint256 deadline = block.timestamp + 1;
         wNad.deposit{value: traderBalance}();
-        wNad.approve(address(endpoint), traderBalance);
+        wNad.approve(address(core), traderBalance);
         vm.expectRevert(bytes(ERR_INVALID_AMOUNT_IN_MAX));
         uint256 amountInMax = traderBalance - 1;
-        endpoint.buyExactAmountOutWNad(amountOut, amountInMax, address(token), trader, deadline);
+        core.buyExactAmountOutWNad(amountOut, amountInMax, address(token), trader, deadline);
     }
     /**
      * @dev Buy ExactAmountOut Permit Test
@@ -590,12 +525,12 @@ contract EndpointTest is Test {
             abi.encodePacked(
                 "\x19\x01",
                 wNad.DOMAIN_SEPARATOR(),
-                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(endpoint), traderBalance, 0, deadline))
+                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(core), traderBalance, 0, deadline))
             )
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
 
-        endpoint.buyExactAmountOutWNadPermit(
+        core.buyExactAmountOutWNadPermit(
             amountOut, traderBalance, address(token), trader, trader, deadline, v, r, s
         );
         vm.stopPrank();
@@ -626,12 +561,12 @@ contract EndpointTest is Test {
             abi.encodePacked(
                 "\x19\x01",
                 wNad.DOMAIN_SEPARATOR(),
-                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(endpoint), traderBalance, 0, deadline))
+                keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), trader, address(core), traderBalance, 0, deadline))
             )
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
         vm.expectRevert(bytes(ERR_INVALID_SIGNATURE));
-        endpoint.buyExactAmountOutWNadPermit(
+        core.buyExactAmountOutWNadPermit(
             amountOut, traderBalance - 1, address(token), trader, trader, deadline, v, r, s
         );
         vm.stopPrank();
@@ -650,8 +585,8 @@ contract EndpointTest is Test {
         uint256 feeAmount = NadsPumpLibrary.getFeeAmount(nadAmount, feeDenominator, feeNumerator);
 
         uint256 deadline = block.timestamp + 1;
-        token.approve(address(endpoint), traderTokenBalance);
-        endpoint.sell(traderTokenBalance, address(token), trader, deadline);
+        token.approve(address(core), traderTokenBalance);
+        core.sell(traderTokenBalance, address(token), trader, deadline);
         vm.stopPrank();
 
         assertEq(token.balanceOf(trader), 0);
@@ -669,10 +604,10 @@ contract EndpointTest is Test {
 
         uint256 deadline = block.timestamp + 1;
         vm.startPrank(trader);
-        token.approve(address(endpoint), traderTokenBalance);
+        token.approve(address(core), traderTokenBalance);
         vm.expectRevert(bytes(ERR_INVALID_ALLOWANCE));
 
-        endpoint.sell(traderTokenBalance + 1, address(token), trader, deadline);
+        core.sell(traderTokenBalance + 1, address(token), trader, deadline);
         vm.stopPrank();
     }
 
@@ -694,14 +629,14 @@ contract EndpointTest is Test {
                 "\x19\x01",
                 token.DOMAIN_SEPARATOR(),
                 keccak256(
-                    abi.encode(token.PERMIT_TYPEHASH(), trader, address(endpoint), traderTokenBalance, 0, deadline)
+                    abi.encode(token.PERMIT_TYPEHASH(), trader, address(core), traderTokenBalance, 0, deadline)
                 )
             )
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
 
-        token.approve(address(endpoint), traderTokenBalance);
-        endpoint.sellPermit(traderTokenBalance, address(token), trader, trader, deadline, v, r, s);
+        token.approve(address(core), traderTokenBalance);
+        core.sellPermit(traderTokenBalance, address(token), trader, trader, deadline, v, r, s);
         vm.stopPrank();
 
         assertEq(token.balanceOf(trader), 0);
@@ -724,15 +659,15 @@ contract EndpointTest is Test {
                 "\x19\x01",
                 token.DOMAIN_SEPARATOR(),
                 keccak256(
-                    abi.encode(token.PERMIT_TYPEHASH(), trader, address(endpoint), traderTokenBalance - 1, 0, deadline)
+                    abi.encode(token.PERMIT_TYPEHASH(), trader, address(core), traderTokenBalance - 1, 0, deadline)
                 )
             )
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
 
-        token.approve(address(endpoint), traderTokenBalance);
+        token.approve(address(core), traderTokenBalance);
         vm.expectRevert(bytes(ERR_INVALID_SIGNATURE));
-        endpoint.sellPermit(traderTokenBalance, address(token), trader, trader, deadline, v, r, s);
+        core.sellPermit(traderTokenBalance, address(token), trader, trader, deadline, v, r, s);
         vm.stopPrank();
     }
 
@@ -749,8 +684,8 @@ contract EndpointTest is Test {
 
         nadAmountOut -= feeAmount;
         uint256 deadline = block.timestamp + 1;
-        token.approve(address(endpoint), traderTokenBalance);
-        endpoint.sellAmountOutMin(traderTokenBalance, 10, address(token), trader, deadline);
+        token.approve(address(core), traderTokenBalance);
+        core.sellAmountOutMin(traderTokenBalance, 10, address(token), trader, deadline);
         vm.stopPrank();
 
         assertEq(token.balanceOf(trader), 0);
@@ -768,9 +703,9 @@ contract EndpointTest is Test {
 
         uint256 deadline = block.timestamp + 1;
         vm.startPrank(trader);
-        token.approve(address(endpoint), traderTokenBalance - 1);
+        token.approve(address(core), traderTokenBalance - 1);
         vm.expectRevert(bytes(ERR_INVALID_ALLOWANCE));
-        endpoint.sellAmountOutMin(traderTokenBalance, nadAmount, address(token), trader, deadline);
+        core.sellAmountOutMin(traderTokenBalance, nadAmount, address(token), trader, deadline);
         vm.stopPrank();
     }
 
@@ -784,9 +719,9 @@ contract EndpointTest is Test {
 
         uint256 deadline = block.timestamp + 1;
         vm.startPrank(trader);
-        token.approve(address(endpoint), traderTokenBalance);
+        token.approve(address(core), traderTokenBalance);
         vm.expectRevert(bytes(ERR_INVALID_AMOUNT_OUT));
-        endpoint.sellAmountOutMin(traderTokenBalance, nadAmount + 1, address(token), trader, deadline);
+        core.sellAmountOutMin(traderTokenBalance, nadAmount + 1, address(token), trader, deadline);
         vm.stopPrank();
     }
 
@@ -811,7 +746,7 @@ contract EndpointTest is Test {
                 "\x19\x01",
                 token.DOMAIN_SEPARATOR(),
                 keccak256(
-                    abi.encode(token.PERMIT_TYPEHASH(), trader, address(endpoint), traderTokenBalance, 0, deadline)
+                    abi.encode(token.PERMIT_TYPEHASH(), trader, address(core), traderTokenBalance, 0, deadline)
                 )
             )
         );
@@ -819,7 +754,7 @@ contract EndpointTest is Test {
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
 
-        endpoint.sellAmountOutMinWithPermit(traderTokenBalance, 10, address(token), trader, trader, deadline, v, r, s);
+        core.sellAmountOutMinWithPermit(traderTokenBalance, 10, address(token), trader, trader, deadline, v, r, s);
 
         assertEq(token.balanceOf(trader), 0);
         assertEq(trader.balance, nadAmountOut);
@@ -844,13 +779,13 @@ contract EndpointTest is Test {
                 "\x19\x01",
                 token.DOMAIN_SEPARATOR(),
                 keccak256(
-                    abi.encode(token.PERMIT_TYPEHASH(), trader, address(endpoint), traderTokenBalance, 0, deadline)
+                    abi.encode(token.PERMIT_TYPEHASH(), trader, address(core), traderTokenBalance, 0, deadline)
                 )
             )
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
         vm.expectRevert(bytes(ERR_INVALID_AMOUNT_OUT));
-        endpoint.sellAmountOutMinWithPermit(
+        core.sellAmountOutMinWithPermit(
             traderTokenBalance, nadAmountOut + 1, address(token), trader, trader, deadline, v, r, s
         );
     }
@@ -874,8 +809,8 @@ contract EndpointTest is Test {
         console.log("wanted Amount = ", 500_000_000_000_000_000);
         // console.log("wanted Amount = ", amountOut / 2);
         uint256 deadline = block.timestamp + 1;
-        token.approve(address(endpoint), traderTokenBalance);
-        endpoint.sellExactAmountOut{value: feeAmount}(
+        token.approve(address(core), traderTokenBalance);
+        core.sellExactAmountOut{value: feeAmount}(
             wantedAmountOut, traderTokenBalance, address(token), trader, deadline
         );
         // console.log("Recieved Nad", trader.balance);
@@ -903,9 +838,9 @@ contract EndpointTest is Test {
         uint256 feeAmount = NadsPumpLibrary.getFeeAmount(wantedAmountOut, feeDenominator, feeNumerator);
         vm.deal(trader, feeAmount);
         uint256 deadline = block.timestamp + 1;
-        token.approve(address(endpoint), traderTokenBalance - 1);
+        token.approve(address(core), traderTokenBalance - 1);
         vm.expectRevert(bytes(ERR_INVALID_ALLOWANCE));
-        endpoint.sellExactAmountOut{value: feeAmount}(
+        core.sellExactAmountOut{value: feeAmount}(
             wantedAmountOut, traderTokenBalance, address(token), trader, deadline
         );
         // console.log("Recieved Nad", trader.balance);
@@ -925,9 +860,9 @@ contract EndpointTest is Test {
         uint256 feeAmount = NadsPumpLibrary.getFeeAmount(maxAmountOut, feeDenominator, feeNumerator);
         vm.deal(trader, feeAmount);
         uint256 deadline = block.timestamp + 1;
-        token.approve(address(endpoint), traderTokenBalance);
+        token.approve(address(core), traderTokenBalance);
         vm.expectRevert(bytes(ERR_INVALID_AMOUNT_IN_MAX));
-        endpoint.sellExactAmountOut{value: feeAmount}(
+        core.sellExactAmountOut{value: feeAmount}(
             maxAmountOut, traderTokenBalance, address(token), trader, deadline
         );
         // console.log("Recieved Nad", trader.balance);
@@ -958,13 +893,13 @@ contract EndpointTest is Test {
                 "\x19\x01",
                 token.DOMAIN_SEPARATOR(),
                 keccak256(
-                    abi.encode(token.PERMIT_TYPEHASH(), trader, address(endpoint), traderTokenBalance, 0, deadline)
+                    abi.encode(token.PERMIT_TYPEHASH(), trader, address(core), traderTokenBalance, 0, deadline)
                 )
             )
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
 
-        endpoint.sellExactAmountOutwithPermit{value: feeAmount}(
+        core.sellExactAmountOutwithPermit{value: feeAmount}(
             wantedAmountOut, traderTokenBalance, address(token), trader, trader, deadline, v, r, s
         );
 
@@ -997,19 +932,19 @@ contract EndpointTest is Test {
         vm.deal(trader, feeAmount);
         // console.log("wanted Amount = ", amountOut / 2);
         uint256 deadline = block.timestamp + 1;
-        // token.approve(address(endpoint), traderTokenBalance);
+        // token.approve(address(core), traderTokenBalance);
         bytes32 digest = keccak256(
             abi.encodePacked(
                 "\x19\x01",
                 token.DOMAIN_SEPARATOR(),
                 keccak256(
-                    abi.encode(token.PERMIT_TYPEHASH(), trader, address(endpoint), traderTokenBalance, 0, deadline)
+                    abi.encode(token.PERMIT_TYPEHASH(), trader, address(core), traderTokenBalance, 0, deadline)
                 )
             )
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(traderPrivateKey, digest);
         vm.expectRevert(bytes(ERR_INVALID_AMOUNT_IN_MAX));
-        endpoint.sellExactAmountOutwithPermit{value: feeAmount}(
+        core.sellExactAmountOutwithPermit{value: feeAmount}(
             amountOut + 1, traderTokenBalance, address(token), trader, trader, deadline, v, r, s
         );
 
@@ -1030,7 +965,7 @@ contract EndpointTest is Test {
         uint256 amountOut = NadsPumpLibrary.getAmountOut(amountIn, k, virtualNad, virtualToken);
         uint256 deadline = block.timestamp + 1;
         vm.expectRevert(bytes(ERR_OVERFLOW_TARGET));
-        endpoint.buy{value: amountIn + fee}(amountIn, fee, address(token), trader, deadline);
+        core.buy{value: amountIn + fee}(amountIn, fee, address(token), trader, deadline);
         vm.stopPrank();
     }
 
@@ -1043,7 +978,7 @@ contract EndpointTest is Test {
         uint256 amountOut = NadsPumpLibrary.getAmountOut(amountIn, k, virtualNad, virtualToken);
         uint256 deadline = block.timestamp + 1;
         vm.expectRevert(bytes(ERR_INVALID_FEE));
-        endpoint.buy{value: amountIn + fee}(amountIn, fee, address(token), trader, deadline);
+        core.buy{value: amountIn + fee}(amountIn, fee, address(token), trader, deadline);
         vm.stopPrank();
     }
 
@@ -1052,9 +987,9 @@ contract EndpointTest is Test {
         vm.startPrank(trader);
         uint256 amountIn = 0 ether;
         uint256 traderTokenBalance = token.balanceOf(trader);
-        token.approve(address(endpoint), traderTokenBalance);
+        token.approve(address(core), traderTokenBalance);
         uint256 deadline = block.timestamp + 1;
         vm.expectRevert(bytes(ERR_INVALID_AMOUNT_IN));
-        endpoint.sell(0, address(token), trader, deadline);
+        core.sell(0, address(token), trader, deadline);
     }
 }

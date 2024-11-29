@@ -9,66 +9,25 @@ import "src/errors/Errors.sol";
 import {IWNAD} from "src/interfaces/IWNAD.sol";
 import {WNAD} from "src/WNAD.sol";
 import {NadsPumpLibrary} from "src/utils/NadsPumpLibrary.sol";
-import {Endpoint} from "src/Endpoint.sol";
+import {Core} from "src/Core.sol";
 import {FeeVault} from "src/FeeVault.sol";
 import {UniswapV2Factory} from "src/uniswap/UniswapV2Factory.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import "./Constant.sol";
+import "./SetUp.sol";
 
-contract CurveTest is Test, TestConstants {
-    BondingCurve curve;
-    Token token;
-    BondingCurveFactory factory;
-    WNAD wNad;
-    Endpoint endpoint;
-    FeeVault vault;
-    UniswapV2Factory uniFactory;
-    address trader;
-
-    function setUp() public {
-        vm.startPrank(OWNER);
-
-        uniFactory = new UniswapV2Factory(OWNER);
-
-        wNad = new WNAD();
-        factory = new BondingCurveFactory(OWNER, address(wNad));
-        factory.initialize(
-            DEPLOY_FEE,
-            LISTING_FEE,
-            TOKEN_TOTAL_SUPPLY,
-            VIRTUAL_NAD,
-            VIRTUAL_TOKEN,
-            TARGET_TOKEN,
-            FEE_NUMERATOR,
-            FEE_DENOMINATOR,
-            address(uniFactory)
-        );
-        vault = new FeeVault(IERC20(address(wNad)));
-
-        endpoint = new Endpoint(address(factory), address(wNad), address(vault));
-
-        factory.setEndpoint(address(endpoint));
-        vm.stopPrank();
-
-        vm.deal(CREATOR, DEPLOY_FEE);
-
-        vm.startPrank(CREATOR);
-        (address curveAddress, address tokenAddress,,,) =
-            endpoint.createCurve{value: DEPLOY_FEE}("test", "test", "testurl", 0, 0, DEPLOY_FEE);
-        curve = BondingCurve(curveAddress);
-        token = Token(tokenAddress);
-        vm.stopPrank();
-
-        trader = vm.addr(TRADER_PRIVATE_KEY);
-    }
-
+contract CurveTest is Test, SetUp {
     function testListing() public {
         vm.startPrank(trader);
-        (uint256 virtualNadAmount, uint256 virtualTokenAmount) = curve.getVirtualReserves();
+        (uint256 virtualNadAmount, uint256 virtualTokenAmount) = curve
+            .getVirtualReserves();
 
-        uint256 amountIn =
-            endpoint.getAmountIn(TOKEN_TOTAL_SUPPLY - TARGET_TOKEN, curve.getK(), virtualNadAmount, virtualTokenAmount);
+        uint256 amountIn = endpoint.getAmountIn(
+            TOKEN_TOTAL_SUPPLY - TARGET_TOKEN,
+            curve.getK(),
+            virtualNadAmount,
+            virtualTokenAmount
+        );
         console.log(amountIn);
         uint256 fee = amountIn / 100;
         vm.deal(trader, amountIn + fee);
@@ -76,7 +35,11 @@ contract CurveTest is Test, TestConstants {
         uint256 deadline = block.timestamp + 1;
 
         endpoint.buyExactAmountOut{value: amountIn + fee}(
-            TOKEN_TOTAL_SUPPLY - TARGET_TOKEN, amountIn + fee, address(token), trader, deadline
+            TOKEN_TOTAL_SUPPLY - TARGET_TOKEN,
+            amountIn + fee,
+            address(token),
+            trader,
+            deadline
         );
 
         assertEq(curve.getLock(), true);
