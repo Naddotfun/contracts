@@ -22,9 +22,11 @@ contract MintParty is IMintParty {
     using TransferHelper for IERC20;
 
     address private owner;
-    address private core;
-    address private WNAD;
-    address private lock;
+    address immutable core;
+    address immutable WNAD;
+    address immutable lock;
+    address immutable mintPartyFactory;
+    address immutable bondingCurveFactory;
 
     bool private finished;
     Config private config;
@@ -50,7 +52,7 @@ contract MintParty is IMintParty {
      * @dev Modifier to restrict function access to factory contract only
      */
     modifier onlyFactory() {
-        require(msg.sender == core, ERR_MINT_PARTY_ONLY_FACTORY);
+        require(msg.sender == mintPartyFactory, ERR_MINT_PARTY_ONLY_FACTORY);
         _;
     }
 
@@ -61,11 +63,19 @@ contract MintParty is IMintParty {
      * @param _wnad Address of the WNAD token
      * @param _lock Address of the lock contract
      */
-    constructor(address _owner, address _core, address _wnad, address _lock) {
+    constructor(
+        address _owner,
+        address _core,
+        address _wnad,
+        address _lock,
+        address _bondingCurveFactory
+    ) {
         owner = _owner;
         core = _core;
         WNAD = _wnad;
         lock = _lock;
+        bondingCurveFactory = _bondingCurveFactory;
+        mintPartyFactory = msg.sender;
     }
 
     /**
@@ -160,7 +170,7 @@ contract MintParty is IMintParty {
     function addWhiteList(address[] memory accounts) external onlyOwner {
         require(
             whitelistAccounts.length + accounts.length <= config.whiteListCount,
-            ERR_MINT_PARTY_INVALID_PARTICIPANTS
+            ERR_MINT_PARTY_INVALID_WHITE_LIST
         );
         for (uint256 i = 0; i < accounts.length; i++) {
             address account = accounts[i];
@@ -186,13 +196,10 @@ contract MintParty is IMintParty {
      * Called automatically when whitelist is full
      */
     function create() private onlyOwner {
-        require(
-            whitelistAccounts.length == config.whiteListCount,
-            ERR_MINT_PARTY_INVALID_PARTICIPANTS
-        );
         uint256 amountIn = calculateSendBalance();
-        (uint8 denominator, uint16 numerator) = IBondingCurveFactory(core)
-            .getFeeConfig();
+        (uint8 denominator, uint16 numerator) = IBondingCurveFactory(
+            bondingCurveFactory
+        ).getFeeConfig();
 
         uint256 fee = NadFunLibrary.getFeeAmount(
             amountIn,
@@ -200,15 +207,18 @@ contract MintParty is IMintParty {
             numerator
         );
 
+        uint256 deployFee = IBondingCurveFactory(bondingCurveFactory)
+            .getDelpyFee();
+
         (address curve, address token, , , uint256 amountOut) = ICore(core)
-            .createCurve(
-                owner,
-                config.name,
-                config.symbol,
-                config.tokenURI,
-                amountIn,
-                fee
-            );
+            .createCurve{value: amountIn + fee + deployFee}(
+            address(this),
+            config.name,
+            config.symbol,
+            config.tokenURI,
+            amountIn,
+            fee
+        );
         distributeTokens(token, amountOut);
 
         finished = true;

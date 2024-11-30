@@ -61,9 +61,20 @@ contract WNADTest is Test {
         uint256 deadline = block.timestamp + 1 hours;
 
         bytes32 DOMAIN_SEPARATOR = wNad.DOMAIN_SEPARATOR();
-        bytes32 structHash = keccak256(abi.encode(wNad.PERMIT_TYPEHASH(), owner, spender, value, nonce, deadline));
+        bytes32 structHash = keccak256(
+            abi.encode(
+                wNad.PERMIT_TYPEHASH(),
+                owner,
+                spender,
+                value,
+                nonce,
+                deadline
+            )
+        );
 
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash));
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash)
+        );
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(humanPrivateKey, digest);
 
@@ -73,14 +84,4 @@ contract WNADTest is Test {
 
         assertEq(wNad.allowance(owner, spender), value);
     }
-    // function testApprove() public {
-    //     wNad.approve(address(this), 100);
-    //     assertEq(wNad.allowance(address(this), address(this)), 100);
-    // }
-
-    // function testTransfer() public {
-    //     wNad.deposit{value: 100}();
-    //     wNad.transfer(address(this), 100);
-    //     assertEq(wNad.balanceOf(address(this)), 100);
-    // }
 }

@@ -186,6 +186,7 @@ contract BondingCurve is IBondingCurve {
      */
     function listing() external returns (address pair) {
         require(lock == true, ERR_BONDING_CURVE_ONLY_LOCK);
+        require(!isListing, ERR_BONDING_CURVE_ALREADY_LISTED);
         IBondingCurveFactory _factory = IBondingCurveFactory(factory);
         pair = IUniswapV2Factory(_factory.getDexFactory()).createPair(
             wnad,

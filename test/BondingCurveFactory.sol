@@ -2,109 +2,185 @@
 pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
-import "src/BondingCurve.sol";
-import "src/BondingCurveFactory.sol";
-import "src/Token.sol";
+import {BondingCurve} from "src/BondingCurve.sol";
+import {BondingCurveFactory} from "src/BondingCurveFactory.sol";
+import {Token} from "src/Token.sol";
 import "src/errors/Errors.sol";
-import "src/WNAD.sol";
-import "src/utils/NadsPumpLibrary.sol";
-import "src/Endpoint.sol";
-
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {IWNAD} from "src/interfaces/IWNAD.sol";
+import {WNAD} from "src/WNAD.sol";
+import {NadFunLibrary} from "src/utils/NadFunLibrary.sol";
+import {Core} from "src/Core.sol";
 import {FeeVault} from "src/FeeVault.sol";
 import {UniswapV2Factory} from "src/uniswap/UniswapV2Factory.sol";
-import "./Constant.sol";
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import "./SetUp.sol";
 
-contract BondingCurveFactoryTest is Test {
-    Token token;
-    BondingCurveFactory factory;
-    BondingCurve curve;
-    WNAD wNad;
-    Endpoint endpoint;
-    IERC4626 vault;
-    UniswapV2Factory uniFactory;
-    address owner;
-    address creator;
+contract BondingCurveFactoryTest is Test, SetUp {
+    // ========== Success Cases ==========
 
-    uint256 deployFee = 2 * 10 ** 16;
-    uint256 listingFee = 1 ether;
-    uint256 tokenTotalSupply = 10 ** 27;
-    uint256 virtualNad = 30 * 10 ** 18;
-    uint256 virtualToken = 1073000191 * 10 ** 18;
-    uint256 targetToken = 206900000 * 10 ** 18;
-    uint8 feeDenominator = 10;
-    uint16 feeNumerator = 1000;
+    function testInitialization() public {
+        // Check initial configuration
+        BondingCurveFactory.Config memory config = BONDING_CURVE_FACTORY
+            .getConfig();
+        assertEq(config.deployFee, DEPLOY_FEE);
+        assertEq(config.listingFee, LISTING_FEE);
+        assertEq(config.tokenTotalSupply, TOKEN_TOTAL_SUPPLY);
+        assertEq(config.virtualNad, VIRTUAL_NAD);
+        assertEq(config.virtualToken, VIRTUAL_TOKEN);
+        assertEq(config.k, K);
+        assertEq(config.targetToken, TARGET_TOKEN);
+        assertEq(config.feeNumerator, FEE_NUMERATOR);
+        assertEq(config.feeDenominator, FEE_DENOMINATOR);
 
-    function setUp() public {
-        owner = address(0xa);
-        creator = address(0xb);
-        vm.startPrank(owner);
-
-        wNad = new WNAD();
-        vault = new FeeVault(wNad);
-        factory = new BondingCurveFactory(owner, address(wNad));
-
-        factory.initialize(
-            deployFee,
-            listingFee,
-            tokenTotalSupply,
-            virtualNad,
-            virtualToken,
-            targetToken,
-            feeNumerator,
-            feeDenominator,
-            address(uniFactory)
-        );
-
-        endpoint = new Endpoint(address(factory), address(wNad), address(vault));
-        factory.setEndpoint(address(endpoint));
-        vm.stopPrank();
+        // Check owner and WNAD
+        assertEq(BONDING_CURVE_FACTORY.getOwner(), OWNER);
+        assertEq(address(BONDING_CURVE_FACTORY.WNAD()), address(wNAD));
     }
 
-    function testCreate() public {
-        // Start Create
-        vm.startPrank(creator);
-        vm.deal(creator, 0.02 ether);
+    function testCreateCurve() public {
+        vm.startPrank(OWNER);
+        vm.deal(OWNER, DEPLOY_FEE);
+        // Create new curve through Core
+        (
+            address curveAddress,
+            address tokenAddress,
+            uint256 virtualNad,
+            uint256 virtualToken,
+            uint256 amountOut
+        ) = CORE.createCurve{value: DEPLOY_FEE}(
+                TRADER_A,
+                "Test Token",
+                "TEST",
+                "test.url",
+                0,
+                0
+            );
 
-        (address curveAddress, address tokenAddress, uint256 virtualNad, uint256 virtualToken, uint256 amountOut) =
-            endpoint.createCurve{value: 0.02 ether}("test", "test", "testurl", 0, 0, 0.02 ether);
-        curve = BondingCurve(curveAddress);
-        token = Token(tokenAddress);
+        // Verify curve creation
+        assertTrue(curveAddress != address(0));
+        assertTrue(tokenAddress != address(0));
 
-        assertEq(IERC4626(vault).totalAssets(), deployFee);
-        assertEq(creator.balance, 0);
-        // creator로의 프랭크 종료
+        // Check curve mapping
+        assertEq(BONDING_CURVE_FACTORY.getCurve(tokenAddress), curveAddress);
+
+        // Verify curve initialization
+        BondingCurve curve = BondingCurve(curveAddress);
+        Token token = Token(tokenAddress);
+
+        // Check token properties
+        assertEq(token.name(), "Test Token");
+        assertEq(token.symbol(), "TEST");
+        assertEq(token.totalSupply(), TOKEN_TOTAL_SUPPLY);
+
+        // Check curve properties
+        (uint256 vNad, uint256 vToken) = curve.getVirtualReserves();
+        assertEq(vNad, VIRTUAL_NAD);
+        assertEq(vToken, VIRTUAL_TOKEN);
+
         vm.stopPrank();
     }
 
     function testSetOwner() public {
-        vm.startPrank(owner);
-        factory.setOwner(creator);
-        assertEq(factory.getOwner(), creator);
+        vm.startPrank(OWNER);
+        address newOwner = address(0xdead);
+        BONDING_CURVE_FACTORY.setOwner(newOwner);
+        assertEq(BONDING_CURVE_FACTORY.getOwner(), newOwner);
         vm.stopPrank();
     }
 
-    function testSetEndpoint() public {
-        vm.startPrank(owner);
-        factory.setEndpoint(creator);
-        assertEq(factory.getEndpoint(), creator);
+    function testUpdateConfig() public {
+        vm.startPrank(OWNER);
+
+        uint256 newDeployFee = 0.03 ether;
+        uint256 newListingFee = 2 ether;
+        uint256 newTokenTotalSupply = 2 * 10 ** 27;
+        uint256 newVirtualNad = 40 * 10 ** 18;
+        uint256 newVirtualToken = 2_073_000_191 * 10 ** 18;
+        uint256 newTargetToken = 306_900_000 * 10 ** 18;
+        uint16 newFeeNumerator = 2000;
+        uint8 newFeeDenominator = 20;
+
+        IBondingCurveFactory.InitializeParams
+            memory params = IBondingCurveFactory.InitializeParams({
+                deployFee: newDeployFee,
+                listingFee: newListingFee,
+                tokenTotalSupply: newTokenTotalSupply,
+                virtualNad: newVirtualNad,
+                virtualToken: newVirtualToken,
+                targetToken: newTargetToken,
+                feeNumerator: newFeeNumerator,
+                feeDenominator: newFeeDenominator,
+                dexFactory: address(DEX_FACTORY)
+            });
+
+        BONDING_CURVE_FACTORY.initialize(params);
+
+        // Verify updated config
+        BondingCurveFactory.Config memory config = BONDING_CURVE_FACTORY
+            .getConfig();
+        assertEq(config.deployFee, newDeployFee);
+        assertEq(config.listingFee, newListingFee);
+        assertEq(config.tokenTotalSupply, newTokenTotalSupply);
+        assertEq(config.virtualNad, newVirtualNad);
+        assertEq(config.virtualToken, newVirtualToken);
+        assertEq(config.k, newVirtualNad * newVirtualToken);
+        assertEq(config.targetToken, newTargetToken);
+        assertEq(config.feeNumerator, newFeeNumerator);
+        assertEq(config.feeDenominator, newFeeDenominator);
+
         vm.stopPrank();
     }
 
-    function testGetConfig() public {
-        BondingCurveFactory.Config memory config = factory.getConfig();
-        assertEq(config.deployFee, deployFee);
-        assertEq(config.feeDenominator, feeDenominator);
-        assertEq(config.feeNumerator, feeNumerator);
-        assertEq(config.k, virtualNad * virtualToken);
-        assertEq(config.targetToken, targetToken);
-        assertEq(config.tokenTotalSupply, tokenTotalSupply);
-        assertEq(config.virtualNad, virtualNad);
-        assertEq(config.virtualToken, virtualToken);
+    // ========== Failure Cases ==========
+
+    function testRevertNonOwnerSetOwner() public {
+        vm.startPrank(TRADER_A);
+        vm.expectRevert(bytes(ERR_BONDING_CURVE_FACTORY_ONLY_OWNER));
+        BONDING_CURVE_FACTORY.setOwner(TRADER_A);
+        vm.stopPrank();
     }
 
-    function testGetCurve() public {
-        address tokenCurve = factory.getCurve(address(token));
-        assertEq(tokenCurve, address(curve));
+    function testRevertNonOwnerInitialize() public {
+        vm.startPrank(TRADER_A);
+
+        IBondingCurveFactory.InitializeParams
+            memory params = IBondingCurveFactory.InitializeParams({
+                deployFee: 0.03 ether,
+                listingFee: 2 ether,
+                tokenTotalSupply: 2 * 10 ** 27,
+                virtualNad: 40 * 10 ** 18,
+                virtualToken: 2_073_000_191 * 10 ** 18,
+                targetToken: 306_900_000 * 10 ** 18,
+                feeNumerator: 2000,
+                feeDenominator: 20,
+                dexFactory: address(DEX_FACTORY)
+            });
+
+        vm.expectRevert(bytes(ERR_BONDING_CURVE_FACTORY_ONLY_OWNER));
+        BONDING_CURVE_FACTORY.initialize(params);
+        vm.stopPrank();
+    }
+
+    function testRevertNonCoreCreateCurve() public {
+        vm.startPrank(TRADER_A);
+        vm.expectRevert(bytes(ERR_BONDING_CURVE_FACTORY_ONLY_CORE));
+        BONDING_CURVE_FACTORY.create(TRADER_A, "Test", "TEST", "test.url");
+        vm.stopPrank();
+    }
+
+    function testRevertInvalidDeployFee() public {
+        vm.startPrank(OWNER);
+        vm.deal(OWNER, DEPLOY_FEE - 1);
+        vm.expectRevert(bytes(ERR_CORE_INVALID_SEND_NAD));
+        CORE.createCurve{value: DEPLOY_FEE - 1}(
+            TRADER_A,
+            "Test",
+            "TEST",
+            "test.url",
+            0,
+            0
+        );
+        vm.stopPrank();
     }
 }

@@ -132,7 +132,7 @@ contract WNAD is IERC20, IWNAD {
         bytes32 r,
         bytes32 s
     ) external {
-        require(deadline >= block.timestamp, ERR_EXPIRED);
+        require(deadline >= block.timestamp, ERR_TOKEN_INVALID_EXPIRED);
         bytes32 digest = keccak256(
             abi.encodePacked(
                 "\x19\x01",
@@ -152,7 +152,7 @@ contract WNAD is IERC20, IWNAD {
         address recoveredAddress = ecrecover(digest, v, r, s);
         require(
             recoveredAddress != address(0) && recoveredAddress == owner,
-            ERR_INVALID_SIGNATURE
+            ERR_TOKEN_INVALID_SIGNATURE
         );
         _approve(owner, spender, value);
     }

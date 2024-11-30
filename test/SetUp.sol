@@ -13,7 +13,7 @@ import {UniswapV2Factory} from "../src/uniswap/UniswapV2Factory.sol";
 
 import {Token} from "../src/Token.sol";
 import {Core} from "../src/Core.sol";
-import {NadsPumpLibrary} from "../src/utils/NadsPumpLibrary.sol";
+import {NadFunLibrary} from "../src/utils/NadFunLibrary.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IBondingCurveFactory} from "../src/interfaces/IBondingCurveFactory.sol";
 
@@ -43,7 +43,7 @@ contract SetUp is Test {
 
     //MINT PARTY
     uint256 MINT_PARTY_FUNDING_AMOUNT = 1 ether;
-    uint256 MINT_PARTY_MAXIMUM_PARTICIPANTS = 4;
+    uint256 MINT_PARTY_MAXIMUM_WHITE_LIST = 4;
 
     address constant OWNER = address(0xa);
     address constant CREATOR = address(0xb);
@@ -77,14 +77,21 @@ contract SetUp is Test {
         vm.startPrank(OWNER);
         wNAD = new WNAD();
         FEE_VAULT = new FeeVault(IERC20(address(wNAD)));
+        CORE = new Core(address(wNAD), address(FEE_VAULT));
 
         BONDING_CURVE_FACTORY = new BondingCurveFactory(
             OWNER,
             address(CORE),
             address(wNAD)
         );
-        MINT_PARTY_FACTORY = new MintPartyFactory();
+
         LOCK = new Lock();
+        MINT_PARTY_FACTORY = new MintPartyFactory(
+            address(CORE),
+            address(wNAD),
+            address(LOCK),
+            address(BONDING_CURVE_FACTORY)
+        );
         DEX_FACTORY = new UniswapV2Factory(OWNER);
 
         vm.stopPrank();
@@ -92,7 +99,7 @@ contract SetUp is Test {
 
     function initializeContracts() private {
         vm.startPrank(OWNER);
-
+        CORE.initialize(address(BONDING_CURVE_FACTORY));
         IBondingCurveFactory.InitializeParams
             memory params = IBondingCurveFactory.InitializeParams({
                 deployFee: DEPLOY_FEE,
@@ -107,33 +114,22 @@ contract SetUp is Test {
             });
         BONDING_CURVE_FACTORY.initialize(params);
 
-        MINT_PARTY_FACTORY.initialize(
-            address(BONDING_CURVE_FACTORY),
-            address(wNAD),
-            address(LOCK),
-            address(FEE_VAULT),
-            MINT_PARTY_MAXIMUM_PARTICIPANTS
-        );
+        MINT_PARTY_FACTORY.initialize(MINT_PARTY_MAXIMUM_WHITE_LIST);
 
         LOCK.initialize(address(BONDING_CURVE_FACTORY), DEFAULT_LOCK_TIME);
 
         vm.stopPrank();
-        CurveCreate(CREATOR);
     }
 
-    function CurveCreate(address account) public {
+    function CreateBondingCurve(address account) public {
         vm.startPrank(account);
         vm.deal(account, DEPLOY_FEE);
 
-        wNAD.deposit{value: DEPLOY_FEE}();
-
-        wNAD.transfer(address(BONDING_CURVE_FACTORY), DEPLOY_FEE);
-
-        (address curveAddress, address tokenAddress, , ) = BONDING_CURVE_FACTORY
-            .create(account, "test", "test", "testurl");
+        (address curveAddress, address tokenAddress, , , ) = CORE.createCurve{
+            value: DEPLOY_FEE
+        }(account, "test", "test", "testurl", 0, 0);
 
         CURVE = BondingCurve(payable(curveAddress));
-
         MEME_TOKEN = Token(tokenAddress);
         vm.stopPrank();
     }
@@ -156,25 +152,6 @@ contract SetUp is Test {
         vm.stopPrank();
     }
 
-    // function BuyAmountOut(address account, uint256 amountOut) public {
-    //     vm.startPrank(account);
-    //     (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
-    //     uint256 amountIn = NadsPumpLibrary.getAmountIn(
-    //         amountOut,
-    //         K,
-    //         virtualNad,
-    //         virtualToken
-    //     );
-    //     uint256 fee = amountIn / 100;
-    //     uint256 totalAmount = amountIn + fee;
-
-    //     vm.deal(account, totalAmount);
-    //     wNAD.deposit{value: totalAmount}();
-    //     wNAD.transfer(address(CURVE), totalAmount);
-    //     CURVE.buy(account, amountOut, fee);
-    //     vm.stopPrank();
-    // }
-
     function CurveListing(address account) public {
         vm.startPrank(account);
         (, uint256 realTokenReserves) = CURVE.getReserves();
@@ -183,7 +160,7 @@ contract SetUp is Test {
         //1000 - 100 = 900 만큼 사면됨.
         uint256 amountOut = realTokenReserves - TARGET_TOKEN;
         (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
-        uint256 amountIn = NadsPumpLibrary.getAmountIn(
+        uint256 amountIn = NadFunLibrary.getAmountIn(
             amountOut,
             K,
             virtualNad,
@@ -217,9 +194,10 @@ contract SetUp is Test {
                 "TEST",
                 "TEST",
                 MINT_PARTY_FUNDING_AMOUNT,
-                uint8(MINT_PARTY_MAXIMUM_PARTICIPANTS)
+                uint8(MINT_PARTY_MAXIMUM_WHITE_LIST)
             )
         );
+        vm.stopPrank();
     }
 
     // function CreateQuestPool(address account) public {

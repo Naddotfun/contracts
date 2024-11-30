@@ -23,20 +23,19 @@ contract Core is ICore {
     /// @notice Address of the contract owner
     address private owner;
     /// @notice Address of the bonding curve factory contract
-    address public immutable factory;
+    address public factory;
     /// @notice Address of the wrapped NAD token
     address public immutable WNAD;
     /// @notice ERC4626 vault contract for fee collection
     IERC4626 public immutable vault;
-
+    bool isInitialized = false;
     /**
      * @notice Constructor initializes core contract with essential addresses
-     * @param _factory Address of the bonding curve factory
+     
      * @param _WNAD Address of the wrapped NAD token
      * @param _vault Address of the fee collection vault
      */
-    constructor(address _factory, address _WNAD, address _vault) {
-        factory = _factory;
+    constructor(address _WNAD, address _vault) {
         WNAD = _WNAD;
         owner = msg.sender;
         vault = IERC4626(_vault);
@@ -59,6 +58,11 @@ contract Core is ICore {
         _;
     }
 
+    function initialize(address _factory) external {
+        require(!isInitialized, ERR_CORE_ALREADY_INITIALIZED);
+        factory = _factory;
+        isInitialized = true;
+    }
     /**
      * @notice Validates if the fee amount is correct according to curve parameters
      * @param curve Address of the bonding curve
@@ -129,14 +133,14 @@ contract Core is ICore {
 
         IWNAD(WNAD).deposit{value: amountIn + fee + _deployFee}();
 
-        sendFeeByVault(fee + _deployFee);
-
-        if (amountIn > 0 && fee > 0) {
+        if (amountIn > 0) {
             checkFee(curve, amountIn, fee);
+            sendFeeByVault(fee + _deployFee);
             uint256 k = virtualNad * virtualToken;
             amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
             IERC20(WNAD).safeTransferERC20(curve, amountIn);
-            IBondingCurve(curve).buy(msg.sender, amountOut);
+            IBondingCurve(curve).buy(creator, amountOut);
+            IERC20(token).safeTransferERC20(creator, amountOut);
             return (
                 curve,
                 token,
@@ -145,6 +149,7 @@ contract Core is ICore {
                 amountOut
             );
         }
+        sendFeeByVault(_deployFee);
         return (curve, token, virtualNad, virtualToken, amountOut);
     }
 
@@ -184,6 +189,7 @@ contract Core is ICore {
 
         IERC20(WNAD).safeTransferERC20(curve, amountIn);
         IBondingCurve(curve).buy(to, amountOut);
+        IERC20(token).safeTransferERC20(to, amountOut);
     }
 
     /**
@@ -222,6 +228,7 @@ contract Core is ICore {
         uint256 amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
         IERC20(WNAD).safeTransferERC20(curve, amountIn);
         IBondingCurve(curve).buy(to, amountOut);
+        IERC20(token).safeTransferERC20(to, amountOut);
     }
 
     /**
@@ -282,6 +289,7 @@ contract Core is ICore {
         IERC20(WNAD).safeTransferERC20(curve, amountIn);
 
         IBondingCurve(curve).buy(to, amountOut);
+        IERC20(token).safeTransferERC20(to, amountOut);
     }
 
     /**
@@ -322,6 +330,7 @@ contract Core is ICore {
         IERC20(WNAD).safeTransferERC20(curve, amountIn);
 
         IBondingCurve(curve).buy(to, amountOut);
+        IERC20(token).safeTransferERC20(to, amountOut);
     }
 
     /**
@@ -367,6 +376,7 @@ contract Core is ICore {
         IERC20(WNAD).safeTransferERC20(curve, amountIn);
 
         IBondingCurve(curve).buy(to, amountOut);
+        IERC20(token).safeTransferERC20(to, amountOut);
     }
 
     /**
@@ -425,6 +435,7 @@ contract Core is ICore {
         IERC20(WNAD).safeTransferERC20(curve, amountIn);
 
         IBondingCurve(curve).buy(to, amountOut);
+        IERC20(token).safeTransferERC20(to, amountOut);
     }
 
     /**
@@ -471,6 +482,7 @@ contract Core is ICore {
         sendFeeByVault(fee);
         IERC20(WNAD).safeTransferERC20(curve, amountIn);
         IBondingCurve(curve).buy(to, amountOut);
+        IERC20(token).safeTransferERC20(to, amountOut);
     }
 
     /**
@@ -519,6 +531,7 @@ contract Core is ICore {
 
         IERC20(WNAD).safeTransferERC20(curve, amountIn);
         IBondingCurve(curve).buy(to, amountOut);
+        IERC20(token).safeTransferERC20(to, amountOut);
     }
 
     /**
@@ -574,6 +587,7 @@ contract Core is ICore {
 
         IERC20(WNAD).safeTransferERC20(curve, amountIn);
         IBondingCurve(curve).buy(to, amountOut);
+        IERC20(token).safeTransferERC20(to, amountOut);
     }
     // //-------------Sell Functions ---------------------------------------------
 

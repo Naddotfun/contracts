@@ -19,21 +19,32 @@ contract MintPartyFactory is IMintPartyFactory {
     using TransferHelper for IERC20;
 
     address private owner;
-    address core;
-    address WNad;
-    address lock;
-    address vault;
-
+    address immutable core;
+    address immutable WNad;
+    address immutable lock;
+    address immutable bondingCurveFactory;
     /// @dev Maximum number of participants allowed in a mint party
-    uint256 maxParticipants;
+    uint256 maxWhiteList;
     /// @dev Mapping of account address to their mint party contract address
     mapping(address => address) parties;
 
     /**
      * @dev Constructor sets the deployer as the owner
+     * @param _core Address of the core contract
+     * @param _wnad Address of the WNAD token
+     * @param _lock Address of the lock contract
      */
-    constructor() {
+    constructor(
+        address _core,
+        address _wnad,
+        address _lock,
+        address _bondingCurveFactory
+    ) {
         owner = msg.sender;
+        core = _core;
+        WNad = _wnad;
+        lock = _lock;
+        bondingCurveFactory = _bondingCurveFactory;
     }
 
     /**
@@ -46,24 +57,11 @@ contract MintPartyFactory is IMintPartyFactory {
 
     /**
      * @dev Initializes the factory with required contract addresses and configurations
-     * @param _core Address of the core contract
-     * @param _wnad Address of the WNAD token
-     * @param _lock Address of the lock contract
-     * @param _vault Address of the vault contract
-     * @param _maxParticipants Maximum number of participants allowed in a party
+  
+     * @param _maxWhiteList Maximum number of participants allowed in a party
      */
-    function initialize(
-        address _core,
-        address _wnad,
-        address _lock,
-        address _vault,
-        uint256 _maxParticipants
-    ) external onlyOwner {
-        core = _core;
-        WNad = _wnad;
-        lock = _lock;
-        vault = _vault;
-        maxParticipants = _maxParticipants;
+    function initialize(uint256 _maxWhiteList) external onlyOwner {
+        maxWhiteList = _maxWhiteList;
     }
 
     /**
@@ -89,7 +87,7 @@ contract MintPartyFactory is IMintPartyFactory {
         uint8 whiteListCount
     ) external payable returns (address) {
         require(
-            whiteListCount <= maxParticipants,
+            whiteListCount <= maxWhiteList,
             ERR_MINT_PARTY_FACTORY_INVALID_MAXIMUM_WHITELIST
         );
         require(
@@ -109,7 +107,13 @@ contract MintPartyFactory is IMintPartyFactory {
         }
 
         // Create new MintParty instance
-        MintParty party = new MintParty(account, address(this), WNad, lock);
+        MintParty party = new MintParty(
+            account,
+            core,
+            WNad,
+            lock,
+            bondingCurveFactory
+        );
         party.initialize(
             account,
             name,
@@ -141,13 +145,5 @@ contract MintPartyFactory is IMintPartyFactory {
      */
     function getParty(address account) external view returns (address) {
         return parties[account];
-    }
-
-    /**
-     * @dev Returns the address of the vault contract
-     * @return Address of the vault
-     */
-    function getVault() external view returns (address) {
-        return vault;
     }
 }

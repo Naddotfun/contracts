@@ -16,45 +16,47 @@ library NadFunLibrary {
      * @dev Uses the formula: amountOut = reserveOut - (k / (reserveIn + amountIn)) - 1
      * The -1 is added to handle floating point precision issues
      * @param amountIn Amount of tokens being input
-     * @param k Constant product k
      * @param reserveIn Current reserve of input token
      * @param reserveOut Current reserve of output token
      * @return amountOut Amount of tokens to be output
      */
     function getAmountOut(
         uint256 amountIn,
-        uint256 k,
         uint256 reserveIn,
         uint256 reserveOut
     ) internal pure returns (uint256 amountOut) {
-        amountOut = reserveOut - (k / (reserveIn + amountIn)) - 1;
+        require(amountIn > 0, ERR_NAD_FUN_LIBRARY_INVALID_AMOUNT_IN);
+        require(
+            reserveIn > 0 && reserveOut > 0,
+            ERR_NAD_FUN_LIBRARY_INSUFFICIENT_LIQUIDITY
+        );
+        uint256 amountInWithFee = amountIn * 990; // 1% fee (99% = 990/1000)
+        uint256 numerator = amountInWithFee * reserveOut;
+        uint256 denominator = reserveIn * 1000 + amountInWithFee;
+        amountOut = numerator / denominator;
     }
 
     /**
      * @notice Calculates the required input amount for a desired output amount
      * @dev Uses inverse bonding curve formula and adds 1 to handle precision
      * @param amountOut Desired amount of output tokens
-     * @param k Constant product k
      * @param reserveIn Current reserve of input token
      * @param reserveOut Current reserve of output token
      * @return amountIn Required amount of input tokens
      */
     function getAmountIn(
         uint256 amountOut,
-        uint256 k,
         uint256 reserveIn,
         uint256 reserveOut
     ) internal pure returns (uint256 amountIn) {
+        require(amountOut > 0, ERR_NAD_FUN_LIBRARY_INVALID_AMOUNT_OUT);
         require(
-            amountOut <= reserveOut,
-            ERR_NAD_FUN_LIBRARY_INVALID_AMOUNT_OUT
+            reserveIn > 0 && reserveOut > 0,
+            ERR_NAD_FUN_LIBRARY_INSUFFICIENT_LIQUIDITY
         );
-
-        uint256 newReserveOut = reserveOut - amountOut;
-        uint256 numerator = k / newReserveOut;
-        amountIn = numerator - reserveIn + 1;
-
-        return amountIn;
+        uint256 numerator = reserveIn * amountOut * 1000;
+        uint256 denominator = (reserveOut - amountOut) * 990; // 1% fee (99% = 990/1000)
+        amountIn = (numerator / denominator) + 1;
     }
 
     /**
