@@ -20,8 +20,6 @@ import "./errors/Errors.sol";
 contract Core is ICore {
     using TransferHelper for IERC20;
 
-    /// @notice Address of the contract owner
-    address private owner;
     /// @notice Address of the bonding curve factory contract
     address public factory;
     /// @notice Address of the wrapped NAD token
@@ -37,7 +35,6 @@ contract Core is ICore {
      */
     constructor(address _WNAD, address _vault) {
         WNAD = _WNAD;
-        owner = msg.sender;
         vault = IERC4626(_vault);
     }
 
