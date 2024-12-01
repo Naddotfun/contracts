@@ -26,13 +26,12 @@ interface IBondingCurve {
         address indexed curve,
         address indexed token,
         address indexed pair,
-        uint256 listingWWNadAamount,
+        uint256 listingWNadAamount,
         uint256 listingTokenAmount,
         uint256 burnLiquidity
     );
 
     function initialize(
-        address wwNad,
         address token,
         uint256 virtualWNad,
         uint256 virtualToken,
