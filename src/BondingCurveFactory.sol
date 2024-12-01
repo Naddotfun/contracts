@@ -134,13 +134,12 @@ contract BondingCurveFactory is IBondingCurveFactory {
     {
         Config memory _config = getConfig();
 
-        curve = address(new BondingCurve(core));
+        curve = address(new BondingCurve(core, WNAD));
         token = address(new Token(name, symbol, tokenURI));
 
         IToken(token).mint(curve);
 
         IBondingCurve(curve).initialize(
-            WNAD,
             token,
             _config.virtualNad,
             _config.virtualToken,

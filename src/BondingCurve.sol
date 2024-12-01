@@ -21,7 +21,7 @@ contract BondingCurve is IBondingCurve {
     // Immutable state variables
     address immutable factory;
     address immutable core;
-    address public wnad; // Wrapped NAD token address
+    address public immutable wnad; // Wrapped NAD token address
     address public token; // Project token address
 
     // Virtual reserves for price calculation
@@ -68,16 +68,17 @@ contract BondingCurve is IBondingCurve {
     /**
      * @dev Constructor sets immutable factory and core addresses
      * @param _core Address of the core contract
+     * @param _wnad Address of the WNAD token
      */
-    constructor(address _core) {
+    constructor(address _core, address _wnad) {
         factory = msg.sender;
         core = _core;
+        wnad = _wnad;
     }
 
     /**
      * @notice Initializes the bonding curve with its parameters
      * @dev Called once by factory during deployment
-     * @param _wnad Wrapped NAD token address
      * @param _token Project token address
      * @param _virtualNad Initial virtual NAD reserve
      * @param _virtualToken Initial virtual token reserve
@@ -87,7 +88,6 @@ contract BondingCurve is IBondingCurve {
      * @param _feeNumerator Fee numerator
      */
     function initialize(
-        address _wnad,
         address _token,
         uint256 _virtualNad,
         uint256 _virtualToken,
@@ -97,12 +97,11 @@ contract BondingCurve is IBondingCurve {
         uint16 _feeNumerator
     ) external {
         require(msg.sender == factory, ERR_BONDING_CURVE_ONLY_FACTORY);
-        wnad = _wnad;
         token = _token;
         virtualNad = _virtualNad;
         virtualToken = _virtualToken;
         k = _k;
-        realNadReserves = IERC20(_wnad).balanceOf(address(this));
+        realNadReserves = IERC20(wnad).balanceOf(address(this));
         realTokenReserves = IERC20(_token).balanceOf(address(this));
         targetToken = _targetToken;
         feeConfig = Fee(_feeDenominator, _feeNumerator);
