@@ -9,7 +9,7 @@ interface ILock {
         uint256 unlockTime
     );
     event Unlocked(address token, address account, uint256 amount);
-
+    event DefaultLockTimeUpdated(uint256 oldTime, uint256 newTime);
     struct LockInfo {
         uint256 amount;
         uint256 unlockTime;
@@ -17,7 +17,7 @@ interface ILock {
 
     function lock(address token, address account) external;
     function unlock(address token, address account) external;
-    function getAvailabeUnlockAmount(
+    function getAvailableUnlockAmount(
         address token,
         address account
     ) external view returns (uint256);

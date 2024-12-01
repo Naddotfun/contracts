@@ -85,7 +85,7 @@ contract SetUp is Test {
             address(wNAD)
         );
 
-        LOCK = new Lock();
+        LOCK = new Lock(address(BONDING_CURVE_FACTORY), DEFAULT_LOCK_TIME);
         MINT_PARTY_FACTORY = new MintPartyFactory(
             address(CORE),
             address(wNAD),
@@ -115,8 +115,6 @@ contract SetUp is Test {
         BONDING_CURVE_FACTORY.initialize(params);
 
         MINT_PARTY_FACTORY.initialize(MINT_PARTY_MAXIMUM_WHITE_LIST);
-
-        LOCK.initialize(address(BONDING_CURVE_FACTORY), DEFAULT_LOCK_TIME);
 
         vm.stopPrank();
     }
@@ -167,12 +165,12 @@ contract SetUp is Test {
             virtualToken
         );
         uint256 fee = amountIn / 100;
-        uint256 totalAmount = amountIn + fee;
-        vm.deal(account, totalAmount);
+        uint256 amountInMax = amountIn + fee;
+        vm.deal(account, amountInMax);
 
-        CORE.buy{value: totalAmount}(
-            amountIn,
-            fee,
+        CORE.buyExactAmountOut{value: amountInMax}(
+            amountOut,
+            amountInMax,
             address(MEME_TOKEN),
             account,
             block.timestamp + 1

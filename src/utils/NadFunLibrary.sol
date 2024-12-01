@@ -22,18 +22,22 @@ library NadFunLibrary {
      */
     function getAmountOut(
         uint256 amountIn,
+        uint256 k,
         uint256 reserveIn,
         uint256 reserveOut
     ) internal pure returns (uint256 amountOut) {
-        require(amountIn > 0, ERR_NAD_FUN_LIBRARY_INVALID_AMOUNT_IN);
         require(
-            reserveIn > 0 && reserveOut > 0,
-            ERR_NAD_FUN_LIBRARY_INSUFFICIENT_LIQUIDITY
+            amountIn > 0 && reserveIn > 0 && reserveOut > 0,
+            "Invalid inputs"
         );
-        uint256 amountInWithFee = amountIn * 990; // 1% fee (99% = 990/1000)
-        uint256 numerator = amountInWithFee * reserveOut;
-        uint256 denominator = reserveIn * 1000 + amountInWithFee;
-        amountOut = numerator / denominator;
+
+        uint256 newReserveIn = reserveIn + amountIn;
+
+        // 나눗셈 시 올림 처리를 위해 newReserveIn - 1을 사용
+        uint256 newReserveOut = (k + newReserveIn - 1) / newReserveIn;
+
+        require(newReserveOut < reserveOut, "Insufficient output amount");
+        amountOut = reserveOut - newReserveOut;
     }
 
     /**
@@ -46,17 +50,21 @@ library NadFunLibrary {
      */
     function getAmountIn(
         uint256 amountOut,
+        uint256 k,
         uint256 reserveIn,
         uint256 reserveOut
     ) internal pure returns (uint256 amountIn) {
-        require(amountOut > 0, ERR_NAD_FUN_LIBRARY_INVALID_AMOUNT_OUT);
         require(
-            reserveIn > 0 && reserveOut > 0,
-            ERR_NAD_FUN_LIBRARY_INSUFFICIENT_LIQUIDITY
+            amountOut <= reserveOut,
+            ERR_NAD_FUN_LIBRARY_INVALID_AMOUNT_OUT
         );
-        uint256 numerator = reserveIn * amountOut * 1000;
-        uint256 denominator = (reserveOut - amountOut) * 990; // 1% fee (99% = 990/1000)
-        amountIn = (numerator / denominator) + 1;
+
+        uint256 newReserveOut = reserveOut - amountOut;
+
+        uint256 numerator = (k + newReserveOut - 1) / newReserveOut;
+        amountIn = numerator - reserveIn;
+
+        return amountIn;
     }
 
     /**

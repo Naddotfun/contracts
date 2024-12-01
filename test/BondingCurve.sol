@@ -121,6 +121,15 @@ contract BondingCurveTest is Test, SetUp {
             virtualNad,
             virtualToken
         );
+        console.log(requiredAmount);
+
+        uint getAmount = NadFunLibrary.getAmountOut(
+            requiredAmount,
+            CURVE.getK(),
+            virtualNad,
+            virtualToken
+        );
+        console.log(getAmount);
 
         uint256 fee = NadFunLibrary.getFeeAmount(
             requiredAmount,
@@ -130,9 +139,9 @@ contract BondingCurveTest is Test, SetUp {
         vm.deal(TRADER_A, requiredAmount + fee + LISTING_FEE);
 
         uint256 deadline = block.timestamp + 1;
-        CORE.buy{value: requiredAmount + fee}(
-            requiredAmount,
-            fee,
+        CORE.buyExactAmountOut{value: requiredAmount + fee}(
+            amountOutDesired,
+            requiredAmount + fee,
             address(MEME_TOKEN),
             TRADER_A,
             deadline
@@ -164,7 +173,7 @@ contract BondingCurveTest is Test, SetUp {
         // First reach target to lock
         CurveListing(TRADER_A);
 
-        vm.expectRevert(bytes(ERR_BONDING_CURVE_LOCKED));
+        vm.expectRevert(bytes(ERR_BONDING_CURVE_ALREADY_LISTED));
         CURVE.listing();
         vm.stopPrank();
     }

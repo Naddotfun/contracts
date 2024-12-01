@@ -28,26 +28,6 @@ interface ICore {
         uint256 deadline
     ) external payable;
 
-    function buyWNad(
-        uint256 amountIn,
-        uint256 fee,
-        address token,
-        address to,
-        uint256 deadline
-    ) external;
-
-    function buyWNadWithPermit(
-        uint256 amountIn,
-        uint256 fee,
-        address token,
-        address from,
-        address to,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external;
-
     function buyAmountOutMin(
         uint256 amountIn,
         uint256 amountOutMin,
@@ -57,28 +37,6 @@ interface ICore {
         uint256 deadline
     ) external payable;
 
-    function buyWNadAmountOutMin(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        uint256 fee,
-        address token,
-        address to,
-        uint256 deadline
-    ) external;
-
-    function buyWNadAmountOutMinPermit(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        uint256 fee,
-        address token,
-        address from,
-        address to,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external;
-
     function buyExactAmountOut(
         uint256 amountOut,
         uint256 amountInMax,
@@ -86,26 +44,6 @@ interface ICore {
         address to,
         uint256 deadline
     ) external payable;
-
-    function buyExactAmountOutWNad(
-        uint256 amountOut,
-        uint256 amountInMax,
-        address token,
-        address to,
-        uint256 deadline
-    ) external;
-
-    function buyExactAmountOutWNadPermit(
-        uint256 amountOut,
-        uint256 amountInMax,
-        address token,
-        address from,
-        address to,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external;
 
     function sell(
         uint256 amountIn,

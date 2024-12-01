@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [System Overview](#system-overview)
+- [Contract Architecture](#contract-architecture)
 - [Key Components](#key-components)
 - [Main Functions](#main-functions)
 - [Events](#events)
@@ -11,9 +12,71 @@
 
 ## System Overview
 
-Nad.Pump is a smart contract system for creating and managing bonding curve-based tokens. It enables creators to mint new tokens with associated bonding curves and allows traders to buy and sell these tokens through a centralized endpoint.
+Nad.Pump is a smart contract system for creating and managing bonding curve-based tokens. It enables creators to mint new tokens with associated bonding curves and allows traders to buy and sell these tokens through a centralized endpoint. The system uses a combination of bonding curves and automated market makers to provide liquidity and price discovery for newly created tokens.
 
-![스크린샷 2024-08-09 오후 8 41 04](https://github.com/user-attachments/assets/5fca3aa4-787c-4e23-8e17-3e9cfe21408d)
+## Contract Architecture
+
+### Core Contracts
+
+1. **Core.sol**
+
+   - Central contract that coordinates all system operations
+   - Handles token creation, buying, and selling operations
+   - Manages interactions with WNAD and fee collection
+   - Implements various safety checks and slippage protection
+
+2. **BondingCurve.sol**
+
+   - Implements the bonding curve logic
+   - Calculates token prices based on supply
+   - Manages token reserves and liquidity
+
+3. **BondingCurveFactory.sol**
+
+   - Deploys new bonding curve contracts
+   - Maintains registry of created curves
+   - Ensures standardization of curve parameters
+
+4. **WNAD.sol**
+   - Wrapped NAD token implementation
+   - Provides ERC20 interface for NAD
+   - Enables advanced trading features
+
+### Supporting Contracts
+
+5. **FeeVault.sol**
+
+   - Collects and manages trading fees
+   - Implements ERC4626 for fee distribution
+   - Provides revenue sharing mechanism
+
+6. **Token.sol**
+
+   - Standard ERC20 implementation for created tokens
+   - Includes additional features for bonding curve integration
+
+7. **MintParty.sol & MintPartyFactory.sol**
+   - Manages collective minting operations
+   - Coordinates group participation in token creation
+
+### Utility Contracts
+
+- **Utils/**
+
+  - Contains helper functions and libraries
+  - Implements common mathematical operations
+  - Provides security utilities
+
+- **Interfaces/**
+
+  - Defines contract interfaces
+  - Ensures proper contract interaction
+  - Facilitates upgradability
+
+- **Errors/**
+  - Centralizes error definitions
+  - Provides clear error messages
+  - Improves debugging experience
 
 ## Key Components
 
@@ -21,7 +84,7 @@ Nad.Pump is a smart contract system for creating and managing bonding curve-base
 | ------------------- | -------------------------------------------------------------------------------------- |
 | Creator             | Initiates the creation of new coins and curves                                         |
 | Trader              | Interacts with the system to buy and sell tokens                                       |
-| Endpoint            | Main contract handling all interactions                                                |
+| Core                | Main contract handling Bonding Curve creation, buying, and selling;                    |
 | WNAD                | Wrapped NAD token used for transactions                                                |
 | BondingCurveFactory | Deploys new Bonding Curve contracts                                                    |
 | BondingCurve        | Manages token supply and price calculations                                            |
@@ -37,17 +100,11 @@ Nad.Pump is a smart contract system for creating and managing bonding curve-base
 
 ### Buy Functions
 
-| Function                      | Description                                                |
-| ----------------------------- | ---------------------------------------------------------- |
-| `buy`                         | Purchases tokens with NAD                                  |
-| `buyWNad`                     | Purchases tokens with WNAD                                 |
-| `buyWNadWithPermit`           | Purchases tokens with WNAD using EIP-2612 permit           |
-| `buyAmountOutMin`             | Purchases tokens with a minimum output amount              |
-| `buyWNadAmountOutMin`         | Purchases tokens with WNAD with a minimum output amount    |
-| `buyWNadAmountOutMinPermit`   | Purchases tokens with WNAD using permit and minimum output |
-| `buyExactAmountOut`           | Purchases an exact amount of tokens                        |
-| `buyExactAmountOutWNad`       | Purchases an exact amount of tokens with WNAD              |
-| `buyExactAmountOutWNadPermit` | Purchases an exact amount of tokens with WNAD using permit |
+| Function            | Description                                   |
+| ------------------- | --------------------------------------------- |
+| `buy`               | Purchases tokens with NAD                     |
+| `buyAmountOutMin`   | Purchases tokens with a minimum output amount |
+| `buyExactAmountOut` | Purchases an exact amount of tokens           |
 
 ### Sell Functions
 
@@ -73,10 +130,9 @@ Nad.Pump is a smart contract system for creating and managing bonding curve-base
 ```solidity
 event Buy(
     address indexed sender,
+    address indexed token,
     uint256 amountIn,
-    uint256 amountOut,
-    address token,
-    address curve
+    uint256 amountOut
 );
 ```
 
@@ -85,26 +141,25 @@ event Buy(
 ```solidity
 event Sell(
     address indexed sender,
+    address indexed token,
     uint256 amountIn,
-    uint256 amountOut,
-    address token,
-    address curve
+    uint256 amountOut
 );
 ```
 
 ### CreateCurve
 
 ```solidity
-  event CreateCurve(
-        address indexed sender,
-        address indexed curve,
-        address indexed token,
-        string tokenURI,
-        string name,
-        string symbol,
-        uint256 virtualNad,
-        uint256 virtualToken
-    );
+event Create(
+    address indexed owner,
+    address indexed curve,
+    address indexed token,
+    string tokenURI,
+    string name,
+    string symbol,
+    uint256 virtualNad,
+    uint256 virtualToken
+);
 ```
 
 ## Usage Notes

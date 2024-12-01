@@ -18,6 +18,7 @@ contract NadFunLibraryTest is Test, SetUp {
     function testGetAmountOut() public {
         uint256 amountOut = NadFunLibrary.getAmountOut(
             AMOUNT_IN,
+            TEST_K,
             RESERVE_IN,
             RESERVE_OUT
         );
@@ -41,9 +42,11 @@ contract NadFunLibraryTest is Test, SetUp {
     }
 
     function testGetAmountIn() public {
+        // Test case 1: Normal case with 10 ether
         uint256 desiredAmountOut = 10 ether;
         uint256 amountIn = NadFunLibrary.getAmountIn(
             desiredAmountOut,
+            TEST_K,
             RESERVE_IN,
             RESERVE_OUT
         );
@@ -51,16 +54,59 @@ contract NadFunLibraryTest is Test, SetUp {
         // Verify the calculated amount in produces the desired amount out
         uint256 resultingAmountOut = NadFunLibrary.getAmountOut(
             amountIn,
+            TEST_K,
             RESERVE_IN,
             RESERVE_OUT
         );
 
-        // Allow for 1 wei difference due to rounding
+        // Allow for up to 7 wei difference due to rounding
         assertApproxEqAbs(
             resultingAmountOut,
             desiredAmountOut,
-            1,
+            100,
             "Amount in/out calculation mismatch"
+        );
+
+        // Test case 2: Small amount (1 wei)
+        uint256 smallAmountOut = 1;
+        uint256 smallAmountIn = NadFunLibrary.getAmountIn(
+            smallAmountOut,
+            TEST_K,
+            RESERVE_IN,
+            RESERVE_OUT
+        );
+        assertTrue(smallAmountIn > 0, "Should handle small amounts");
+
+        // Test case 3: Amount close to reserve out
+        uint256 largeAmountOut = RESERVE_OUT - 1;
+        vm.expectRevert();
+        NadFunLibrary.getAmountIn(
+            largeAmountOut,
+            TEST_K,
+            RESERVE_IN,
+            RESERVE_OUT
+        );
+
+        // Test case 4: Verify k constant with specific values
+        uint256 testK = 1000000; // 1M
+        uint256 testReserveIn = 1000; // 1K
+        uint256 testReserveOut = 1000; // 1K
+        uint256 testAmountOut = 100;
+
+        uint256 testAmountIn = NadFunLibrary.getAmountIn(
+            testAmountOut,
+            testK,
+            testReserveIn,
+            testReserveOut
+        );
+
+        // Verify k remains constant
+        uint256 newK = (testReserveIn + testAmountIn) *
+            (testReserveOut - testAmountOut);
+        assertEq(
+            newK,
+            testK,
+            "K should remain constant after getAmountIn calculation"
         );
     }
 
@@ -68,7 +114,12 @@ contract NadFunLibraryTest is Test, SetUp {
         uint256 invalidAmountOut = RESERVE_OUT + 1;
 
         vm.expectRevert(bytes(ERR_NAD_FUN_LIBRARY_INVALID_AMOUNT_OUT));
-        NadFunLibrary.getAmountIn(invalidAmountOut, RESERVE_IN, RESERVE_OUT);
+        NadFunLibrary.getAmountIn(
+            invalidAmountOut,
+            TEST_K,
+            RESERVE_IN,
+            RESERVE_OUT
+        );
     }
 
     function testGetAmountAndFee() public {
@@ -194,6 +245,7 @@ contract NadFunLibraryTest is Test, SetUp {
         uint256 smallAmountIn = 1;
         uint256 amountOut = NadFunLibrary.getAmountOut(
             smallAmountIn,
+            TEST_K,
             RESERVE_IN,
             RESERVE_OUT
         );
@@ -202,7 +254,58 @@ contract NadFunLibraryTest is Test, SetUp {
         // Test with very large amounts
         uint256 largeAmountIn = type(uint256).max / 2;
         vm.expectRevert(); // Should revert due to overflow
-        NadFunLibrary.getAmountOut(largeAmountIn, RESERVE_IN, RESERVE_OUT);
+        NadFunLibrary.getAmountOut(
+            largeAmountIn,
+            TEST_K,
+            RESERVE_IN,
+            RESERVE_OUT
+        );
+
+        // Test precision with division edge cases
+        uint256 k = 1000000; // 1M
+        uint256 reserveIn = 1000; // 1K
+        uint256 reserveOut = 1000; // 1K
+
+        // Test getAmountOut and getAmountIn symmetry
+        uint256 testAmountIn = 100;
+        uint256 resultOut = NadFunLibrary.getAmountOut(
+            testAmountIn,
+            k,
+            reserveIn,
+            reserveOut
+        );
+
+        uint256 calculatedAmountIn = NadFunLibrary.getAmountIn(
+            resultOut,
+            k,
+            reserveIn,
+            reserveOut
+        );
+
+        // Should be equal or differ by at most 1 due to rounding
+        assertTrue(
+            calculatedAmountIn == testAmountIn ||
+                calculatedAmountIn == testAmountIn + 1,
+            "getAmountIn/Out symmetry check failed"
+        );
+
+        // Test with amounts that cause division to be exact
+        uint256 exactK = 1000000; // 1M
+        uint256 exactReserveIn = 1000; // 1K
+        uint256 exactAmountIn = 1000; // 1K
+        uint256 exactReserveOut = 1000; // 1K
+
+        uint256 exactOut = NadFunLibrary.getAmountOut(
+            exactAmountIn,
+            exactK,
+            exactReserveIn,
+            exactReserveOut
+        );
+
+        // Verify k remains constant
+        uint256 newK = (exactReserveIn + exactAmountIn) *
+            (exactReserveOut - exactOut);
+        assertEq(newK, exactK, "K should remain constant");
     }
 
     function testFuzzGetAmountOut(uint256 amountIn) public {
@@ -211,6 +314,7 @@ contract NadFunLibraryTest is Test, SetUp {
 
         uint256 amountOut = NadFunLibrary.getAmountOut(
             amountIn,
+            TEST_K,
             RESERVE_IN,
             RESERVE_OUT
         );

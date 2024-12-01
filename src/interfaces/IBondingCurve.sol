@@ -12,13 +12,13 @@ interface IBondingCurve {
 
     event Buy(
         address indexed sender,
-        address token,
+        address indexed token,
         uint256 amountIn,
         uint256 amountOut
     );
     event Sell(
         address indexed sender,
-        address token,
+        address indexed token,
         uint256 amountIn,
         uint256 amountOut
     );

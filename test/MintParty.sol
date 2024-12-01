@@ -15,11 +15,11 @@ contract MintPartyTest is Test, SetUp {
         super.setUp();
 
         // 테스트용 계정 설정
-        accounts = new address[](WHITELIST_COUNT);
+        accounts = new address[](WHITELIST_COUNT - 1); // owner는 이미 whitelist에 있으므로 3개만 필요
         accounts[0] = TRADER_A;
         accounts[1] = TRADER_B;
         accounts[2] = TRADER_C;
-        accounts[3] = TRADER_D;
+
         CreateMintParty(OWNER);
     }
 
@@ -67,7 +67,7 @@ contract MintPartyTest is Test, SetUp {
         assertEq(MINT_PARTY.getBalance(TRADER_A), 0);
         //OWNER BALANCE
         assertEq(MINT_PARTY.getTotalBalance(), FUNDING_AMOUNT);
-        assertTrue(MINT_PARTY.getFinished());
+        assertEq(MINT_PARTY.getFinished(), false);
     }
 
     // ============ Failure Cases ============

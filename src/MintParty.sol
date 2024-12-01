@@ -118,8 +118,14 @@ contract MintParty is IMintParty {
             ERR_MINT_PARTY_INVALID_FUNDING_AMOUNT
         );
 
-        balances[account] += msg.value;
-        totalBalance += msg.value;
+        if (msg.sender == mintPartyFactory) {
+            whitelists[account] = msg.value;
+            whitelistAccounts.push(account);
+            totalBalance += msg.value;
+        } else {
+            balances[account] += msg.value;
+            totalBalance += msg.value;
+        }
 
         emit MintPartyDeposit(account, msg.value);
     }
@@ -209,7 +215,7 @@ contract MintParty is IMintParty {
 
         uint256 deployFee = IBondingCurveFactory(bondingCurveFactory)
             .getDelpyFee();
-
+        amountIn = amountIn - fee - deployFee;
         (address curve, address token, , , uint256 amountOut) = ICore(core)
             .createCurve{value: amountIn + fee + deployFee}(
             address(this),
