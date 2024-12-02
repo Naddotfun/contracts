@@ -1,4 +1,4 @@
-<img width="832" alt="스크린샷 2024-12-02 오후 8 27 32" src="https://github.com/user-attachments/assets/78a992e1-2093-44fa-9e2b-e548389f2dcb"># Nad.Pump Smart Contract
+# Nad.Pump Smart Contract
 
 ## Table of Contents
 
