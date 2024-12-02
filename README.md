@@ -16,6 +16,10 @@ Nad.Pump is a smart contract system for creating and managing bonding curve-base
 
 ## Contract Architecture
 
+### Bonding Curve
+
+### Mint Party
+
 ### Core Contracts
 
 1. **Core.sol**
