@@ -27,6 +27,7 @@ contract Core is ICore {
     /// @notice ERC4626 vault contract for fee collection
     IERC4626 public immutable vault;
     bool isInitialized = false;
+
     /**
      * @notice Constructor initializes core contract with essential addresses
      
@@ -60,6 +61,7 @@ contract Core is ICore {
         factory = _factory;
         isInitialized = true;
     }
+
     /**
      * @notice Validates if the fee amount is correct according to curve parameters
      * @param curve Address of the bonding curve
@@ -494,6 +496,7 @@ contract Core is ICore {
 
         TransferHelper.safeTransferNad(to, amountOut - fee);
     }
+
     //amountOut 은 fee + amountOut 이어야함.
 
     /**

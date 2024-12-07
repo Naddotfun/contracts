@@ -175,7 +175,7 @@ contract BondingCurve is IBondingCurve {
 
         _update(amountTokenIn, amountOut, false);
         require(virtualNad * virtualToken >= k, ERR_BONDING_CURVE_INVALID_K);
-        emit Sell(to, wnad, amountTokenIn, amountOut);
+        emit Sell(to, token, amountTokenIn, amountOut);
     }
 
     /**
