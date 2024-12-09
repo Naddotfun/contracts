@@ -35,30 +35,6 @@ contract BondingCurveFactory is IBondingCurveFactory {
     }
 
     /**
-     * @notice Configuration struct for bonding curve parameters
-     * @param deployFee Fee required to deploy a new bonding curve
-     * @param listingFee Fee required for listing
-     * @param tokenTotalSupply Total supply of tokens to be created
-     * @param virtualNad Virtual NAD reserve amount
-     * @param virtualToken Virtual token reserve amount
-     * @param k Constant product k = virtualNad * virtualToken
-     * @param targetToken Target token amount
-     * @param feeNumerator Numerator of the fee fraction
-     * @param feeDenominator Denominator of the fee fraction
-     */
-    struct Config {
-        uint256 deployFee;
-        uint256 listingFee;
-        uint256 tokenTotalSupply;
-        uint256 virtualNad;
-        uint256 virtualToken;
-        uint256 k;
-        uint256 targetToken;
-        uint16 feeNumerator;
-        uint8 feeDenominator;
-    }
-
-    /**
      * @notice Modifier to restrict function access to owner only
      */
     modifier onlyOwner() {

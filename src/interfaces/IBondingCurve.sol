@@ -44,20 +44,27 @@ interface IBondingCurve {
     function buy(address to, uint256 amountOut) external;
 
     function sell(address to, uint256 amountOut) external;
+
     function listing() external returns (address pair);
+
     function getLock() external view returns (bool);
+
     function getK() external view returns (uint256);
+
     function getFeeConfig()
         external
         view
         returns (uint8 denominator, uint16 numerator);
+
     function getVirtualReserves()
         external
         view
         returns (uint256 virtualWNad, uint256 virtualToken);
+
     function getReserves()
         external
         view
         returns (uint256 reserveWNad, uint256 reserveToken);
+
     function getIsListing() external view returns (bool);
 }
