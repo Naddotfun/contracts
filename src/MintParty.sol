@@ -122,6 +122,7 @@ contract MintParty is IMintParty {
             whitelists[account] = msg.value;
             whitelistAccounts.push(account);
             totalBalance += msg.value;
+            emit MintPartyWhiteListAdded(account, msg.value);
         } else {
             balances[account] += msg.value;
             totalBalance += msg.value;
