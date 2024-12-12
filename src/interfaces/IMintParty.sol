@@ -29,13 +29,19 @@ interface IMintParty {
     function deposit(address account) external payable;
 
     function withdraw() external;
+
     function addWhiteList(address[] memory accounts) external;
+
+    function create() external returns (address token, address curve);
 
     // 읽기 전용 함수들 (view 함수들)
     function getTotalBalance() external view returns (uint256);
+
     function getOwner() external view returns (address);
 
     function getConfig() external view returns (Config memory);
+
     function getBalance(address account) external view returns (uint256);
+
     function getFinished() external view returns (bool);
 }

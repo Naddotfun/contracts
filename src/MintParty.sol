@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.20;
-
+import {console} from "forge-std/console.sol";
 import {ICore} from "./interfaces/ICore.sol";
 import {IWNAD} from "./interfaces/IWNAD.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
@@ -193,20 +193,31 @@ contract MintParty is IMintParty {
             emit MintPartyWhiteListAdded(account, balance);
         }
 
-        if (whitelistAccounts.length == config.whiteListCount) {
-            create();
-        }
+        // if (whitelistAccounts.length == config.whiteListCount) {
+        //     create();
+        // }
     }
 
     /**
      * @dev Internal function to create the token and bonding curve
      * Called automatically when whitelist is full
      */
-    function create() private onlyOwner {
-        uint256 amountIn = calculateSendBalance();
+    function create() external onlyOwner returns (address, address) {
+        require(
+            whitelistAccounts.length == config.whiteListCount,
+            ERR_MINT_PARTY_INVALID_WHITE_LIST
+        );
+
+        uint256 _totalBalance = calculateSendBalance();
+
         (uint8 denominator, uint16 numerator) = IBondingCurveFactory(
             bondingCurveFactory
         ).getFeeConfig();
+
+        uint256 deployFee = IBondingCurveFactory(bondingCurveFactory)
+            .getDelpyFee();
+
+        uint amountIn = _totalBalance - deployFee;
 
         uint256 fee = NadFunLibrary.getFeeAmount(
             amountIn,
@@ -214,9 +225,7 @@ contract MintParty is IMintParty {
             numerator
         );
 
-        uint256 deployFee = IBondingCurveFactory(bondingCurveFactory)
-            .getDelpyFee();
-        amountIn = amountIn - fee - deployFee;
+        amountIn = amountIn - fee;
         (address curve, address token, , , uint256 amountOut) = ICore(core)
             .createCurve{value: amountIn + fee + deployFee}(
             address(this),
@@ -230,19 +239,33 @@ contract MintParty is IMintParty {
 
         finished = true;
         emit MintPartyFinished(token, curve);
+        return (token, curve);
     }
 
-    /**
-     * @dev Calculates and collects the total balance from whitelisted accounts
-     * @return Total amount collected from whitelisted accounts
-     */
+    // /**
+    //  * @dev Calculates and collects the total balance from whitelisted accounts
+    //  * @return Total amount collected from whitelisted accounts
+    //  */
+    // function calculateSendBalance() private returns (uint256) {
+    //     uint256 sendBalance;
+    //     for (uint256 i = 0; i < whitelistAccounts.length; i++) {
+    //         uint256 amount = whitelists[whitelistAccounts[i]];
+    //         whitelists[whitelistAccounts[i]] = 0;
+    //         sendBalance += amount;
+    //     }
+    //     totalBalance -= sendBalance;
+    //     return sendBalance;
+    // }
     function calculateSendBalance() private returns (uint256) {
         uint256 sendBalance;
         for (uint256 i = 0; i < whitelistAccounts.length; i++) {
             uint256 amount = whitelists[whitelistAccounts[i]];
+            console.log("Account", whitelistAccounts[i]);
+            console.log("Amount", amount);
             whitelists[whitelistAccounts[i]] = 0;
             sendBalance += amount;
         }
+        console.log("Total sendBalance", sendBalance);
         totalBalance -= sendBalance;
         return sendBalance;
     }

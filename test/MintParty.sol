@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.20;
-
+import {IBondingCurveFactory} from "../src/interfaces/IBondingCurveFactory.sol";
+import {ILock} from "../src/interfaces/ILock.sol";
 import "forge-std/Test.sol";
 import "../src/MintParty.sol";
 import "./SetUp.sol";
@@ -50,8 +51,54 @@ contract MintPartyTest is Test, SetUp {
         vm.stopPrank();
 
         // 자동으로 토큰 생성 및 분배되었는지 확인
-        assertTrue(MINT_PARTY.getFinished());
-        assertEq(MINT_PARTY.getTotalBalance(), 0);
+        // assertTrue(MINT_PARTY.getFinished());
+        // assertEq(MINT_PARTY.getTotalBalance(), 0);
+        //emit 을 확인하고싶은데?
+    }
+
+    function testCreate() public {
+        testAddWhitelist();
+
+        vm.startPrank(OWNER);
+
+        uint totalFundingAmount = (FUNDING_AMOUNT * 4);
+        uint amountIn = totalFundingAmount - DEPLOY_FEE;
+
+        (uint8 denominator, uint16 numerator) = IBondingCurveFactory(
+            BONDING_CURVE_FACTORY
+        ).getFeeConfig();
+        uint256 fee = NadFunLibrary.getFeeAmount(
+            amountIn,
+            denominator,
+            numerator
+        );
+
+        amountIn = amountIn - fee;
+        IBondingCurveFactory.Config memory config = BONDING_CURVE_FACTORY
+            .getConfig();
+
+        uint256 wantedAmountOut = NadFunLibrary.getAmountOut(
+            amountIn,
+            config.k,
+            config.virtualNad,
+            config.virtualToken
+        );
+        (address token, address bondingCurve) = MINT_PARTY.create();
+
+        uint accountTokenBalance = wantedAmountOut / 4;
+        //10 의 오차까지는 허용
+        assertApproxEqAbs(
+            LOCK.getTokenLockedBalance(token),
+            wantedAmountOut,
+            10
+        );
+
+        for (uint i = 0; i < accounts.length; i++) {
+            address account = accounts[i];
+            ILock.LockInfo[] memory lockedInfo = LOCK.getLocked(token, account);
+            assertEq(lockedInfo.length, 1);
+            assertEq(lockedInfo[0].amount, accountTokenBalance);
+        }
     }
 
     function testWithdraw() public {
@@ -143,11 +190,13 @@ contract MintPartyTest is Test, SetUp {
         }
 
         // 화이트리스트 추가하여 완료 상태로 만들기
-        vm.prank(OWNER);
+        vm.startPrank(OWNER);
         MINT_PARTY.addWhiteList(accounts);
-
+        MINT_PARTY.create();
+        vm.stopPrank();
         // 완료된 상태에서 추가 예치 시도
         vm.deal(address(0x123), FUNDING_AMOUNT);
+
         vm.startPrank(address(0x123));
         vm.expectRevert(bytes(ERR_MINT_PARTY_FINISHED));
         MINT_PARTY.deposit{value: FUNDING_AMOUNT}(address(0x123));
