@@ -258,7 +258,7 @@ contract MintPartyV2 is IMintPartyV2, ReentrancyGuard {
         lockWhiteListTokens(token, amountOut);
 
         finished = true;
-        emit MintPartyFinished(token, curve);
+        emit MintPartyFinished(token, curve, amountOut);
     }
 
     /**

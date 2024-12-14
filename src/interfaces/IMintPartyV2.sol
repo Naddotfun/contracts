@@ -2,7 +2,11 @@
 pragma solidity ^0.8.20;
 
 interface IMintPartyV2 {
-    event MintPartyFinished(address indexed token, address indexed curve);
+    event MintPartyFinished(
+        address indexed token,
+        address indexed curve,
+        uint256 amountOut
+    );
     event MintPartyClosed();
     event MintPartyDeposit(address account, uint256 amount);
     event MintPartyWithdraw(address account, uint256 amount);
