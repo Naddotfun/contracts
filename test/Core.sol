@@ -156,6 +156,7 @@ contract CoreBuyTest is Test, SetUp {
         super.setUp();
         CreateBondingCurve(CREATOR);
     }
+
     // ============ Buy Tests ============
     // ============ Success Tests ============
     function testBuySuccess() public {

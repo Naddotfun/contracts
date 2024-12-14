@@ -2,8 +2,8 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import {MintPartyFactoryV2} from "../src/MintPartyFactoryV2.sol";
-import {MintPartyV2} from "../src/MintPartyV2.sol";
+import {MintPartyFactory} from "../src/MintPartyFactory.sol";
+import {MintParty} from "../src/MintParty.sol";
 import {BondingCurveFactory} from "../src/BondingCurveFactory.sol";
 import {BondingCurve} from "../src/BondingCurve.sol";
 import {WNAD} from "../src/WNAD.sol";
@@ -18,14 +18,14 @@ import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IBondingCurveFactory} from "../src/interfaces/IBondingCurveFactory.sol";
 
 contract SetUpV2 is Test {
-    MintPartyFactoryV2 public MINT_PARTY_FACTORY;
+    MintPartyFactory public MINT_PARTY_FACTORY;
     BondingCurveFactory public BONDING_CURVE_FACTORY;
     BondingCurve public CURVE;
     WNAD public wNAD;
     UniswapV2Factory public DEX_FACTORY;
     Lock public LOCK;
     FeeVault public FEE_VAULT;
-    MintPartyV2 public MINT_PARTY;
+    MintParty public MINT_PARTY;
     Core public CORE;
     Token public MEME_TOKEN;
     uint256 constant DEPLOY_FEE = 2 * 10 ** 16;
@@ -86,7 +86,7 @@ contract SetUpV2 is Test {
         );
 
         LOCK = new Lock(address(BONDING_CURVE_FACTORY), DEFAULT_LOCK_TIME);
-        MINT_PARTY_FACTORY = new MintPartyFactoryV2(
+        MINT_PARTY_FACTORY = new MintPartyFactory(
             address(CORE),
             address(wNAD),
             address(LOCK),
@@ -185,7 +185,7 @@ contract SetUpV2 is Test {
         vm.startPrank(account);
         vm.deal(account, MINT_PARTY_FUNDING_AMOUNT);
 
-        MINT_PARTY = MintPartyV2(
+        MINT_PARTY = MintParty(
             MINT_PARTY_FACTORY.create{value: MINT_PARTY_FUNDING_AMOUNT}(
                 account,
                 "TEST",

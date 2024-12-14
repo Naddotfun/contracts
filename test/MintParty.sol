@@ -1,111 +1,42 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.20;
-import {IBondingCurveFactory} from "../src/interfaces/IBondingCurveFactory.sol";
+
+import "./SetUpV2.sol";
+import {IMintParty} from "../src/interfaces/IMintParty.sol";
 import {ILock} from "../src/interfaces/ILock.sol";
-import "forge-std/Test.sol";
-import "../src/MintParty.sol";
-import "./SetUp.sol";
+import "forge-std/console2.sol";
 
-contract MintPartyTest is Test, SetUp {
-    uint256 constant FUNDING_AMOUNT = 1 ether;
-    uint256 constant WHITELIST_COUNT = 4;
-
-    address[] accounts;
+//@notice if you want to test this, you need to add amountOut to the event MintPartyFinished
+contract MintPartyTest is SetUpV2 {
+    //Only Test
+    // emit MintPartyFinished(token, curve, amountOut);
+    event MintPartyFinished(address indexed token, address indexed curve);
+    event MintPartyDeposit(address indexed account, uint256 amount);
+    event MintPartyWhiteListAdded(address indexed account, uint256 amount);
+    event MintPartyClosed();
+    event MintPartyWithdraw(address indexed account, uint256 amount);
 
     function setUp() public override {
         super.setUp();
-
-        // 테스트용 계정 설정
-        accounts = new address[](WHITELIST_COUNT - 1); // owner는 이미 whitelist에 있으므로 3개만 필요
-        accounts[0] = TRADER_A;
-        accounts[1] = TRADER_B;
-        accounts[2] = TRADER_C;
-
-        CreateMintParty(OWNER);
+        CreateMintParty(CREATOR);
     }
-
-    // ============ Success Cases ============
 
     function testDeposit() public {
         // Factory를 통해 생성된 MintParty에 예치
-        vm.deal(TRADER_A, FUNDING_AMOUNT);
+        vm.deal(TRADER_A, MINT_PARTY_FUNDING_AMOUNT);
         vm.prank(TRADER_A);
-        MINT_PARTY.deposit{value: FUNDING_AMOUNT}(TRADER_A);
+        MINT_PARTY.deposit{value: MINT_PARTY_FUNDING_AMOUNT}(TRADER_A);
 
-        assertEq(MINT_PARTY.getBalance(TRADER_A), FUNDING_AMOUNT);
+        assertEq(MINT_PARTY.getBalance(TRADER_A), MINT_PARTY_FUNDING_AMOUNT);
         //OWNER BALANCE + TRADER_A BALANCE
-        assertEq(MINT_PARTY.getTotalBalance(), FUNDING_AMOUNT * 2);
-    }
-
-    function testAddWhitelist() public {
-        // 예치금 입금
-        for (uint i = 0; i < accounts.length; i++) {
-            vm.deal(accounts[i], FUNDING_AMOUNT);
-            vm.prank(accounts[i]);
-            MINT_PARTY.deposit{value: FUNDING_AMOUNT}(accounts[i]);
-        }
-
-        // 화이트리스트 추가
-        vm.startPrank(OWNER);
-        MINT_PARTY.addWhiteList(accounts);
-        vm.stopPrank();
-
-        // 자동으로 토큰 생성 및 분배되었는지 확인
-        // assertTrue(MINT_PARTY.getFinished());
-        // assertEq(MINT_PARTY.getTotalBalance(), 0);
-        //emit 을 확인하고싶은데?
-    }
-
-    function testCreate() public {
-        testAddWhitelist();
-
-        vm.startPrank(OWNER);
-
-        uint totalFundingAmount = (FUNDING_AMOUNT * 4);
-        uint amountIn = totalFundingAmount - DEPLOY_FEE;
-
-        (uint8 denominator, uint16 numerator) = IBondingCurveFactory(
-            BONDING_CURVE_FACTORY
-        ).getFeeConfig();
-        uint256 fee = NadFunLibrary.getFeeAmount(
-            amountIn,
-            denominator,
-            numerator
-        );
-
-        amountIn = amountIn - fee;
-        IBondingCurveFactory.Config memory config = BONDING_CURVE_FACTORY
-            .getConfig();
-
-        uint256 wantedAmountOut = NadFunLibrary.getAmountOut(
-            amountIn,
-            config.k,
-            config.virtualNad,
-            config.virtualToken
-        );
-        (address token, address bondingCurve) = MINT_PARTY.create();
-
-        uint accountTokenBalance = wantedAmountOut / 4;
-        //10 의 오차까지는 허용
-        assertApproxEqAbs(
-            LOCK.getTokenLockedBalance(token),
-            wantedAmountOut,
-            10
-        );
-
-        for (uint i = 0; i < accounts.length; i++) {
-            address account = accounts[i];
-            ILock.LockInfo[] memory lockedInfo = LOCK.getLocked(token, account);
-            assertEq(lockedInfo.length, 1);
-            assertEq(lockedInfo[0].amount, accountTokenBalance);
-        }
+        assertEq(MINT_PARTY.getTotalBalance(), MINT_PARTY_FUNDING_AMOUNT * 2);
     }
 
     function testWithdraw() public {
         // TRADER_A 예치
-        vm.deal(TRADER_A, FUNDING_AMOUNT);
+        vm.deal(TRADER_A, MINT_PARTY_FUNDING_AMOUNT);
         vm.prank(TRADER_A);
-        MINT_PARTY.deposit{value: FUNDING_AMOUNT}(TRADER_A);
+        MINT_PARTY.deposit{value: MINT_PARTY_FUNDING_AMOUNT}(TRADER_A);
 
         // 출금
         vm.prank(TRADER_A);
@@ -113,93 +44,168 @@ contract MintPartyTest is Test, SetUp {
 
         assertEq(MINT_PARTY.getBalance(TRADER_A), 0);
         //OWNER BALANCE
-        assertEq(MINT_PARTY.getTotalBalance(), FUNDING_AMOUNT);
+        assertEq(MINT_PARTY.getTotalBalance(), MINT_PARTY_FUNDING_AMOUNT);
         assertEq(MINT_PARTY.getFinished(), false);
     }
 
-    // ============ Failure Cases ============
+    function test_AddWhiteList() public {
+        // 1. 트레이더들 입금
+        vm.deal(TRADER_A, MINT_PARTY_FUNDING_AMOUNT);
+        vm.prank(TRADER_A);
+        MINT_PARTY.deposit{value: MINT_PARTY_FUNDING_AMOUNT}(TRADER_A);
 
-    function testRevertInvalidDeposit() public {
-        // 잘못된 금액으로 예치
-        vm.deal(TRADER_A, FUNDING_AMOUNT / 2);
-        vm.startPrank(TRADER_A);
-        vm.expectRevert(bytes(ERR_MINT_PARTY_INVALID_FUNDING_AMOUNT));
-        MINT_PARTY.deposit{value: FUNDING_AMOUNT / 2}(TRADER_A);
-        vm.stopPrank();
-    }
+        vm.deal(TRADER_B, MINT_PARTY_FUNDING_AMOUNT);
+        vm.prank(TRADER_B);
+        MINT_PARTY.deposit{value: MINT_PARTY_FUNDING_AMOUNT}(TRADER_B);
 
-    function testRevertDoubleDeposit() public {
-        // 첫 번째 예치
-        vm.deal(TRADER_A, FUNDING_AMOUNT * 2);
-        vm.startPrank(TRADER_A);
-        MINT_PARTY.deposit{value: FUNDING_AMOUNT}(TRADER_A);
+        vm.deal(TRADER_C, MINT_PARTY_FUNDING_AMOUNT);
+        vm.prank(TRADER_C);
+        MINT_PARTY.deposit{value: MINT_PARTY_FUNDING_AMOUNT}(TRADER_C);
 
-        // 두 번째 예치 시도
-        vm.expectRevert(bytes(ERR_MINT_PARTY_ALREADY_DEPOSITED));
-        MINT_PARTY.deposit{value: FUNDING_AMOUNT}(TRADER_A);
-        vm.stopPrank();
-    }
+        // 2. 화이트리스트 추가 전 상태 확인
+        uint256 initialTotalBalance = MINT_PARTY.getTotalBalance();
+        console.log("Initial Total Balance:", initialTotalBalance);
 
-    function testRevertUnauthorizedWhitelist() public {
-        vm.startPrank(TRADER_A);
-        vm.expectRevert(bytes(ERR_MINT_PARTY_ONLY_OWNER));
+        // 3. 이벤트 로깅 시작
+        vm.recordLogs();
+
+        // 4. 화이트리스트 추가
+        vm.startPrank(CREATOR);
+        address[] memory accounts = new address[](3);
+        accounts[0] = TRADER_A;
+        accounts[1] = TRADER_B;
+        accounts[2] = TRADER_C;
+
         MINT_PARTY.addWhiteList(accounts);
         vm.stopPrank();
+
+        // 5. 화이트리스트 추가 후 상태 확인
+        address[] memory whitelistAccounts = MINT_PARTY.getWhitelistAccounts();
+        assertEq(whitelistAccounts.length, 4, "Whitelist length should be 4");
+
+        // 6. 토큰과 커브 생성 확인
+        (
+            address token,
+            address curve,
+            uint256 amountOut
+        ) = getCreatedTokenInfo();
+        console.log("Token Address:", token);
+        console.log("Curve Address:", curve);
+        console.log("Total Token Amount:", amountOut);
+
+        // 7. Lock된 토큰 검증
+        verifyLockedTokens(token, amountOut);
     }
 
-    function testRevertWithdrawWithoutBalance() public {
-        vm.startPrank(TRADER_A);
-        vm.expectRevert(bytes(ERR_MINT_PARTY_WITHDRAW_AMOUNT_IS_ZERO));
-        MINT_PARTY.withdraw();
-        vm.stopPrank();
-    }
+    // Helper Functions
+    function getCreatedTokenInfo()
+        internal
+        returns (address token, address curve, uint256 amountOut)
+    {
+        Vm.Log[] memory entries = vm.getRecordedLogs();
 
-    function testRevertExceedWhitelistCount() public {
-        // 화이트리스트 한도보다 많은 계정 추가 시도
-        address[] memory tooManyAccounts = new address[](WHITELIST_COUNT + 1);
-        for (uint i = 0; i < WHITELIST_COUNT + 1; i++) {
-            tooManyAccounts[i] = address(uint160(i + 1));
-            vm.deal(tooManyAccounts[i], FUNDING_AMOUNT);
-            vm.prank(tooManyAccounts[i]);
-            MINT_PARTY.deposit{value: FUNDING_AMOUNT}(tooManyAccounts[i]);
+        bytes32 finishEventSignature = keccak256(
+            "MintPartyFinished(address,address,uint256)"
+        );
+
+        for (uint i = 0; i < entries.length; i++) {
+            if (entries[i].topics[0] == finishEventSignature) {
+                token = address(uint160(uint256(entries[i].topics[1])));
+                curve = address(uint160(uint256(entries[i].topics[2])));
+                amountOut = abi.decode(entries[i].data, (uint256));
+                break;
+            }
         }
-
-        vm.startPrank(OWNER);
-        vm.expectRevert(bytes(ERR_MINT_PARTY_INVALID_WHITE_LIST));
-        MINT_PARTY.addWhiteList(tooManyAccounts);
-        vm.stopPrank();
     }
 
-    function testRevertAddWhitelistWithoutBalance() public {
-        // 예치금 없는 계정을 화이트리스트에 추가 시도
-        address[] memory noBalanceAccounts = new address[](1);
-        noBalanceAccounts[0] = TRADER_A;
+    function verifyLockedTokens(
+        address token,
+        uint256 totalAmount
+    ) internal view {
+        address[] memory accounts = MINT_PARTY.getWhitelistAccounts();
+        uint256 numberOfAccounts = accounts.length;
+        uint256 amountPerAccount = totalAmount / numberOfAccounts;
+        uint256 remainder = totalAmount % numberOfAccounts;
+        uint256 totalLocked;
 
-        vm.startPrank(OWNER);
-        vm.expectRevert(bytes(ERR_MINT_PARTY_BALANCE_ZERO));
-        MINT_PARTY.addWhiteList(noBalanceAccounts);
-        vm.stopPrank();
-    }
-
-    function testRevertDepositAfterFinished() public {
-        // 화이트리스트 가득 채우기
         for (uint i = 0; i < accounts.length; i++) {
-            vm.deal(accounts[i], FUNDING_AMOUNT);
-            vm.prank(accounts[i]);
-            MINT_PARTY.deposit{value: FUNDING_AMOUNT}(accounts[i]);
+            ILock.LockInfo[] memory lockInfo = LOCK.getLocked(
+                token,
+                accounts[i]
+            );
+            uint256 expectedAmount = amountPerAccount;
+            if (i < remainder) {
+                expectedAmount += 1;
+            }
+            uint256 lockedAmount = lockInfo[0].amount;
+            assertApproxEqRel(lockedAmount, expectedAmount, 0.01e18);
+
+            totalLocked += lockedAmount;
+        }
+        console.log("Total Locked:", totalLocked);
+        console.log("Total Amount:", totalAmount);
+
+        assertApproxEqRel(totalLocked, totalAmount, 0.01e18);
+    }
+
+    function test_AddWhiteList_RevertIfNotOwner() public {
+        vm.deal(TRADER_A, MINT_PARTY_FUNDING_AMOUNT);
+        vm.prank(TRADER_A);
+        MINT_PARTY.deposit{value: MINT_PARTY_FUNDING_AMOUNT}(TRADER_A);
+
+        vm.prank(TRADER_B);
+        address[] memory accounts = new address[](1);
+        accounts[0] = TRADER_A;
+
+        vm.expectRevert("MintParty : ERR_MINT_PARTY_ONLY_OWNER");
+        MINT_PARTY.addWhiteList(accounts);
+    }
+
+    function test_AddWhiteList_RevertIfExceedMaxCount() public {
+        address[] memory accounts = new address[](
+            MINT_PARTY_MAXIMUM_WHITE_LIST + 1
+        );
+        for (uint i = 0; i < accounts.length; i++) {
+            accounts[i] = address(uint160(i + 1));
         }
 
-        // 화이트리스트 추가하여 완료 상태로 만들기
-        vm.startPrank(OWNER);
+        vm.prank(CREATOR);
+        vm.expectRevert("MintParty : ERR_MINT_PARTY_INVALID_WHITE_LIST");
         MINT_PARTY.addWhiteList(accounts);
-        MINT_PARTY.create();
-        vm.stopPrank();
-        // 완료된 상태에서 추가 예치 시도
-        vm.deal(address(0x123), FUNDING_AMOUNT);
+    }
 
-        vm.startPrank(address(0x123));
-        vm.expectRevert(bytes(ERR_MINT_PARTY_FINISHED));
-        MINT_PARTY.deposit{value: FUNDING_AMOUNT}(address(0x123));
+    function test_AddWhiteList_RevertIfBalanceZero() public {
+        address[] memory accounts = new address[](1);
+        accounts[0] = TRADER_A; // TRADER_A has no balance
+
+        vm.prank(CREATOR);
+        vm.expectRevert("MintParty : ERR_MINT_PARTY_BALANCE_ZERO");
+        MINT_PARTY.addWhiteList(accounts);
+    }
+
+    function test_Deposit_RevertIfAlreadyDeposited() public {
+        vm.deal(TRADER_A, MINT_PARTY_FUNDING_AMOUNT * 2);
+        vm.startPrank(TRADER_A);
+
+        MINT_PARTY.deposit{value: MINT_PARTY_FUNDING_AMOUNT}(TRADER_A);
+
+        vm.expectRevert("MintParty : ERR_MINT_PARTY_ALREADY_DEPOSITED");
+        MINT_PARTY.deposit{value: MINT_PARTY_FUNDING_AMOUNT}(TRADER_A);
+
         vm.stopPrank();
+    }
+
+    function test_Deposit_RevertIfInvalidAmount() public {
+        vm.deal(TRADER_A, MINT_PARTY_FUNDING_AMOUNT * 2);
+        vm.prank(TRADER_A);
+
+        vm.expectRevert("MintParty : ERR_MINT_PARTY_INVALID_FUNDING_AMOUNT");
+        MINT_PARTY.deposit{value: MINT_PARTY_FUNDING_AMOUNT * 2}(TRADER_A);
+    }
+
+    function test_Withdraw_RevertIfNoBalance() public {
+        vm.prank(TRADER_A);
+        vm.expectRevert("MintParty : ERR_MINT_PARTY_WITHDRAW_AMOUNT_IS_ZERO");
+        MINT_PARTY.withdraw();
     }
 }

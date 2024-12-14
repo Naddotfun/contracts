@@ -10,6 +10,7 @@ import {IBondingCurve} from "./interfaces/IBondingCurve.sol";
 import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
 import {NadFunLibrary} from "./utils/NadFunLibrary.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./errors/Errors.sol";
 
 /**
@@ -18,7 +19,7 @@ import "./errors/Errors.sol";
  * to create a new token with a bonding curve. Includes whitelist functionality and equal distribution
  * of newly minted tokens among participants.
  */
-contract MintParty is IMintParty {
+contract MintParty is IMintParty, ReentrancyGuard {
     using TransferHelper for IERC20;
 
     address private owner;
@@ -33,12 +34,14 @@ contract MintParty is IMintParty {
     /// @dev Mapping of address to their deposited balance
     mapping(address => uint256) private balances;
     /// @dev Mapping of whitelisted addresses to their contribution amount
-    mapping(address => uint256) private whitelists;
+    mapping(address => uint256) public whitelists;
     /// @dev Array of whitelisted participant addresses
-    address[] private whitelistAccounts;
+    address[] public whitelistAccounts;
 
     /// @dev Total balance of funds in the mint party
     uint256 totalBalance;
+
+    event TokensLocked(address indexed account, uint256 amount);
 
     /**
      * @dev Modifier to restrict function access to contract owner only
@@ -62,6 +65,7 @@ contract MintParty is IMintParty {
      * @param _core Address of the core contract
      * @param _wnad Address of the WNAD token
      * @param _lock Address of the lock contract
+     * @param _bondingCurveFactory Address of the bonding curve factory
      */
     constructor(
         address _owner,
@@ -107,7 +111,7 @@ contract MintParty is IMintParty {
      * - Account must not have already deposited
      * - Deposit amount must match the required funding amount
      */
-    function deposit(address account) external payable {
+    function deposit(address account) external payable nonReentrant {
         require(!finished, ERR_MINT_PARTY_FINISHED);
         require(
             balances[account] == 0 && whitelists[account] == 0,
@@ -135,7 +139,7 @@ contract MintParty is IMintParty {
      * @dev Allows participants to withdraw their funds
      * The party is closed if total balance becomes zero or if owner withdraws
      */
-    function withdraw() external {
+    function withdraw() external nonReentrant {
         uint256 amount;
         amount += balances[msg.sender];
         amount += whitelists[msg.sender];
@@ -174,35 +178,51 @@ contract MintParty is IMintParty {
      * - Total whitelist count must not exceed configured limit
      * - Accounts must have deposited funds
      */
-    function addWhiteList(address[] memory accounts) external onlyOwner {
+    function addWhiteList(address[] calldata accounts) external onlyOwner {
+        // caching whitelist count and current length
+        uint256 _whiteListCount = config.whiteListCount;
+        uint256 _currentLength = whitelistAccounts.length;
+        uint256 accountsLength = accounts.length;
+
+        // validate total whitelist count
         require(
-            whitelistAccounts.length + accounts.length <= config.whiteListCount,
+            _currentLength + accountsLength <= _whiteListCount,
             ERR_MINT_PARTY_INVALID_WHITE_LIST
         );
-        for (uint256 i = 0; i < accounts.length; i++) {
-            address account = accounts[i];
-            uint256 balance = balances[account];
-            require(balance > 0, ERR_MINT_PARTY_BALANCE_ZERO);
-            require(
-                whitelists[account] == 0,
-                ERR_MINT_PARTY_WHITELIST_ALREADY_ADDED
-            );
-            balances[account] = 0;
-            whitelists[account] = balance;
-            whitelistAccounts.push(account);
-            emit MintPartyWhiteListAdded(account, balance);
+
+        unchecked {
+            for (uint256 i; i < accountsLength; ++i) {
+                address account = accounts[i];
+                uint256 balance = balances[account];
+
+                // validate balance and whitelist
+                require(
+                    balance > 0 && whitelists[account] == 0,
+                    balance == 0
+                        ? ERR_MINT_PARTY_BALANCE_ZERO
+                        : ERR_MINT_PARTY_WHITELIST_ALREADY_ADDED
+                );
+
+                // update whitelist and balance
+                whitelists[account] = balance;
+                balances[account] = 0;
+                whitelistAccounts.push(account);
+
+                emit MintPartyWhiteListAdded(account, balance);
+            }
         }
 
-        // if (whitelistAccounts.length == config.whiteListCount) {
-        //     create();
-        // }
+        // check if whitelist is full
+        if (_currentLength + accountsLength == _whiteListCount) {
+            createBondingCurve();
+        }
     }
 
     /**
      * @dev Internal function to create the token and bonding curve
      * Called automatically when whitelist is full
      */
-    function create() external onlyOwner returns (address, address) {
+    function createBondingCurve() private {
         require(
             whitelistAccounts.length == config.whiteListCount,
             ERR_MINT_PARTY_INVALID_WHITE_LIST
@@ -217,7 +237,7 @@ contract MintParty is IMintParty {
         uint256 deployFee = IBondingCurveFactory(bondingCurveFactory)
             .getDelpyFee();
 
-        uint amountIn = _totalBalance - deployFee;
+        uint256 amountIn = _totalBalance - deployFee;
 
         uint256 fee = NadFunLibrary.getFeeAmount(
             amountIn,
@@ -235,37 +255,23 @@ contract MintParty is IMintParty {
             amountIn,
             fee
         );
-        distributeTokens(token, amountOut);
+        lockWhiteListTokens(token, amountOut);
 
         finished = true;
         emit MintPartyFinished(token, curve);
-        return (token, curve);
     }
 
-    // /**
-    //  * @dev Calculates and collects the total balance from whitelisted accounts
-    //  * @return Total amount collected from whitelisted accounts
-    //  */
-    // function calculateSendBalance() private returns (uint256) {
-    //     uint256 sendBalance;
-    //     for (uint256 i = 0; i < whitelistAccounts.length; i++) {
-    //         uint256 amount = whitelists[whitelistAccounts[i]];
-    //         whitelists[whitelistAccounts[i]] = 0;
-    //         sendBalance += amount;
-    //     }
-    //     totalBalance -= sendBalance;
-    //     return sendBalance;
-    // }
-    function calculateSendBalance() private returns (uint256) {
+    /**
+     * @dev Calculates and collects the total balance from whitelisted accounts
+     * @return Total amount collected from whitelisted accounts
+     */
+    function calculateSendBalance() internal returns (uint256) {
         uint256 sendBalance;
         for (uint256 i = 0; i < whitelistAccounts.length; i++) {
             uint256 amount = whitelists[whitelistAccounts[i]];
-            console.log("Account", whitelistAccounts[i]);
-            console.log("Amount", amount);
             whitelists[whitelistAccounts[i]] = 0;
             sendBalance += amount;
         }
-        console.log("Total sendBalance", sendBalance);
         totalBalance -= sendBalance;
         return sendBalance;
     }
@@ -275,11 +281,16 @@ contract MintParty is IMintParty {
      * @param token Address of the token to distribute
      * @param tokenBalance Total amount of tokens to distribute
      */
-    function distributeTokens(address token, uint tokenBalance) private {
-        uint256 whiteListBalance = tokenBalance / whitelistAccounts.length;
+    function lockWhiteListTokens(address token, uint256 tokenBalance) internal {
+        // 각 계정당 받을 금액 계산
+        uint256 amountPerAccount = tokenBalance / whitelistAccounts.length;
+
+        // 각 계정별로 정확한 금액만 전송하고 lock
         for (uint256 i = 0; i < whitelistAccounts.length; i++) {
-            IERC20(token).safeTransferERC20(lock, whiteListBalance);
+            IERC20(token).safeTransferERC20(lock, amountPerAccount);
             ILock(lock).lock(token, whitelistAccounts[i]);
+
+            emit TokensLocked(whitelistAccounts[i], amountPerAccount);
         }
     }
 
@@ -325,5 +336,12 @@ contract MintParty is IMintParty {
      */
     function getWhitelistAccounts() external view returns (address[] memory) {
         return whitelistAccounts;
+    }
+
+    /**
+     * @dev Returns whether an account is whitelisted
+     */
+    function isWhitelisted(address account) external view returns (bool) {
+        return whitelists[account] > 0;
     }
 }

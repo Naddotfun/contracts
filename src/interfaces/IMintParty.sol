@@ -2,6 +2,12 @@
 pragma solidity ^0.8.20;
 
 interface IMintParty {
+    //Only Test
+    // event MintPartyFinished(
+    //     address indexed token,
+    //     address indexed curve,
+    //     uint256 amountOut
+    // );
     event MintPartyFinished(address indexed token, address indexed curve);
     event MintPartyClosed();
     event MintPartyDeposit(address account, uint256 amount);
@@ -31,8 +37,6 @@ interface IMintParty {
     function withdraw() external;
 
     function addWhiteList(address[] memory accounts) external;
-
-    function create() external returns (address token, address curve);
 
     // 읽기 전용 함수들 (view 함수들)
     function getTotalBalance() external view returns (uint256);
