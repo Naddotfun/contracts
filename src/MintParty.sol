@@ -104,12 +104,9 @@ contract MintParty is IMintParty, ReentrancyGuard {
     }
 
     /**
-     * @dev Allows participants to deposit funds into the mint party
-     * @param account Address of the depositing account
-     * Requirements:
-     * - Party must not be finished
-     * - Account must not have already deposited
-     * - Deposit amount must match the required funding amount
+     * @notice Allows users to deposit funds to participate in the mint party
+     * @param account The address that will be credited with the deposit
+     * @dev This function handles both regular deposits and whitelisted deposits through the factory
      */
     function deposit(address account) external payable nonReentrant {
         require(!finished, ERR_MINT_PARTY_FINISHED);
@@ -122,17 +119,23 @@ contract MintParty is IMintParty, ReentrancyGuard {
             ERR_MINT_PARTY_INVALID_FUNDING_AMOUNT
         );
 
-        if (msg.sender == mintPartyFactory) {
-            whitelists[account] = msg.value;
-            whitelistAccounts.push(account);
-            totalBalance += msg.value;
-            emit MintPartyWhiteListAdded(account, msg.value);
-        } else {
-            balances[account] += msg.value;
-            totalBalance += msg.value;
-        }
-
+        totalBalance += msg.value;
+        balances[account] += msg.value;
         emit MintPartyDeposit(account, msg.value);
+
+        if (msg.sender == mintPartyFactory) {
+            _addToWhitelist(account, msg.value);
+        }
+    }
+
+    /// @dev Private function to handle whitelist operations
+    /// @param account The address to be whitelisted
+    /// @param amount The amount to be whitelisted
+    function _addToWhitelist(address account, uint256 amount) private {
+        whitelists[account] = amount;
+        whitelistAccounts.push(account);
+        balances[account] = 0;
+        emit MintPartyWhiteListAdded(account, amount);
     }
 
     /**
@@ -202,11 +205,7 @@ contract MintParty is IMintParty, ReentrancyGuard {
                 );
 
                 // update whitelist and balance
-                whitelists[account] = balance;
-                balances[account] = 0;
-                whitelistAccounts.push(account);
-
-                emit MintPartyWhiteListAdded(account, balance);
+                _addToWhitelist(account, balance);
             }
         }
 
