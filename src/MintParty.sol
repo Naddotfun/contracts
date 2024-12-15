@@ -198,9 +198,7 @@ contract MintParty is IMintParty, ReentrancyGuard {
                 // validate balance and whitelist
                 require(
                     balance > 0 && whitelists[account] == 0,
-                    balance == 0
-                        ? ERR_MINT_PARTY_BALANCE_ZERO
-                        : ERR_MINT_PARTY_WHITELIST_ALREADY_ADDED
+                    ERR_MINT_PARTY_WHITELIST_ALREADY_ADDED
                 );
 
                 // update whitelist and balance
