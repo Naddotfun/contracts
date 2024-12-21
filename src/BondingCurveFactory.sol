@@ -237,4 +237,13 @@ contract BondingCurveFactory is IBondingCurveFactory {
         denominator = config.feeDenominator;
         numerator = config.feeNumerator;
     }
+
+    /**
+     * @notice Updates the DEX factory address
+     * @param _dexFactory New DEX factory address
+     */
+    function setDexFactory(address _dexFactory) external onlyOwner {
+        dexFactory = _dexFactory;
+        emit SetDexFactory(_dexFactory);
+    }
 }
