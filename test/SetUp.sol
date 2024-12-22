@@ -52,6 +52,11 @@ contract SetUp is Test {
     address public TRADER_B;
     address public TRADER_C;
     address public TRADER_D;
+    address public FEE_VAULT_OWNER_A;
+    address public FEE_VAULT_OWNER_B;
+    address public FEE_VAULT_OWNER_C;
+    address public FEE_VAULT_OWNER_D;
+    address public FEE_VAULT_OWNER_E;
 
     function setUp() public virtual {
         initializeTraders();
@@ -71,12 +76,25 @@ contract SetUp is Test {
         // vm.deal(TRADER_C, 10 ether);
         TRADER_D = makeAddr("TRADER_D");
         // vm.deal(TRADER_D, 10 ether);
+        FEE_VAULT_OWNER_A = makeAddr("FEE_VAULT_OWNER_A");
+        FEE_VAULT_OWNER_B = makeAddr("FEE_VAULT_OWNER_B");
+        FEE_VAULT_OWNER_C = makeAddr("FEE_VAULT_OWNER_C");
+        FEE_VAULT_OWNER_D = makeAddr("FEE_VAULT_OWNER_D");
+        FEE_VAULT_OWNER_E = makeAddr("FEE_VAULT_OWNER_E");
     }
 
     function deployContracts() private {
         vm.startPrank(OWNER);
         wNAD = new WNAD();
-        FEE_VAULT = new FeeVault(IERC20(address(wNAD)));
+
+        address[] memory owners = new address[](5);
+        owners[0] = FEE_VAULT_OWNER_A;
+        owners[1] = FEE_VAULT_OWNER_B;
+        owners[2] = FEE_VAULT_OWNER_C;
+        owners[3] = FEE_VAULT_OWNER_D;
+        owners[4] = FEE_VAULT_OWNER_E;
+
+        FEE_VAULT = new FeeVault(address(wNAD), owners, 3);
         CORE = new Core(address(wNAD), address(FEE_VAULT));
 
         BONDING_CURVE_FACTORY = new BondingCurveFactory(
