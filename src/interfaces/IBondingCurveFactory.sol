@@ -62,6 +62,8 @@ interface IBondingCurveFactory {
     );
     event SetCore(address indexed core);
 
+    event SetDexFactory(address indexed dexFactory);
+
     function create(
         address creator,
         string memory name,
