@@ -268,9 +268,9 @@ contract Core is ICore {
 
         require(amountIn + fee <= amountInMax, ERR_CORE_INVALID_AMOUNT_IN_MAX);
 
-        uint256 resetValue = amountInMax - (amountIn + fee);
-        if (resetValue > 0) {
-            TransferHelper.safeTransferNad(msg.sender, resetValue);
+        uint256 restValue = amountInMax - (amountIn + fee);
+        if (restValue > 0) {
+            TransferHelper.safeTransferNad(msg.sender, restValue);
         }
         IWNAD(WNAD).deposit{value: amountIn + fee}();
         sendFeeByVault(fee);
