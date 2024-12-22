@@ -11,8 +11,9 @@ import {NadFunLibrary} from "src/utils/NadFunLibrary.sol";
 import {Core} from "src/Core.sol";
 import {FeeVault} from "src/FeeVault.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {IFeeVault} from "src/interfaces/IFeeVault.sol";
 import "./SetUp.sol";
+import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
 contract CoreCreateTest is Test, SetUp {
     // ============ Success Tests ============
@@ -52,7 +53,7 @@ contract CoreCreateTest is Test, SetUp {
         assertEq(vToken, virtualToken);
 
         // Verify fees went to vault
-        assertEq(IERC4626(FEE_VAULT).totalAssets(), DEPLOY_FEE);
+        assertEq(IFeeVault(FEE_VAULT).totalAssets(), DEPLOY_FEE);
 
         vm.stopPrank();
     }
@@ -89,7 +90,7 @@ contract CoreCreateTest is Test, SetUp {
         assertTrue(amountOut > 0);
 
         // Verify fees went to vault
-        assertEq(IERC4626(FEE_VAULT).totalAssets(), fee + DEPLOY_FEE);
+        assertEq(IFeeVault(FEE_VAULT).totalAssets(), fee + DEPLOY_FEE);
 
         vm.stopPrank();
     }
@@ -767,7 +768,7 @@ contract CoreSellTest is Test, SetUp {
 
         // EIP-712 도메인 분리자 및 구조화된 데이터 준비
         bytes32 DOMAIN_SEPARATOR = MEME_TOKEN.DOMAIN_SEPARATOR();
-        bytes32 PERMIT_TYPEHASH = MEME_TOKEN.PERMIT_TYPEHASH();
+        bytes32 PERMIT_TYPEHASH = MEME_TOKEN.permitTypeHash();
         uint256 nonce = MEME_TOKEN.nonces(signer);
 
         bytes32 structHash = keccak256(
@@ -817,7 +818,7 @@ contract CoreSellTest is Test, SetUp {
 
         // EIP-712 도메인 분리자 및 구조화된 데이터 준비
         bytes32 DOMAIN_SEPARATOR = MEME_TOKEN.DOMAIN_SEPARATOR();
-        bytes32 PERMIT_TYPEHASH = MEME_TOKEN.PERMIT_TYPEHASH();
+        bytes32 PERMIT_TYPEHASH = MEME_TOKEN.permitTypeHash();
         uint256 nonce = MEME_TOKEN.nonces(TRADER_A);
 
         uint256 deadline = block.timestamp - 1;
@@ -839,7 +840,12 @@ contract CoreSellTest is Test, SetUp {
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, digest);
 
-        vm.expectRevert(bytes(ERR_TOKEN_INVALID_EXPIRED));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ERC20Permit.ERC2612ExpiredSignature.selector,
+                deadline
+            )
+        );
         CORE.sellPermit(
             amountIn,
             address(MEME_TOKEN),
@@ -872,7 +878,7 @@ contract CoreSellTest is Test, SetUp {
 
         // EIP-712 도메인 분리자 및 구조화된 데이터 준비
         bytes32 DOMAIN_SEPARATOR = MEME_TOKEN.DOMAIN_SEPARATOR();
-        bytes32 PERMIT_TYPEHASH = MEME_TOKEN.PERMIT_TYPEHASH();
+        bytes32 PERMIT_TYPEHASH = MEME_TOKEN.permitTypeHash();
         uint256 nonce = MEME_TOKEN.nonces(signer);
 
         bytes32 structHash = keccak256(
@@ -934,6 +940,7 @@ contract CoreSellTest is Test, SetUp {
             virtualToken,
             virtualNad
         );
+
         uint amountOutMin = expectedAmountOut + 1 ether;
         // TRADER_A의 private key 가져오기
         uint256 privateKey = uint256(keccak256(abi.encodePacked("TRADER_A")));
@@ -941,7 +948,7 @@ contract CoreSellTest is Test, SetUp {
 
         // EIP-712 도메인 분리자 및 구조화된 데이터 준비
         bytes32 DOMAIN_SEPARATOR = MEME_TOKEN.DOMAIN_SEPARATOR();
-        bytes32 PERMIT_TYPEHASH = MEME_TOKEN.PERMIT_TYPEHASH();
+        bytes32 PERMIT_TYPEHASH = MEME_TOKEN.permitTypeHash();
         uint256 nonce = MEME_TOKEN.nonces(signer);
 
         bytes32 structHash = keccak256(
@@ -1074,7 +1081,7 @@ contract CoreSellTest is Test, SetUp {
 
         // EIP-712 도메인 분리자 및 구조화된 데이터 준비
         bytes32 DOMAIN_SEPARATOR = MEME_TOKEN.DOMAIN_SEPARATOR();
-        bytes32 PERMIT_TYPEHASH = MEME_TOKEN.PERMIT_TYPEHASH();
+        bytes32 PERMIT_TYPEHASH = MEME_TOKEN.permitTypeHash();
         uint256 nonce = MEME_TOKEN.nonces(signer);
 
         bytes32 structHash = keccak256(
@@ -1144,7 +1151,7 @@ contract CoreSellTest is Test, SetUp {
 
         // EIP-712 도메인 분리자 및 구조화된 데이터 준비
         bytes32 DOMAIN_SEPARATOR = MEME_TOKEN.DOMAIN_SEPARATOR();
-        bytes32 PERMIT_TYPEHASH = MEME_TOKEN.PERMIT_TYPEHASH();
+        bytes32 PERMIT_TYPEHASH = MEME_TOKEN.permitTypeHash();
         uint256 nonce = MEME_TOKEN.nonces(signer);
 
         bytes32 structHash = keccak256(
