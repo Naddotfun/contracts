@@ -134,8 +134,8 @@ contract FeeVault is IFeeVault {
         emit WithdrawalSigned(proposalId, msg.sender);
 
         if (proposal.signatureCount >= requiredSignatures) {
-            _executeWithdrawal(proposal.receiver, proposalId, proposal.amount);
             proposal.executed = true;
+            _executeWithdrawal(proposal.receiver, proposalId, proposal.amount);
         }
     }
 
