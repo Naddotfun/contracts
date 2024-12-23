@@ -16,7 +16,8 @@ INTERFACES=(
     "ICore"
     "IMintParty"
     "IMintPartyFactory"
-    "IToken"
+    "IToken",
+    "ILock"
 )
 
 # Extract ABI for each interface
