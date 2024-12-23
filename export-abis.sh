@@ -16,7 +16,7 @@ INTERFACES=(
     "ICore"
     "IMintParty"
     "IMintPartyFactory"
-    "IToken",
+    "IToken"
     "ILock"
 )
 
