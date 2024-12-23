@@ -2,13 +2,13 @@
 pragma solidity ^0.8.20;
 import {console} from "forge-std/console.sol";
 import {ICore} from "./interfaces/ICore.sol";
-import {IWNAD} from "./interfaces/IWNAD.sol";
+import {IWNative} from "./interfaces/IWNative.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {ILock} from "./interfaces/ILock.sol";
 import {IMintParty} from "./interfaces/IMintParty.sol";
 import {IBondingCurve} from "./interfaces/IBondingCurve.sol";
 import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
-import {NadFunLibrary} from "./utils/NadFunLibrary.sol";
+import {BondingCurveLibrary} from "./utils/BondingCurveLibrary.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./errors/Errors.sol";
@@ -24,7 +24,7 @@ contract MintParty is IMintParty, ReentrancyGuard {
 
     address private owner;
     address immutable core;
-    address immutable WNAD;
+    address immutable wNative;
     address immutable lock;
     address immutable mintPartyFactory;
     address immutable bondingCurveFactory;
@@ -63,20 +63,20 @@ contract MintParty is IMintParty, ReentrancyGuard {
      * @dev Constructor initializes the contract with required addresses
      * @param _owner Address of the party owner
      * @param _core Address of the core contract
-     * @param _wnad Address of the WNAD token
+     * @param _wNative Address of the WNATVIE token
      * @param _lock Address of the lock contract
      * @param _bondingCurveFactory Address of the bonding curve factory
      */
     constructor(
         address _owner,
         address _core,
-        address _wnad,
+        address _wNative,
         address _lock,
         address _bondingCurveFactory
     ) {
         owner = _owner;
         core = _core;
-        WNAD = _wnad;
+        wNative = _wNative;
         lock = _lock;
         bondingCurveFactory = _bondingCurveFactory;
         mintPartyFactory = msg.sender;
@@ -169,7 +169,7 @@ contract MintParty is IMintParty, ReentrancyGuard {
             }
         }
 
-        TransferHelper.safeTransferNad(msg.sender, amount);
+        TransferHelper.safeTransferNative(msg.sender, amount);
         emit MintPartyWithdraw(msg.sender, amount);
     }
 
@@ -237,7 +237,7 @@ contract MintParty is IMintParty, ReentrancyGuard {
 
         uint256 amountIn = _totalBalance - deployFee;
 
-        uint256 fee = NadFunLibrary.getFeeAmount(
+        uint256 fee = BondingCurveLibrary.getFeeAmount(
             amountIn,
             denominator,
             numerator

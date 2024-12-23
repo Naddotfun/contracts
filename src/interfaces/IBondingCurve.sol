@@ -6,7 +6,7 @@ interface IBondingCurve {
     event Sync(
         uint256 reserveWNad,
         uint256 reserveToken,
-        uint256 virtualWNad,
+        uint256 virtualWNative,
         uint256 virtualToken
     );
 
@@ -33,7 +33,7 @@ interface IBondingCurve {
 
     function initialize(
         address token,
-        uint256 virtualWNad,
+        uint256 virtualWNative,
         uint256 virtualToken,
         uint256 k,
         uint256 targetWNad,
@@ -59,7 +59,7 @@ interface IBondingCurve {
     function getVirtualReserves()
         external
         view
-        returns (uint256 virtualWNad, uint256 virtualToken);
+        returns (uint256 virtualWNative, uint256 virtualToken);
 
     function getReserves()
         external

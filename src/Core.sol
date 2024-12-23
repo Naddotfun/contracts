@@ -6,15 +6,16 @@ import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC2
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IBondingCurve} from "./interfaces/IBondingCurve.sol";
 import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
-import {IWNAD} from "./interfaces/IWNAD.sol";
+import {IWNative} from "./interfaces/IWNative.sol";
 import {ICore} from "./interfaces/ICore.sol";
-import {NadFunLibrary} from "./utils/NadFunLibrary.sol";
+import {IFeeVault} from "./interfaces/IFeeVault.sol";
+import {BondingCurveLibrary} from "./utils/BondingCurveLibrary.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
 import "./errors/Errors.sol";
 
 /**
  * @title Core
- * @notice Core contract for managing bonding curve operations and NAD token interactions
+ * @notice Core contract for managing bonding curve operations and Native token interactions
  * @dev Handles creation of bonding curves, buying and selling operations with various payment methods
  */
 contract Core is ICore {
@@ -22,29 +23,29 @@ contract Core is ICore {
 
     /// @notice Address of the bonding curve factory contract
     address public factory;
-    /// @notice Address of the wrapped NAD token
-    address public immutable WNAD;
+    /// @notice Address of the wrapped Native token
+    address public immutable wNative;
     /// @notice ERC4626 vault contract for fee collection
-    IERC4626 public immutable vault;
+    IFeeVault public immutable vault;
     bool isInitialized = false;
 
     /**
      * @notice Constructor initializes core contract with essential addresses
      
-     * @param _WNAD Address of the wrapped NAD token
+     * @param _wNative Address of the wrapped Native token
      * @param _vault Address of the fee collection vault
      */
-    constructor(address _WNAD, address _vault) {
-        WNAD = _WNAD;
-        vault = IERC4626(_vault);
+    constructor(address _wNative, address _vault) {
+        wNative = _wNative;
+        vault = IFeeVault(_vault);
     }
 
     /**
-     * @notice Fallback function to receive NAD
-     * @dev Only accepts NAD from the WNAD contract
+     * @notice Fallback function to receive Native token
+     * @dev Only accepts Native token from the wNative contract
      */
     receive() external payable {
-        assert(msg.sender == WNAD); // only accept NAD via fallback from the WNAD contract
+        assert(msg.sender == wNative); // only accept Native via fallback from the wNative contract
     }
 
     /**
@@ -86,7 +87,7 @@ contract Core is ICore {
      * @param fee Amount of fee to send
      */
     function sendFeeByVault(uint256 fee) internal {
-        IERC20(WNAD).safeTransferERC20(address(vault), fee);
+        IERC20(wNative).safeTransferERC20(address(vault), fee);
     }
 
     /**
@@ -95,11 +96,11 @@ contract Core is ICore {
      * @param name Name of the token
      * @param symbol Symbol of the token
      * @param tokenURI URI for token metadata
-     * @param amountIn Initial NAD amount
+     * @param amountIn Initial Native amount
      * @param fee Fee amount for the creation
      * @return curve Address of the created bonding curve
      * @return token Address of the created token
-     * @return virtualNad Initial virtual NAD reserve
+     * @return virtualNative Initial virtual Native reserve
      * @return virtualToken Initial virtual token reserve
      * @return amountOut Amount of tokens received
      */
@@ -116,7 +117,7 @@ contract Core is ICore {
         returns (
             address curve,
             address token,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken,
             uint256 amountOut
         )
@@ -124,38 +125,39 @@ contract Core is ICore {
         uint256 _deployFee = IBondingCurveFactory(factory).getDelpyFee();
         require(
             msg.value >= amountIn + fee + _deployFee,
-            ERR_CORE_INVALID_SEND_NAD
+            ERR_CORE_INVALID_SEND_NATIVE
         );
 
-        (curve, token, virtualNad, virtualToken) = IBondingCurveFactory(factory)
-            .create(creator, name, symbol, tokenURI);
+        (curve, token, virtualNative, virtualToken) = IBondingCurveFactory(
+            factory
+        ).create(creator, name, symbol, tokenURI);
 
-        IWNAD(WNAD).deposit{value: amountIn + fee + _deployFee}();
+        IWNative(wNative).deposit{value: amountIn + fee + _deployFee}();
 
         if (amountIn > 0) {
             checkFee(curve, amountIn, fee);
             sendFeeByVault(fee + _deployFee);
-            uint256 k = virtualNad * virtualToken;
-            amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
-            IERC20(WNAD).safeTransferERC20(curve, amountIn);
+            uint256 k = virtualNative * virtualToken;
+            amountOut = getAmountOut(amountIn, k, virtualNative, virtualToken);
+            IERC20(wNative).safeTransferERC20(curve, amountIn);
             IBondingCurve(curve).buy(creator, amountOut);
             IERC20(token).safeTransferERC20(creator, amountOut);
             return (
                 curve,
                 token,
-                virtualNad + amountIn,
+                virtualNative + amountIn,
                 virtualToken - amountOut,
                 amountOut
             );
         }
         sendFeeByVault(_deployFee);
-        return (curve, token, virtualNad, virtualToken, amountOut);
+        return (curve, token, virtualNative, virtualToken, amountOut);
     }
 
     //----------------------------Buy Functions ---------------------------------------------------
     /**
      * @notice Buys tokens from a bonding curve
-     * @param amountIn NAD amount to spend
+     * @param amountIn Native amount to spend
      * @param fee Fee amount for the transaction
      * @param token Address of the token to buy
      * @param to Address to receive the bought tokens
@@ -168,32 +170,37 @@ contract Core is ICore {
         address to,
         uint256 deadline
     ) external payable ensure(deadline) {
-        require(msg.value >= amountIn + fee, ERR_CORE_INVALID_SEND_NAD);
+        require(msg.value >= amountIn + fee, ERR_CORE_INVALID_SEND_NATIVE);
         require(amountIn > 0, ERR_CORE_INVALID_AMOUNT_IN);
         require(fee > 0, ERR_CORE_INVALID_FEE);
 
         (
             address curve,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken,
             uint256 k
         ) = getCurveData(factory, token);
         checkFee(curve, amountIn, fee);
 
-        IWNAD(WNAD).deposit{value: amountIn + fee}();
+        IWNative(wNative).deposit{value: amountIn + fee}();
         sendFeeByVault(fee);
 
         // Calculate and verify amountOut
-        uint256 amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
+        uint256 amountOut = getAmountOut(
+            amountIn,
+            k,
+            virtualNative,
+            virtualToken
+        );
 
-        IERC20(WNAD).safeTransferERC20(curve, amountIn);
+        IERC20(wNative).safeTransferERC20(curve, amountIn);
         IBondingCurve(curve).buy(to, amountOut);
         IERC20(token).safeTransferERC20(to, amountOut);
     }
 
     /**
      * @notice Buys tokens from a bonding curve with a minimum amount out
-     * @param amountIn NAD amount to spend
+     * @param amountIn Native amount to spend
      * @param amountOutMin Minimum amount of tokens to receive
      * @param fee Fee amount for the transaction
      * @param token Address of the token to buy
@@ -208,25 +215,30 @@ contract Core is ICore {
         address to,
         uint256 deadline
     ) external payable ensure(deadline) {
-        require(msg.value >= amountIn + fee, ERR_CORE_INVALID_SEND_NAD);
+        require(msg.value >= amountIn + fee, ERR_CORE_INVALID_SEND_NATIVE);
 
         (
             address curve,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken,
             uint256 k
         ) = getCurveData(factory, token);
         checkFee(curve, amountIn, fee);
-        // TransferHelper.safeTransferNad(owner, fee);
+        // TransferHelper.safeTransferNative(owner, fee);
 
-        IWNAD(WNAD).deposit{value: amountIn + fee}();
+        IWNative(wNative).deposit{value: amountIn + fee}();
 
         sendFeeByVault(fee);
-        uint256 amountOut = getAmountOut(amountIn, k, virtualNad, virtualToken);
+        uint256 amountOut = getAmountOut(
+            amountIn,
+            k,
+            virtualNative,
+            virtualToken
+        );
 
         require(amountOut >= amountOutMin, ERR_CORE_INVALID_AMOUNT_OUT);
 
-        IERC20(WNAD).safeTransferERC20(curve, amountIn);
+        IERC20(wNative).safeTransferERC20(curve, amountIn);
 
         IBondingCurve(curve).buy(to, amountOut);
         IERC20(token).safeTransferERC20(to, amountOut);
@@ -235,7 +247,7 @@ contract Core is ICore {
     /**
      * @notice Buys an exact amount of tokens from a bonding curve
      * @param amountOut Amount of tokens to buy
-     * @param amountInMax Maximum NAD amount to spend
+     * @param amountInMax Maximum Native amount to spend
      * @param token Address of the token to buy
      * @param to Address to receive the bought tokens
      * @param deadline Timestamp before which the transaction must be executed
@@ -247,20 +259,25 @@ contract Core is ICore {
         address to,
         uint256 deadline
     ) external payable ensure(deadline) {
-        require(msg.value >= amountInMax, ERR_CORE_INVALID_SEND_NAD);
+        require(msg.value >= amountInMax, ERR_CORE_INVALID_SEND_NATIVE);
 
         (
             address curve,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken,
             uint256 k
         ) = getCurveData(factory, token);
-        uint256 amountIn = getAmountIn(amountOut, k, virtualNad, virtualToken);
+        uint256 amountIn = getAmountIn(
+            amountOut,
+            k,
+            virtualNative,
+            virtualToken
+        );
 
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve)
             .getFeeConfig();
 
-        uint256 fee = NadFunLibrary.getFeeAmount(
+        uint256 fee = BondingCurveLibrary.getFeeAmount(
             amountIn,
             denominator,
             numerator
@@ -270,11 +287,11 @@ contract Core is ICore {
 
         uint256 restValue = amountInMax - (amountIn + fee);
         if (restValue > 0) {
-            TransferHelper.safeTransferNad(msg.sender, restValue);
+            TransferHelper.safeTransferNative(msg.sender, restValue);
         }
-        IWNAD(WNAD).deposit{value: amountIn + fee}();
+        IWNative(wNative).deposit{value: amountIn + fee}();
         sendFeeByVault(fee);
-        IERC20(WNAD).safeTransferERC20(curve, amountIn);
+        IERC20(wNative).safeTransferERC20(curve, amountIn);
         IBondingCurve(curve).buy(to, amountOut);
         IERC20(token).safeTransferERC20(to, amountOut);
     }
@@ -301,12 +318,17 @@ contract Core is ICore {
 
         (
             address curve,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken,
             uint256 k
         ) = getCurveData(factory, token);
 
-        uint256 amountOut = getAmountOut(amountIn, k, virtualToken, virtualNad);
+        uint256 amountOut = getAmountOut(
+            amountIn,
+            k,
+            virtualToken,
+            virtualNative
+        );
 
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve)
             .getFeeConfig();
@@ -314,16 +336,16 @@ contract Core is ICore {
         IERC20(token).safeTransferERC20(curve, amountIn);
 
         IBondingCurve(curve).sell(to, amountOut);
-        uint256 fee = NadFunLibrary.getFeeAmount(
+        uint256 fee = BondingCurveLibrary.getFeeAmount(
             amountOut,
             denominator,
             numerator
         );
 
         sendFeeByVault(fee);
-        IWNAD(WNAD).withdraw(amountOut - fee);
+        IWNative(wNative).withdraw(amountOut - fee);
 
-        TransferHelper.safeTransferNad(to, amountOut - fee);
+        TransferHelper.safeTransferNative(to, amountOut - fee);
     }
 
     /**
@@ -359,12 +381,17 @@ contract Core is ICore {
         IERC20(token).safeTransferFrom(from, address(this), amountIn);
         (
             address curve,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken,
             uint256 k
         ) = getCurveData(factory, token);
 
-        uint256 amountOut = getAmountOut(amountIn, k, virtualToken, virtualNad);
+        uint256 amountOut = getAmountOut(
+            amountIn,
+            k,
+            virtualToken,
+            virtualNative
+        );
 
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve)
             .getFeeConfig();
@@ -372,21 +399,21 @@ contract Core is ICore {
         IERC20(token).safeTransferERC20(curve, amountIn);
 
         IBondingCurve(curve).sell(to, amountOut);
-        uint256 fee = NadFunLibrary.getFeeAmount(
+        uint256 fee = BondingCurveLibrary.getFeeAmount(
             amountOut,
             denominator,
             numerator
         );
         sendFeeByVault(fee);
-        IWNAD(WNAD).withdraw(amountOut - fee);
+        IWNative(wNative).withdraw(amountOut - fee);
 
-        TransferHelper.safeTransferNad(to, amountOut - fee);
+        TransferHelper.safeTransferNative(to, amountOut - fee);
     }
 
     /**
      * @notice Sells tokens to a bonding curve with a minimum amount out
      * @param amountIn Token amount to sell
-     * @param amountOutMin Minimum amount of NAD to receive
+     * @param amountOutMin Minimum amount of Native to receive
      * @param token Address of the token to sell
      * @param to Address to receive the sold tokens
      * @param deadline Timestamp before which the transaction must be executed
@@ -405,16 +432,21 @@ contract Core is ICore {
 
         (
             address curve,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken,
             uint256 k
         ) = getCurveData(factory, token);
 
-        uint256 amountOut = getAmountOut(amountIn, k, virtualToken, virtualNad);
+        uint256 amountOut = getAmountOut(
+            amountIn,
+            k,
+            virtualToken,
+            virtualNative
+        );
 
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve)
             .getFeeConfig();
-        uint256 fee = NadFunLibrary.getFeeAmount(
+        uint256 fee = BondingCurveLibrary.getFeeAmount(
             amountOut,
             denominator,
             numerator
@@ -426,15 +458,15 @@ contract Core is ICore {
 
         IBondingCurve(curve).sell(to, amountOut);
         sendFeeByVault(fee);
-        IWNAD(WNAD).withdraw(amountOut - fee);
+        IWNative(wNative).withdraw(amountOut - fee);
 
-        TransferHelper.safeTransferNad(to, amountOut - fee);
+        TransferHelper.safeTransferNative(to, amountOut - fee);
     }
 
     /**
      * @notice Sells tokens to a bonding curve with permit and a minimum amount out
      * @param amountIn Token amount to sell
-     * @param amountOutMin Minimum amount of NAD to receive
+     * @param amountOutMin Minimum amount of Native to receive
      * @param token Address of the token to sell
      * @param from Address of the token owner
      * @param to Address to receive the sold tokens
@@ -471,16 +503,21 @@ contract Core is ICore {
         // Get curve and reserves
         (
             address curve,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken,
             uint256 k
         ) = getCurveData(factory, token);
 
         // Calculate and verify amountOut
-        uint256 amountOut = getAmountOut(amountIn, k, virtualToken, virtualNad);
+        uint256 amountOut = getAmountOut(
+            amountIn,
+            k,
+            virtualToken,
+            virtualNative
+        );
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve)
             .getFeeConfig();
-        uint256 fee = NadFunLibrary.getFeeAmount(
+        uint256 fee = BondingCurveLibrary.getFeeAmount(
             amountOut,
             denominator,
             numerator
@@ -492,16 +529,16 @@ contract Core is ICore {
         IBondingCurve(curve).sell(to, amountOut);
 
         sendFeeByVault(fee);
-        IWNAD(WNAD).withdraw(amountOut - fee);
+        IWNative(wNative).withdraw(amountOut - fee);
 
-        TransferHelper.safeTransferNad(to, amountOut - fee);
+        TransferHelper.safeTransferNative(to, amountOut - fee);
     }
 
     //amountOut 은 fee + amountOut 이어야함.
 
     /**
      * @notice Sells an exact amount of tokens to a bonding curve
-     * @param amountOut Amount of NAD to receive
+     * @param amountOut Amount of Native to receive
      * @param amountInMax Maximum token amount to sell
      * @param token Address of the token to sell
      * @param to Address to receive the sold tokens
@@ -522,16 +559,21 @@ contract Core is ICore {
 
         (
             address curve,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken,
             uint256 k
         ) = getCurveData(factory, token);
         uint256 fee = msg.value;
         checkFee(curve, amountOut, fee);
-        IWNAD(WNAD).deposit{value: fee}();
+        IWNative(wNative).deposit{value: fee}();
         sendFeeByVault(fee);
 
-        uint256 amountIn = getAmountIn(amountOut, k, virtualToken, virtualNad);
+        uint256 amountIn = getAmountIn(
+            amountOut,
+            k,
+            virtualToken,
+            virtualNative
+        );
 
         require(amountIn <= amountInMax, ERR_CORE_INVALID_AMOUNT_IN_MAX);
 
@@ -540,14 +582,14 @@ contract Core is ICore {
 
         IBondingCurve(curve).sell(to, amountOut);
 
-        IWNAD(WNAD).withdraw(amountOut);
+        IWNative(wNative).withdraw(amountOut);
 
-        TransferHelper.safeTransferNad(to, amountOut);
+        TransferHelper.safeTransferNative(to, amountOut);
     }
 
     /**
      * @notice Sells an exact amount of tokens to a bonding curve with permit
-     * @param amountOut Amount of NAD to receive
+     * @param amountOut Amount of Native to receive
      * @param amountInMax Maximum token amount to sell
      * @param token Address of the token to sell
      * @param from Address of the token owner
@@ -581,15 +623,20 @@ contract Core is ICore {
 
         (
             address curve,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken,
             uint256 k
         ) = getCurveData(factory, token);
         uint256 fee = msg.value;
         checkFee(curve, amountOut, fee);
-        IWNAD(WNAD).deposit{value: fee}();
+        IWNative(wNative).deposit{value: fee}();
         sendFeeByVault(fee);
-        uint256 amountIn = getAmountIn(amountOut, k, virtualToken, virtualNad);
+        uint256 amountIn = getAmountIn(
+            amountOut,
+            k,
+            virtualToken,
+            virtualNative
+        );
 
         require(amountIn <= amountInMax, ERR_CORE_INVALID_AMOUNT_IN_MAX);
 
@@ -597,9 +644,9 @@ contract Core is ICore {
         IERC20(token).safeTransferERC20(curve, amountIn);
         IBondingCurve(curve).sell(to, amountOut);
 
-        IWNAD(WNAD).withdraw(amountOut);
+        IWNative(wNative).withdraw(amountOut);
 
-        TransferHelper.safeTransferNad(to, amountOut);
+        TransferHelper.safeTransferNative(to, amountOut);
     }
 
     //----------------------------Common Functions ---------------------------------------------------
@@ -609,7 +656,7 @@ contract Core is ICore {
      * @param _factory Factory contract address
      * @param token Token address
      * @return curve Bonding curve address
-     * @return virtualNad Virtual NAD reserve
+     * @return virtualNative Virtual Native reserve
      * @return virtualToken Virtual token reserve
      * @return k Constant product value
      */
@@ -621,21 +668,19 @@ contract Core is ICore {
         view
         returns (
             address curve,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken,
             uint256 k
         )
     {
-        (curve, virtualNad, virtualToken, k) = NadFunLibrary.getCurveData(
-            _factory,
-            token
-        );
+        (curve, virtualNative, virtualToken, k) = BondingCurveLibrary
+            .getCurveData(_factory, token);
     }
 
     /**
      * @notice Gets curve data directly from a curve contract
      * @param curve Bonding curve address
-     * @return virtualNad Virtual NAD reserve
+     * @return virtualNative Virtual Native reserve
      * @return virtualToken Virtual token reserve
      * @return k Constant product value
      */
@@ -644,9 +689,11 @@ contract Core is ICore {
     )
         public
         view
-        returns (uint256 virtualNad, uint256 virtualToken, uint256 k)
+        returns (uint256 virtualNative, uint256 virtualToken, uint256 k)
     {
-        (virtualNad, virtualToken, k) = NadFunLibrary.getCurveData(curve);
+        (virtualNative, virtualToken, k) = BondingCurveLibrary.getCurveData(
+            curve
+        );
     }
 
     /**
@@ -663,7 +710,7 @@ contract Core is ICore {
         uint256 reserveIn,
         uint256 reserveOut
     ) public pure returns (uint256 amountOut) {
-        amountOut = NadFunLibrary.getAmountOut(
+        amountOut = BondingCurveLibrary.getAmountOut(
             amountIn,
             k,
             reserveIn,
@@ -685,7 +732,7 @@ contract Core is ICore {
         uint256 reserveIn,
         uint256 reserveOut
     ) public pure returns (uint256 amountIn) {
-        amountIn = NadFunLibrary.getAmountIn(
+        amountIn = BondingCurveLibrary.getAmountIn(
             amountOut,
             k,
             reserveIn,

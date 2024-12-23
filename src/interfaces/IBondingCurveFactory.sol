@@ -7,9 +7,9 @@ interface IBondingCurveFactory {
      * @param deployFee Fee required to deploy a new bonding curve
      * @param listingFee Fee required for listing
      * @param tokenTotalSupply Total supply of tokens to be created
-     * @param virtualNad Virtual NAD reserve amount
+     * @param virtualNative Virtual Native reserve amount
      * @param virtualToken Virtual token reserve amount
-     * @param k Constant product k = virtualNad * virtualToken
+     * @param k Constant product k = virtualNative * virtualToken
      * @param targetToken Target token amount
      * @param feeNumerator Numerator of the fee fraction
      * @param feeDenominator Denominator of the fee fraction
@@ -18,7 +18,7 @@ interface IBondingCurveFactory {
         uint256 deployFee;
         uint256 listingFee;
         uint256 tokenTotalSupply;
-        uint256 virtualNad;
+        uint256 virtualNative;
         uint256 virtualToken;
         uint256 k;
         uint256 targetToken;
@@ -29,7 +29,7 @@ interface IBondingCurveFactory {
         uint256 deployFee;
         uint256 listingFee;
         uint256 tokenTotalSupply;
-        uint256 virtualNad;
+        uint256 virtualNative;
         uint256 virtualToken;
         uint256 targetToken;
         uint16 feeNumerator;
@@ -44,7 +44,7 @@ interface IBondingCurveFactory {
         string tokenURI,
         string name,
         string symbol,
-        uint256 virtualNad,
+        uint256 virtualNative,
         uint256 virtualToken
     );
 
@@ -52,7 +52,7 @@ interface IBondingCurveFactory {
         uint256 deployFee,
         uint256 listingFee,
         uint256 tokenTotalSupply,
-        uint256 virtualNad,
+        uint256 virtualNative,
         uint256 virtualToken,
         uint256 k,
         uint256 targetToken,
@@ -74,11 +74,11 @@ interface IBondingCurveFactory {
         returns (
             address curve,
             address token,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken
         );
 
-    function getCurve(address token) external view returns (address market);
+    function getCurve(address token) external view returns (address curve);
 
     function getOwner() external view returns (address owner); // `view` 추가
 

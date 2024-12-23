@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.20;
 
-import "./SetUpV2.sol";
+import "./SetUp.sol";
 import {IMintParty} from "../src/interfaces/IMintParty.sol";
 import {ILock} from "../src/interfaces/ILock.sol";
 import "forge-std/console2.sol";
 
 //@notice if you want to test this, you need to add amountOut to the event MintPartyFinished
-contract MintPartyTest is SetUpV2 {
+contract MintPartyTest is SetUp {
     //Only Test
     // emit MintPartyFinished(token, curve, amountOut);
     event MintPartyFinished(address indexed token, address indexed curve);

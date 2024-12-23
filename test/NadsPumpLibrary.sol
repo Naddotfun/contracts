@@ -2,21 +2,21 @@
 pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
-import {NadFunLibrary} from "../src/utils/NadFunLibrary.sol";
+import {BondingCurveLibrary} from "../src/utils/BondingCurveLibrary.sol";
 import {BondingCurve} from "../src/BondingCurve.sol";
 import {BondingCurveFactory} from "../src/BondingCurveFactory.sol";
 import {Core} from "../src/Core.sol";
 import {SetUp} from "./SetUp.sol";
 import "../src/errors/Errors.sol";
 
-contract NadFunLibraryTest is Test, SetUp {
+contract BondingCurveLibraryTest is Test, SetUp {
     uint256 constant AMOUNT_IN = 1 ether;
     uint256 constant RESERVE_IN = 10 ether;
     uint256 constant RESERVE_OUT = 100 ether;
     uint256 constant TEST_K = RESERVE_IN * RESERVE_OUT;
 
     function testGetAmountOut() public {
-        uint256 amountOut = NadFunLibrary.getAmountOut(
+        uint256 amountOut = BondingCurveLibrary.getAmountOut(
             AMOUNT_IN,
             TEST_K,
             RESERVE_IN,
@@ -44,7 +44,7 @@ contract NadFunLibraryTest is Test, SetUp {
     function testGetAmountIn() public {
         // Test case 1: Normal case with 10 ether
         uint256 desiredAmountOut = 10 ether;
-        uint256 amountIn = NadFunLibrary.getAmountIn(
+        uint256 amountIn = BondingCurveLibrary.getAmountIn(
             desiredAmountOut,
             TEST_K,
             RESERVE_IN,
@@ -52,7 +52,7 @@ contract NadFunLibraryTest is Test, SetUp {
         );
 
         // Verify the calculated amount in produces the desired amount out
-        uint256 resultingAmountOut = NadFunLibrary.getAmountOut(
+        uint256 resultingAmountOut = BondingCurveLibrary.getAmountOut(
             amountIn,
             TEST_K,
             RESERVE_IN,
@@ -69,7 +69,7 @@ contract NadFunLibraryTest is Test, SetUp {
 
         // Test case 2: Small amount (1 wei)
         uint256 smallAmountOut = 1;
-        uint256 smallAmountIn = NadFunLibrary.getAmountIn(
+        uint256 smallAmountIn = BondingCurveLibrary.getAmountIn(
             smallAmountOut,
             TEST_K,
             RESERVE_IN,
@@ -80,7 +80,7 @@ contract NadFunLibraryTest is Test, SetUp {
         // Test case 3: Amount close to reserve out
         uint256 largeAmountOut = RESERVE_OUT - 1;
         vm.expectRevert();
-        NadFunLibrary.getAmountIn(
+        BondingCurveLibrary.getAmountIn(
             largeAmountOut,
             TEST_K,
             RESERVE_IN,
@@ -93,7 +93,7 @@ contract NadFunLibraryTest is Test, SetUp {
         uint256 testReserveOut = 1000; // 1K
         uint256 testAmountOut = 100;
 
-        uint256 testAmountIn = NadFunLibrary.getAmountIn(
+        uint256 testAmountIn = BondingCurveLibrary.getAmountIn(
             testAmountOut,
             testK,
             testReserveIn,
@@ -113,8 +113,8 @@ contract NadFunLibraryTest is Test, SetUp {
     function testGetAmountInWithInvalidAmountOut() public {
         uint256 invalidAmountOut = RESERVE_OUT + 1;
 
-        vm.expectRevert(bytes(ERR_NAD_FUN_LIBRARY_INVALID_AMOUNT_OUT));
-        NadFunLibrary.getAmountIn(
+        vm.expectRevert(bytes(ERR_BONDING_CURVE_LIBRARY_INVALID_AMOUNT_OUT));
+        BondingCurveLibrary.getAmountIn(
             invalidAmountOut,
             TEST_K,
             RESERVE_IN,
@@ -127,10 +127,8 @@ contract NadFunLibraryTest is Test, SetUp {
         CreateBondingCurve(CREATOR);
 
         uint256 testAmount = 100 ether;
-        (uint256 fee, uint256 adjustedAmount) = NadFunLibrary.getAmountAndFee(
-            address(CURVE),
-            testAmount
-        );
+        (uint256 fee, uint256 adjustedAmount) = BondingCurveLibrary
+            .getAmountAndFee(address(CURVE), testAmount);
 
         // Verify fee calculation
         (uint8 denominator, uint16 numerator) = CURVE.getFeeConfig();
@@ -150,7 +148,7 @@ contract NadFunLibraryTest is Test, SetUp {
         uint8 denominator = 10;
         uint16 numerator = 1000;
 
-        uint256 fee = NadFunLibrary.getFeeAmount(
+        uint256 fee = BondingCurveLibrary.getFeeAmount(
             amount,
             denominator,
             numerator
@@ -170,7 +168,7 @@ contract NadFunLibraryTest is Test, SetUp {
             uint256 virtualNad,
             uint256 virtualToken,
             uint256 k
-        ) = NadFunLibrary.getCurveData(
+        ) = BondingCurveLibrary.getCurveData(
                 address(BONDING_CURVE_FACTORY),
                 address(MEME_TOKEN)
             );
@@ -184,7 +182,7 @@ contract NadFunLibraryTest is Test, SetUp {
         assertEq(k, CURVE.getK(), "K value mismatch");
 
         // Test getCurveData with curve address directly
-        (virtualNad, virtualToken, k) = NadFunLibrary.getCurveData(
+        (virtualNad, virtualToken, k) = BondingCurveLibrary.getCurveData(
             address(CURVE)
         );
         assertEq(virtualNad, expectedVNad, "Virtual NAD mismatch (direct)");
@@ -199,9 +197,8 @@ contract NadFunLibraryTest is Test, SetUp {
     function testGetFeeConfig() public {
         CreateBondingCurve(CREATOR);
 
-        (uint8 denominator, uint16 numerator) = NadFunLibrary.getFeeConfig(
-            address(CURVE)
-        );
+        (uint8 denominator, uint16 numerator) = BondingCurveLibrary
+            .getFeeConfig(address(CURVE));
 
         (uint8 expectedDenom, uint16 expectedNum) = CURVE.getFeeConfig();
         assertEq(denominator, expectedDenom, "Fee denominator mismatch");
@@ -211,7 +208,7 @@ contract NadFunLibraryTest is Test, SetUp {
     function testGetCurve() public {
         CreateBondingCurve(CREATOR);
 
-        address curve = NadFunLibrary.getCurve(
+        address curve = BondingCurveLibrary.getCurve(
             address(BONDING_CURVE_FACTORY),
             address(MEME_TOKEN)
         );
@@ -222,7 +219,7 @@ contract NadFunLibraryTest is Test, SetUp {
     function testGetVirtualReserves() public {
         CreateBondingCurve(CREATOR);
 
-        (uint256 virtualNad, uint256 virtualToken) = NadFunLibrary
+        (uint256 virtualNad, uint256 virtualToken) = BondingCurveLibrary
             .getVirtualReserves(address(CURVE));
 
         (uint256 expectedVNad, uint256 expectedVToken) = CURVE
@@ -234,7 +231,7 @@ contract NadFunLibraryTest is Test, SetUp {
     function testGetK() public {
         CreateBondingCurve(CREATOR);
 
-        uint256 k = NadFunLibrary.getK(address(CURVE));
+        uint256 k = BondingCurveLibrary.getK(address(CURVE));
         uint256 expectedK = CURVE.getK();
 
         assertEq(k, expectedK, "K value mismatch");
@@ -243,7 +240,7 @@ contract NadFunLibraryTest is Test, SetUp {
     function testEdgeCases() public {
         // Test with very small amounts
         uint256 smallAmountIn = 1;
-        uint256 amountOut = NadFunLibrary.getAmountOut(
+        uint256 amountOut = BondingCurveLibrary.getAmountOut(
             smallAmountIn,
             TEST_K,
             RESERVE_IN,
@@ -254,7 +251,7 @@ contract NadFunLibraryTest is Test, SetUp {
         // Test with very large amounts
         uint256 largeAmountIn = type(uint256).max / 2;
         vm.expectRevert(); // Should revert due to overflow
-        NadFunLibrary.getAmountOut(
+        BondingCurveLibrary.getAmountOut(
             largeAmountIn,
             TEST_K,
             RESERVE_IN,
@@ -268,14 +265,14 @@ contract NadFunLibraryTest is Test, SetUp {
 
         // Test getAmountOut and getAmountIn symmetry
         uint256 testAmountIn = 100;
-        uint256 resultOut = NadFunLibrary.getAmountOut(
+        uint256 resultOut = BondingCurveLibrary.getAmountOut(
             testAmountIn,
             k,
             reserveIn,
             reserveOut
         );
 
-        uint256 calculatedAmountIn = NadFunLibrary.getAmountIn(
+        uint256 calculatedAmountIn = BondingCurveLibrary.getAmountIn(
             resultOut,
             k,
             reserveIn,
@@ -295,7 +292,7 @@ contract NadFunLibraryTest is Test, SetUp {
         uint256 exactAmountIn = 1000; // 1K
         uint256 exactReserveOut = 1000; // 1K
 
-        uint256 exactOut = NadFunLibrary.getAmountOut(
+        uint256 exactOut = BondingCurveLibrary.getAmountOut(
             exactAmountIn,
             exactK,
             exactReserveIn,
@@ -312,7 +309,7 @@ contract NadFunLibraryTest is Test, SetUp {
         vm.assume(amountIn > 0 && amountIn < RESERVE_OUT);
         vm.assume(amountIn < type(uint256).max / RESERVE_OUT); // Prevent overflow
 
-        uint256 amountOut = NadFunLibrary.getAmountOut(
+        uint256 amountOut = BondingCurveLibrary.getAmountOut(
             amountIn,
             TEST_K,
             RESERVE_IN,

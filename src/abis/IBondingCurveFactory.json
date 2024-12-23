@@ -1,361 +1,674 @@
-[
-  {
-    "type": "function",
-    "name": "create",
-    "inputs": [
-      {
-        "name": "creator",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "name",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "symbol",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "tokenUrl",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "curve",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "virtualNad",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "virtualToken",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable"
+{
+  "abi": [
+    {
+      "type": "function",
+      "name": "create",
+      "inputs": [
+        { "name": "creator", "type": "address", "internalType": "address" },
+        { "name": "name", "type": "string", "internalType": "string" },
+        { "name": "symbol", "type": "string", "internalType": "string" },
+        { "name": "tokenUrl", "type": "string", "internalType": "string" }
+      ],
+      "outputs": [
+        { "name": "curve", "type": "address", "internalType": "address" },
+        { "name": "token", "type": "address", "internalType": "address" },
+        {
+          "name": "virtualNative",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        { "name": "virtualToken", "type": "uint256", "internalType": "uint256" }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "getConfig",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple",
+          "internalType": "struct IBondingCurveFactory.Config",
+          "components": [
+            {
+              "name": "deployFee",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "listingFee",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "tokenTotalSupply",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "virtualNative",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "virtualToken",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            { "name": "k", "type": "uint256", "internalType": "uint256" },
+            {
+              "name": "targetToken",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "feeNumerator",
+              "type": "uint16",
+              "internalType": "uint16"
+            },
+            {
+              "name": "feeDenominator",
+              "type": "uint8",
+              "internalType": "uint8"
+            }
+          ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getCore",
+      "inputs": [],
+      "outputs": [
+        { "name": "core", "type": "address", "internalType": "address" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getCurve",
+      "inputs": [
+        { "name": "token", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [
+        { "name": "curve", "type": "address", "internalType": "address" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getDelpyFee",
+      "inputs": [],
+      "outputs": [
+        { "name": "deployFee", "type": "uint256", "internalType": "uint256" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getDexFactory",
+      "inputs": [],
+      "outputs": [
+        { "name": "dexFactory", "type": "address", "internalType": "address" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getFeeConfig",
+      "inputs": [],
+      "outputs": [
+        { "name": "denominator", "type": "uint8", "internalType": "uint8" },
+        { "name": "numerator", "type": "uint16", "internalType": "uint16" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getK",
+      "inputs": [],
+      "outputs": [
+        { "name": "k", "type": "uint256", "internalType": "uint256" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getListingFee",
+      "inputs": [],
+      "outputs": [
+        { "name": "listingFee", "type": "uint256", "internalType": "uint256" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getOwner",
+      "inputs": [],
+      "outputs": [
+        { "name": "owner", "type": "address", "internalType": "address" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "event",
+      "name": "Create",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "curve",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "token",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "tokenURI",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        },
+        {
+          "name": "symbol",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        },
+        {
+          "name": "virtualNative",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "virtualToken",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "SetCore",
+      "inputs": [
+        {
+          "name": "core",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "SetDexFactory",
+      "inputs": [
+        {
+          "name": "dexFactory",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "SetInitialize",
+      "inputs": [
+        {
+          "name": "deployFee",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "listingFee",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "tokenTotalSupply",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "virtualNative",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "virtualToken",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "k",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "targetToken",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "feeNumerator",
+          "type": "uint16",
+          "indexed": false,
+          "internalType": "uint16"
+        },
+        {
+          "name": "feeDominator",
+          "type": "uint8",
+          "indexed": false,
+          "internalType": "uint8"
+        },
+        {
+          "name": "dexFactory",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    }
+  ],
+  "bytecode": { "object": "0x", "sourceMap": "", "linkReferences": {} },
+  "deployedBytecode": { "object": "0x", "sourceMap": "", "linkReferences": {} },
+  "methodIdentifiers": {
+    "create(address,string,string,string)": "58192547",
+    "getConfig()": "c3f909d4",
+    "getCore()": "da4fbe52",
+    "getCurve(address)": "61f029fb",
+    "getDelpyFee()": "8efc549a",
+    "getDexFactory()": "e0ef2dd8",
+    "getFeeConfig()": "5fbbc0d2",
+    "getK()": "ee39e7a0",
+    "getListingFee()": "b8fe6abe",
+    "getOwner()": "893d20e8"
   },
-  {
-    "type": "function",
-    "name": "getConfig",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct IBondingCurveFactory.Config",
-        "components": [
-          {
-            "name": "deployFee",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "listingFee",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "tokenTotalSupply",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "virtualNad",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "virtualToken",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "k",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "targetToken",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "feeNumerator",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
-            "name": "feeDenominator",
-            "type": "uint8",
-            "internalType": "uint8"
-          }
-        ]
+  "rawMetadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"curve\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"tokenURI\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"virtualNative\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"virtualToken\",\"type\":\"uint256\"}],\"name\":\"Create\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"core\",\"type\":\"address\"}],\"name\":\"SetCore\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"dexFactory\",\"type\":\"address\"}],\"name\":\"SetDexFactory\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"deployFee\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"listingFee\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"tokenTotalSupply\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"virtualNative\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"virtualToken\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"k\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"targetToken\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint16\",\"name\":\"feeNumerator\",\"type\":\"uint16\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"feeDominator\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"dexFactory\",\"type\":\"address\"}],\"name\":\"SetInitialize\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"creator\",\"type\":\"address\"},{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"tokenUrl\",\"type\":\"string\"}],\"name\":\"create\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"curve\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"virtualNative\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"virtualToken\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getConfig\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"deployFee\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"listingFee\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"tokenTotalSupply\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"virtualNative\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"virtualToken\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"k\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"targetToken\",\"type\":\"uint256\"},{\"internalType\":\"uint16\",\"name\":\"feeNumerator\",\"type\":\"uint16\"},{\"internalType\":\"uint8\",\"name\":\"feeDenominator\",\"type\":\"uint8\"}],\"internalType\":\"struct IBondingCurveFactory.Config\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getCore\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"core\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"}],\"name\":\"getCurve\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"curve\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getDelpyFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"deployFee\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getDexFactory\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"dexFactory\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getFeeConfig\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"denominator\",\"type\":\"uint8\"},{\"internalType\":\"uint16\",\"name\":\"numerator\",\"type\":\"uint16\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getK\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"k\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getListingFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"listingFee\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getOwner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/interfaces/IBondingCurveFactory.sol\":\"IBondingCurveFactory\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":1000},\"remappings\":[\":@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/\",\":erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/\",\":forge-std/=lib/forge-std/src/\",\":halmos-cheatcodes/=lib/openzeppelin-contracts/lib/halmos-cheatcodes/src/\",\":openzeppelin-contracts/=lib/openzeppelin-contracts/\"],\"viaIR\":true},\"sources\":{\"src/interfaces/IBondingCurveFactory.sol\":{\"keccak256\":\"0x59bea3e1e8507162048e24a86bb816e9d9e6c3f0a487f8352aabd81ea4534ce7\",\"license\":\"GPL-2.0-or-later\",\"urls\":[\"bzz-raw://172463028b79222cb6a886d6f5c167ebb7426c863c0ae388ceca3efa25aede81\",\"dweb:/ipfs/QmP2PPe9XoTCkzBvFkmiAaYfJFgXCLBoMPLAPN3Hx4xWXB\"]}},\"version\":1}",
+  "metadata": {
+    "compiler": { "version": "0.8.20+commit.a1b79de6" },
+    "language": "Solidity",
+    "output": {
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "owner",
+              "type": "address",
+              "indexed": true
+            },
+            {
+              "internalType": "address",
+              "name": "curve",
+              "type": "address",
+              "indexed": true
+            },
+            {
+              "internalType": "address",
+              "name": "token",
+              "type": "address",
+              "indexed": true
+            },
+            {
+              "internalType": "string",
+              "name": "tokenURI",
+              "type": "string",
+              "indexed": false
+            },
+            {
+              "internalType": "string",
+              "name": "name",
+              "type": "string",
+              "indexed": false
+            },
+            {
+              "internalType": "string",
+              "name": "symbol",
+              "type": "string",
+              "indexed": false
+            },
+            {
+              "internalType": "uint256",
+              "name": "virtualNative",
+              "type": "uint256",
+              "indexed": false
+            },
+            {
+              "internalType": "uint256",
+              "name": "virtualToken",
+              "type": "uint256",
+              "indexed": false
+            }
+          ],
+          "type": "event",
+          "name": "Create",
+          "anonymous": false
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "core",
+              "type": "address",
+              "indexed": true
+            }
+          ],
+          "type": "event",
+          "name": "SetCore",
+          "anonymous": false
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "dexFactory",
+              "type": "address",
+              "indexed": true
+            }
+          ],
+          "type": "event",
+          "name": "SetDexFactory",
+          "anonymous": false
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "deployFee",
+              "type": "uint256",
+              "indexed": false
+            },
+            {
+              "internalType": "uint256",
+              "name": "listingFee",
+              "type": "uint256",
+              "indexed": false
+            },
+            {
+              "internalType": "uint256",
+              "name": "tokenTotalSupply",
+              "type": "uint256",
+              "indexed": false
+            },
+            {
+              "internalType": "uint256",
+              "name": "virtualNative",
+              "type": "uint256",
+              "indexed": false
+            },
+            {
+              "internalType": "uint256",
+              "name": "virtualToken",
+              "type": "uint256",
+              "indexed": false
+            },
+            {
+              "internalType": "uint256",
+              "name": "k",
+              "type": "uint256",
+              "indexed": false
+            },
+            {
+              "internalType": "uint256",
+              "name": "targetToken",
+              "type": "uint256",
+              "indexed": false
+            },
+            {
+              "internalType": "uint16",
+              "name": "feeNumerator",
+              "type": "uint16",
+              "indexed": false
+            },
+            {
+              "internalType": "uint8",
+              "name": "feeDominator",
+              "type": "uint8",
+              "indexed": false
+            },
+            {
+              "internalType": "address",
+              "name": "dexFactory",
+              "type": "address",
+              "indexed": false
+            }
+          ],
+          "type": "event",
+          "name": "SetInitialize",
+          "anonymous": false
+        },
+        {
+          "inputs": [
+            { "internalType": "address", "name": "creator", "type": "address" },
+            { "internalType": "string", "name": "name", "type": "string" },
+            { "internalType": "string", "name": "symbol", "type": "string" },
+            { "internalType": "string", "name": "tokenUrl", "type": "string" }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function",
+          "name": "create",
+          "outputs": [
+            { "internalType": "address", "name": "curve", "type": "address" },
+            { "internalType": "address", "name": "token", "type": "address" },
+            {
+              "internalType": "uint256",
+              "name": "virtualNative",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "virtualToken",
+              "type": "uint256"
+            }
+          ]
+        },
+        {
+          "inputs": [],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "getConfig",
+          "outputs": [
+            {
+              "internalType": "struct IBondingCurveFactory.Config",
+              "name": "",
+              "type": "tuple",
+              "components": [
+                {
+                  "internalType": "uint256",
+                  "name": "deployFee",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "listingFee",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "tokenTotalSupply",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "virtualNative",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "virtualToken",
+                  "type": "uint256"
+                },
+                { "internalType": "uint256", "name": "k", "type": "uint256" },
+                {
+                  "internalType": "uint256",
+                  "name": "targetToken",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint16",
+                  "name": "feeNumerator",
+                  "type": "uint16"
+                },
+                {
+                  "internalType": "uint8",
+                  "name": "feeDenominator",
+                  "type": "uint8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "inputs": [],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "getCore",
+          "outputs": [
+            { "internalType": "address", "name": "core", "type": "address" }
+          ]
+        },
+        {
+          "inputs": [
+            { "internalType": "address", "name": "token", "type": "address" }
+          ],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "getCurve",
+          "outputs": [
+            { "internalType": "address", "name": "curve", "type": "address" }
+          ]
+        },
+        {
+          "inputs": [],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "getDelpyFee",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "deployFee",
+              "type": "uint256"
+            }
+          ]
+        },
+        {
+          "inputs": [],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "getDexFactory",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "dexFactory",
+              "type": "address"
+            }
+          ]
+        },
+        {
+          "inputs": [],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "getFeeConfig",
+          "outputs": [
+            { "internalType": "uint8", "name": "denominator", "type": "uint8" },
+            { "internalType": "uint16", "name": "numerator", "type": "uint16" }
+          ]
+        },
+        {
+          "inputs": [],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "getK",
+          "outputs": [
+            { "internalType": "uint256", "name": "k", "type": "uint256" }
+          ]
+        },
+        {
+          "inputs": [],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "getListingFee",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "listingFee",
+              "type": "uint256"
+            }
+          ]
+        },
+        {
+          "inputs": [],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "getOwner",
+          "outputs": [
+            { "internalType": "address", "name": "owner", "type": "address" }
+          ]
+        }
+      ],
+      "devdoc": { "kind": "dev", "methods": {}, "version": 1 },
+      "userdoc": { "kind": "user", "methods": {}, "version": 1 }
+    },
+    "settings": {
+      "remappings": [
+        "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+        "erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/",
+        "forge-std/=lib/forge-std/src/",
+        "halmos-cheatcodes/=lib/openzeppelin-contracts/lib/halmos-cheatcodes/src/",
+        "openzeppelin-contracts/=lib/openzeppelin-contracts/"
+      ],
+      "optimizer": { "enabled": true, "runs": 1000 },
+      "metadata": { "bytecodeHash": "ipfs" },
+      "compilationTarget": {
+        "src/interfaces/IBondingCurveFactory.sol": "IBondingCurveFactory"
+      },
+      "evmVersion": "paris",
+      "libraries": {},
+      "viaIR": true
+    },
+    "sources": {
+      "src/interfaces/IBondingCurveFactory.sol": {
+        "keccak256": "0x59bea3e1e8507162048e24a86bb816e9d9e6c3f0a487f8352aabd81ea4534ce7",
+        "urls": [
+          "bzz-raw://172463028b79222cb6a886d6f5c167ebb7426c863c0ae388ceca3efa25aede81",
+          "dweb:/ipfs/QmP2PPe9XoTCkzBvFkmiAaYfJFgXCLBoMPLAPN3Hx4xWXB"
+        ],
+        "license": "GPL-2.0-or-later"
       }
-    ],
-    "stateMutability": "view"
+    },
+    "version": 1
   },
-  {
-    "type": "function",
-    "name": "getCore",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "core",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getCurve",
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "market",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getDelpyFee",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "deployFee",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getDexFactory",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "dexFactory",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getFeeConfig",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "denominator",
-        "type": "uint8",
-        "internalType": "uint8"
-      },
-      {
-        "name": "numerator",
-        "type": "uint16",
-        "internalType": "uint16"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getK",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "k",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getListingFee",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "listingFee",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getOwner",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "owner",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "event",
-    "name": "Create",
-    "inputs": [
-      {
-        "name": "owner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "curve",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "token",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "tokenURI",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
-      },
-      {
-        "name": "name",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
-      },
-      {
-        "name": "symbol",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
-      },
-      {
-        "name": "virtualNad",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "virtualToken",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "SetCore",
-    "inputs": [
-      {
-        "name": "core",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "SetInitialize",
-    "inputs": [
-      {
-        "name": "deployFee",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "listingFee",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "tokenTotalSupply",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "virtualNad",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "virtualToken",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "k",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "targetToken",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "feeNumerator",
-        "type": "uint16",
-        "indexed": false,
-        "internalType": "uint16"
-      },
-      {
-        "name": "feeDominator",
-        "type": "uint8",
-        "indexed": false,
-        "internalType": "uint8"
-      },
-      {
-        "name": "dexFactory",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  }
-]
+  "id": 58
+}

@@ -6,14 +6,14 @@ import {MintPartyFactory} from "../src/MintPartyFactory.sol";
 import {MintParty} from "../src/MintParty.sol";
 import {BondingCurveFactory} from "../src/BondingCurveFactory.sol";
 import {BondingCurve} from "../src/BondingCurve.sol";
-import {WNAD} from "../src/WNAD.sol";
+import {WNative} from "../src/WNative.sol";
 import {FeeVault} from "../src/FeeVault.sol";
 import {Lock} from "../src/Lock.sol";
 import {UniswapV2Factory} from "../src/uniswap/UniswapV2Factory.sol";
 
 import {Token} from "../src/Token.sol";
 import {Core} from "../src/Core.sol";
-import {NadFunLibrary} from "../src/utils/NadFunLibrary.sol";
+import {BondingCurveLibrary} from "../src/utils/BondingCurveLibrary.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IBondingCurveFactory} from "../src/interfaces/IBondingCurveFactory.sol";
 
@@ -21,7 +21,7 @@ contract SetUp is Test {
     MintPartyFactory public MINT_PARTY_FACTORY;
     BondingCurveFactory public BONDING_CURVE_FACTORY;
     BondingCurve public CURVE;
-    WNAD public wNAD;
+    WNative public WNATIVE;
     UniswapV2Factory public DEX_FACTORY;
     Lock public LOCK;
     FeeVault public FEE_VAULT;
@@ -30,9 +30,9 @@ contract SetUp is Test {
     Token public MEME_TOKEN;
     uint256 constant DEPLOY_FEE = 2 * 10 ** 16;
     uint256 constant LISTING_FEE = 1 ether;
-    uint256 constant VIRTUAL_NAD = 30 * 10 ** 18;
+    uint256 constant VIRTUAL_NATIVE = 30 * 10 ** 18;
     uint256 constant VIRTUAL_TOKEN = 1_073_000_191 * 10 ** 18;
-    uint256 constant K = VIRTUAL_NAD * VIRTUAL_TOKEN;
+    uint256 constant K = VIRTUAL_NATIVE * VIRTUAL_TOKEN;
     uint256 constant TARGET_TOKEN = 206_900_000 * 10 ** 18;
     uint256 constant TOKEN_TOTAL_SUPPLY = 10 ** 27;
     uint8 constant FEE_DENOMINATOR = 10;
@@ -85,7 +85,7 @@ contract SetUp is Test {
 
     function deployContracts() private {
         vm.startPrank(OWNER);
-        wNAD = new WNAD();
+        WNATIVE = new WNative();
 
         address[] memory owners = new address[](5);
         owners[0] = FEE_VAULT_OWNER_A;
@@ -94,19 +94,19 @@ contract SetUp is Test {
         owners[3] = FEE_VAULT_OWNER_D;
         owners[4] = FEE_VAULT_OWNER_E;
 
-        FEE_VAULT = new FeeVault(address(wNAD), owners, 3);
-        CORE = new Core(address(wNAD), address(FEE_VAULT));
+        FEE_VAULT = new FeeVault(address(WNATIVE), owners, 3);
+        CORE = new Core(address(WNATIVE), address(FEE_VAULT));
 
         BONDING_CURVE_FACTORY = new BondingCurveFactory(
             OWNER,
             address(CORE),
-            address(wNAD)
+            address(WNATIVE)
         );
 
         LOCK = new Lock(address(BONDING_CURVE_FACTORY), DEFAULT_LOCK_TIME);
         MINT_PARTY_FACTORY = new MintPartyFactory(
             address(CORE),
-            address(wNAD),
+            address(WNATIVE),
             address(LOCK),
             address(BONDING_CURVE_FACTORY)
         );
@@ -123,7 +123,7 @@ contract SetUp is Test {
                 deployFee: DEPLOY_FEE,
                 listingFee: LISTING_FEE,
                 tokenTotalSupply: TOKEN_TOTAL_SUPPLY,
-                virtualNad: VIRTUAL_NAD,
+                virtualNative: VIRTUAL_NATIVE,
                 virtualToken: VIRTUAL_TOKEN,
                 targetToken: TARGET_TOKEN,
                 feeNumerator: FEE_NUMERATOR,
@@ -176,7 +176,7 @@ contract SetUp is Test {
         //1000 - 100 = 900 만큼 사면됨.
         uint256 amountOut = realTokenReserves - TARGET_TOKEN;
         (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
-        uint256 amountIn = NadFunLibrary.getAmountIn(
+        uint256 amountIn = BondingCurveLibrary.getAmountIn(
             amountOut,
             K,
             virtualNad,
@@ -215,9 +215,4 @@ contract SetUp is Test {
         );
         vm.stopPrank();
     }
-
-    // function CreateQuestPool(address account) public {
-    //     CurveCreate(account);
-    //     BuyAmountOut(account, QUEST_POOL_MINIMUM_REWARD);
-    // }
 }

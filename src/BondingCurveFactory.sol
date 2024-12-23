@@ -18,7 +18,7 @@ contract BondingCurveFactory is IBondingCurveFactory {
     address private owner;
     address private core;
     address private dexFactory;
-    address public immutable WNAD;
+    address public immutable wNative;
     Config private config;
     mapping(address => address) private curves;
 
@@ -26,11 +26,11 @@ contract BondingCurveFactory is IBondingCurveFactory {
      * @notice Constructor initializes the factory with essential addresses
      * @param _owner Address of the contract owner
      * @param _core Address of the core contract
-     * @param _wnad Address of the WNAD token
+     * @param _wNative Address of the WNATIVE token
      */
-    constructor(address _owner, address _core, address _wnad) {
+    constructor(address _owner, address _core, address _wNative) {
         owner = _owner;
-        WNAD = _wnad;
+        wNative = _wNative;
         core = _core;
     }
 
@@ -55,12 +55,12 @@ contract BondingCurveFactory is IBondingCurveFactory {
      * @param params Initialization parameters struct
      */
     function initialize(InitializeParams memory params) public onlyOwner {
-        uint256 k = params.virtualNad * params.virtualToken;
+        uint256 k = params.virtualNative * params.virtualToken;
         config = Config(
             params.deployFee,
             params.listingFee,
             params.tokenTotalSupply,
-            params.virtualNad,
+            params.virtualNative,
             params.virtualToken,
             k,
             params.targetToken,
@@ -72,7 +72,7 @@ contract BondingCurveFactory is IBondingCurveFactory {
             params.deployFee,
             params.listingFee,
             params.tokenTotalSupply,
-            params.virtualNad,
+            params.virtualNative,
             params.virtualToken,
             k,
             params.targetToken,
@@ -90,7 +90,7 @@ contract BondingCurveFactory is IBondingCurveFactory {
      * @param tokenURI Token URI for metadata
      * @return curve Address of the created bonding curve
      * @return token Address of the created token
-     * @return virtualNad Initial virtual NAD reserve
+     * @return virtualNative Initial virtual NAD reserve
      * @return virtualToken Initial virtual token reserve
      */
     function create(
@@ -104,20 +104,20 @@ contract BondingCurveFactory is IBondingCurveFactory {
         returns (
             address curve,
             address token,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken
         )
     {
         Config memory _config = getConfig();
 
-        curve = address(new BondingCurve(core, WNAD));
+        curve = address(new BondingCurve(core, wNative));
         token = address(new Token(name, symbol, tokenURI));
 
         IToken(token).mint(curve);
 
         IBondingCurve(curve).initialize(
             token,
-            _config.virtualNad,
+            _config.virtualNative,
             _config.virtualToken,
             _config.k,
             _config.targetToken,
@@ -126,7 +126,7 @@ contract BondingCurveFactory is IBondingCurveFactory {
         );
 
         curves[token] = curve;
-        virtualNad = _config.virtualNad;
+        virtualNative = _config.virtualNative;
         virtualToken = _config.virtualToken;
         emit Create(
             creator,
@@ -135,7 +135,7 @@ contract BondingCurveFactory is IBondingCurveFactory {
             tokenURI,
             name,
             symbol,
-            virtualNad,
+            virtualNative,
             virtualToken
         );
     }

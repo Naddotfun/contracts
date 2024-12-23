@@ -5,9 +5,9 @@ import {Test, console} from "forge-std/Test.sol";
 import {BondingCurve} from "src/BondingCurve.sol";
 import {Token} from "src/Token.sol";
 import "src/errors/Errors.sol";
-import {IWNAD} from "src/interfaces/IWNAD.sol";
-import {WNAD} from "src/WNAD.sol";
-import {NadFunLibrary} from "src/utils/NadFunLibrary.sol";
+import {IWNative} from "src/interfaces/IWNative.sol";
+import {WNative} from "src/WNative.sol";
+import {BondingCurveLibrary} from "src/utils/BondingCurveLibrary.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "./SetUp.sol";
 
@@ -16,17 +16,18 @@ contract BondingCurveTest is Test, SetUp {
         super.setUp();
         CreateBondingCurve(CREATOR);
     }
+
     // ========== Success Cases ==========
 
     function testInitialization() public {
         // Check initial state variables
-        assertEq(address(CURVE.wnad()), address(wNAD));
+        assertEq(address(CURVE.wNative()), address(WNATIVE));
         assertEq(address(CURVE.token()), address(MEME_TOKEN));
 
         // Check virtual reserves
         (uint256 virtualNadAmount, uint256 virtualTokenAmount) = CURVE
             .getVirtualReserves();
-        assertEq(virtualNadAmount, VIRTUAL_NAD);
+        assertEq(virtualNadAmount, VIRTUAL_NATIVE);
         assertEq(virtualTokenAmount, VIRTUAL_TOKEN);
 
         // Check fee configuration
@@ -50,7 +51,7 @@ contract BondingCurveTest is Test, SetUp {
 
         // Calculate expected amount out
         (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
-        uint256 expectedAmountOut = NadFunLibrary.getAmountOut(
+        uint256 expectedAmountOut = BondingCurveLibrary.getAmountOut(
             amountIn,
             CURVE.getK(),
             virtualNad,
@@ -79,7 +80,7 @@ contract BondingCurveTest is Test, SetUp {
         // First buy some tokens
         vm.startPrank(TRADER_A);
         uint256 buyAmountIn = 1 ether;
-        uint256 buyFee = NadFunLibrary.getFeeAmount(
+        uint256 buyFee = BondingCurveLibrary.getFeeAmount(
             buyAmountIn,
             FEE_DENOMINATOR,
             FEE_NUMERATOR
@@ -115,7 +116,7 @@ contract BondingCurveTest is Test, SetUp {
 
         // Calculate exact amount needed to reach TARGET_TOKEN
         uint256 amountOutDesired = realTokenReserves - TARGET_TOKEN;
-        uint256 requiredAmount = NadFunLibrary.getAmountIn(
+        uint256 requiredAmount = BondingCurveLibrary.getAmountIn(
             amountOutDesired,
             CURVE.getK(),
             virtualNad,
@@ -123,7 +124,7 @@ contract BondingCurveTest is Test, SetUp {
         );
         console.log(requiredAmount);
 
-        uint getAmount = NadFunLibrary.getAmountOut(
+        uint getAmount = BondingCurveLibrary.getAmountOut(
             requiredAmount,
             CURVE.getK(),
             virtualNad,
@@ -131,7 +132,7 @@ contract BondingCurveTest is Test, SetUp {
         );
         console.log(getAmount);
 
-        uint256 fee = NadFunLibrary.getFeeAmount(
+        uint256 fee = BondingCurveLibrary.getFeeAmount(
             requiredAmount,
             FEE_DENOMINATOR,
             FEE_NUMERATOR
@@ -201,7 +202,7 @@ contract BondingCurveTest is Test, SetUp {
     function testRevertListingNotEnoughTokens() public {
         vm.startPrank(TRADER_A);
         uint256 amountIn = 1 ether;
-        uint256 fee = NadFunLibrary.getFeeAmount(
+        uint256 fee = BondingCurveLibrary.getFeeAmount(
             amountIn,
             FEE_DENOMINATOR,
             FEE_NUMERATOR

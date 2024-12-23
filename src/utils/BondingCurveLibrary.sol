@@ -6,11 +6,11 @@ import "../interfaces/IBondingCurveFactory.sol";
 import "../errors/Errors.sol";
 
 /**
- * @title NadFunLibrary
+ * @title BondingCurveLibrary
  * @dev Library for handling bonding curve calculations and related utilities
  * Contains functions for calculating amounts, fees, and managing curve data
  */
-library NadFunLibrary {
+library BondingCurveLibrary {
     /**
      * @notice Calculates the output amount for a given input in the bonding curve
      * @dev Uses the formula: amountOut = reserveOut - (k / (reserveIn + amountIn)) - 1
@@ -28,7 +28,7 @@ library NadFunLibrary {
     ) internal pure returns (uint256 amountOut) {
         require(
             amountIn > 0 && reserveIn > 0 && reserveOut > 0,
-            "Invalid inputs"
+            ERR_BONDING_CURVE_LIBRARY_INVALID_INPUTS
         );
 
         uint256 newReserveIn = reserveIn + amountIn;
@@ -36,7 +36,10 @@ library NadFunLibrary {
         // 나눗셈 시 올림 처리를 위해 newReserveIn - 1을 사용
         uint256 newReserveOut = (k + newReserveIn - 1) / newReserveIn;
 
-        require(newReserveOut < reserveOut, "Insufficient output amount");
+        require(
+            newReserveOut < reserveOut,
+            ERR_BONDING_CURVE_LIBRARY_INSUFFICIENT_LIQUIDITY
+        );
         amountOut = reserveOut - newReserveOut;
     }
 
@@ -56,7 +59,7 @@ library NadFunLibrary {
     ) internal pure returns (uint256 amountIn) {
         require(
             amountOut <= reserveOut,
-            ERR_NAD_FUN_LIBRARY_INVALID_AMOUNT_OUT
+            ERR_BONDING_CURVE_LIBRARY_INVALID_AMOUNT_OUT
         );
 
         uint256 newReserveOut = reserveOut - amountOut;
@@ -124,7 +127,7 @@ library NadFunLibrary {
     {
         curve = getCurve(factory, token);
         (virtualNad, virtualToken) = getVirtualReserves(curve);
-        k = NadFunLibrary.getK(curve);
+        k = BondingCurveLibrary.getK(curve);
     }
 
     /**
@@ -142,7 +145,7 @@ library NadFunLibrary {
         returns (uint256 virtualNad, uint256 virtualToken, uint256 k)
     {
         (virtualNad, virtualToken) = getVirtualReserves(curve);
-        k = NadFunLibrary.getK(curve);
+        k = BondingCurveLibrary.getK(curve);
     }
 
     /**

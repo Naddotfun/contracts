@@ -5,9 +5,9 @@ import {Test, console, Vm} from "forge-std/Test.sol";
 import {BondingCurve} from "src/BondingCurve.sol";
 import {Token} from "src/Token.sol";
 import "src/errors/Errors.sol";
-import {IWNAD} from "src/interfaces/IWNAD.sol";
-import {WNAD} from "src/WNAD.sol";
-import {NadFunLibrary} from "src/utils/NadFunLibrary.sol";
+import {IWNative} from "src/interfaces/IWNative.sol";
+import {WNative} from "src/WNative.sol";
+import {BondingCurveLibrary} from "src/utils/BondingCurveLibrary.sol";
 import {Core} from "src/Core.sol";
 import {FeeVault} from "src/FeeVault.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
@@ -100,7 +100,7 @@ contract CoreCreateTest is Test, SetUp {
         vm.startPrank(OWNER);
         vm.deal(OWNER, DEPLOY_FEE - 1);
 
-        vm.expectRevert(bytes(ERR_CORE_INVALID_SEND_NAD));
+        vm.expectRevert(bytes(ERR_CORE_INVALID_SEND_NATIVE));
         CORE.createCurve{value: DEPLOY_FEE - 1}(
             TRADER_A,
             "Test Token",
@@ -115,17 +115,17 @@ contract CoreCreateTest is Test, SetUp {
 
     function testCreateCurveInvalidInitialAmount() public {
         vm.startPrank(OWNER);
-        uint256 initialNad = 1 ether;
-        uint256 fee = initialNad / 100; // 1% fee
-        vm.deal(OWNER, initialNad + fee + DEPLOY_FEE - 1);
+        uint256 initialNative = 1 ether;
+        uint256 fee = initialNative / 100; // 1% fee
+        vm.deal(OWNER, initialNative + fee + DEPLOY_FEE - 1);
 
-        vm.expectRevert(bytes(ERR_CORE_INVALID_SEND_NAD));
-        CORE.createCurve{value: initialNad + fee + DEPLOY_FEE - 1}(
+        vm.expectRevert(bytes(ERR_CORE_INVALID_SEND_NATIVE));
+        CORE.createCurve{value: initialNative + fee + DEPLOY_FEE - 1}(
             TRADER_A,
             "Test Token",
             "TEST",
             "test.url",
-            initialNad,
+            initialNative,
             fee
         );
 
@@ -194,7 +194,7 @@ contract CoreBuyTest is Test, SetUp {
         uint256 deadline = block.timestamp + 1 hours;
 
         // Should fail because msg.value < amountIn + fee
-        vm.expectRevert(bytes(ERR_CORE_INVALID_SEND_NAD));
+        vm.expectRevert(bytes(ERR_CORE_INVALID_SEND_NATIVE));
         CORE.buy{value: amountIn}(
             amountIn,
             fee,
@@ -275,7 +275,7 @@ contract CoreBuyTest is Test, SetUp {
 
         //AMOUNT Out 계산
         (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
-        uint256 amountOutMin = NadFunLibrary.getAmountOut(
+        uint256 amountOutMin = BondingCurveLibrary.getAmountOut(
             amountIn,
             CURVE.getK(),
             virtualNad,
@@ -312,7 +312,7 @@ contract CoreBuyTest is Test, SetUp {
 
         //AMOUNT Out Calculation
         (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
-        uint256 amountOut = NadFunLibrary.getAmountOut(
+        uint256 amountOut = BondingCurveLibrary.getAmountOut(
             amountIn,
             CURVE.getK(),
             virtualNad,
@@ -324,7 +324,7 @@ contract CoreBuyTest is Test, SetUp {
         uint256 deadline = block.timestamp + 1 hours;
 
         // Should fail because msg.value < amountIn + fee
-        vm.expectRevert(bytes(ERR_CORE_INVALID_SEND_NAD));
+        vm.expectRevert(bytes(ERR_CORE_INVALID_SEND_NATIVE));
         CORE.buyAmountOutMin{value: amountIn}(
             amountIn,
             amountOutMin, //Amount Out Min should be less than amountOut
@@ -345,7 +345,7 @@ contract CoreBuyTest is Test, SetUp {
 
         //AMOUNT Out 계산
         (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
-        uint256 amountOutMin = NadFunLibrary.getAmountOut(
+        uint256 amountOutMin = BondingCurveLibrary.getAmountOut(
             amountIn,
             CURVE.getK(),
             virtualNad,
@@ -376,7 +376,7 @@ contract CoreBuyTest is Test, SetUp {
 
         //AMOUNT Out 계산
         (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
-        uint256 amountOutMin = NadFunLibrary.getAmountOut(
+        uint256 amountOutMin = BondingCurveLibrary.getAmountOut(
             amountIn,
             CURVE.getK(),
             virtualNad,
@@ -406,7 +406,7 @@ contract CoreBuyTest is Test, SetUp {
 
         // Calculate required amountIn
         (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
-        uint256 amountIn = NadFunLibrary.getAmountIn(
+        uint256 amountIn = BondingCurveLibrary.getAmountIn(
             amountOut,
             CURVE.getK(),
             virtualNad,
@@ -415,7 +415,7 @@ contract CoreBuyTest is Test, SetUp {
 
         // Calculate fee
         (uint8 denominator, uint16 numerator) = CURVE.getFeeConfig();
-        uint256 fee = NadFunLibrary.getFeeAmount(
+        uint256 fee = BondingCurveLibrary.getFeeAmount(
             amountIn,
             denominator,
             numerator
@@ -447,7 +447,7 @@ contract CoreBuyTest is Test, SetUp {
 
         // Calculate required amountIn
         (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
-        uint256 amountIn = NadFunLibrary.getAmountIn(
+        uint256 amountIn = BondingCurveLibrary.getAmountIn(
             amountOut,
             CURVE.getK(),
             virtualNad,
@@ -456,7 +456,7 @@ contract CoreBuyTest is Test, SetUp {
 
         // Calculate fee
         (uint8 denominator, uint16 numerator) = CURVE.getFeeConfig();
-        uint256 fee = NadFunLibrary.getFeeAmount(
+        uint256 fee = BondingCurveLibrary.getFeeAmount(
             amountIn,
             denominator,
             numerator
@@ -466,7 +466,7 @@ contract CoreBuyTest is Test, SetUp {
         uint256 deadline = block.timestamp + 1 hours;
 
         // Should fail because msg.value < amountInMax
-        vm.expectRevert(bytes(ERR_CORE_INVALID_SEND_NAD));
+        vm.expectRevert(bytes(ERR_CORE_INVALID_SEND_NATIVE));
         CORE.buyExactAmountOut{value: amountInMax - 1}(
             amountOut,
             amountInMax,
@@ -485,7 +485,7 @@ contract CoreBuyTest is Test, SetUp {
 
         // Calculate required amountIn
         (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
-        uint256 amountIn = NadFunLibrary.getAmountIn(
+        uint256 amountIn = BondingCurveLibrary.getAmountIn(
             amountOut,
             CURVE.getK(),
             virtualNad,
@@ -494,7 +494,7 @@ contract CoreBuyTest is Test, SetUp {
 
         // Calculate fee
         (uint8 denominator, uint16 numerator) = CURVE.getFeeConfig();
-        uint256 fee = NadFunLibrary.getFeeAmount(
+        uint256 fee = BondingCurveLibrary.getFeeAmount(
             amountIn,
             denominator,
             numerator
@@ -523,7 +523,7 @@ contract CoreBuyTest is Test, SetUp {
 
         // Calculate required amountIn
         (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
-        uint256 amountIn = NadFunLibrary.getAmountIn(
+        uint256 amountIn = BondingCurveLibrary.getAmountIn(
             amountOut,
             CURVE.getK(),
             virtualNad,
@@ -532,7 +532,7 @@ contract CoreBuyTest is Test, SetUp {
 
         // Calculate fee
         (uint8 denominator, uint16 numerator) = CURVE.getFeeConfig();
-        uint256 fee = NadFunLibrary.getFeeAmount(
+        uint256 fee = BondingCurveLibrary.getFeeAmount(
             amountIn,
             denominator,
             numerator
@@ -576,14 +576,14 @@ contract CoreSellTest is Test, SetUp {
         uint256 k = CURVE.getK();
 
         // 예상 출력값 계산
-        uint256 expectedAmountOut = NadFunLibrary.getAmountOut(
+        uint256 expectedAmountOut = BondingCurveLibrary.getAmountOut(
             amountIn,
             k,
             virtualToken,
             virtualNad
         );
         (uint8 denominator, uint16 numerator) = CURVE.getFeeConfig();
-        uint256 expectedFee = NadFunLibrary.getFeeAmount(
+        uint256 expectedFee = BondingCurveLibrary.getFeeAmount(
             expectedAmountOut,
             denominator,
             numerator
@@ -655,14 +655,14 @@ contract CoreSellTest is Test, SetUp {
         uint256 k = CURVE.getK();
 
         // 예상 출력값 계산
-        uint256 expectedAmountOut = NadFunLibrary.getAmountOut(
+        uint256 expectedAmountOut = BondingCurveLibrary.getAmountOut(
             amountIn,
             k,
             virtualToken,
             virtualNad
         );
         (uint8 denominator, uint16 numerator) = CURVE.getFeeConfig();
-        uint256 expectedFee = NadFunLibrary.getFeeAmount(
+        uint256 expectedFee = BondingCurveLibrary.getFeeAmount(
             expectedAmountOut,
             denominator,
             numerator
@@ -711,7 +711,7 @@ contract CoreSellTest is Test, SetUp {
         uint256 k = CURVE.getK();
 
         // 예상 출력값 계산
-        uint256 expectedAmountOut = NadFunLibrary.getAmountOut(
+        uint256 expectedAmountOut = BondingCurveLibrary.getAmountOut(
             amountIn,
             k,
             virtualToken,
@@ -934,7 +934,7 @@ contract CoreSellTest is Test, SetUp {
         uint256 k = CURVE.getK();
 
         // 예상 출력값 계산
-        uint256 expectedAmountOut = NadFunLibrary.getAmountOut(
+        uint256 expectedAmountOut = BondingCurveLibrary.getAmountOut(
             amountIn,
             k,
             virtualToken,
@@ -999,7 +999,7 @@ contract CoreSellTest is Test, SetUp {
         uint256 k = CURVE.getK();
 
         // 예상 출력값 계산
-        uint256 amountOut = NadFunLibrary.getAmountOut(
+        uint256 amountOut = BondingCurveLibrary.getAmountOut(
             initialTokenBalance,
             k,
             virtualToken,
@@ -1038,7 +1038,7 @@ contract CoreSellTest is Test, SetUp {
         uint256 k = CURVE.getK();
         uint tokenAmount = MEME_TOKEN.balanceOf(TRADER_A);
 
-        uint expectedAmountOut = NadFunLibrary.getAmountOut(
+        uint expectedAmountOut = BondingCurveLibrary.getAmountOut(
             1 ether,
             k,
             virtualToken,
@@ -1103,7 +1103,7 @@ contract CoreSellTest is Test, SetUp {
 
         (uint virtualNad, uint virtualToken) = CURVE.getVirtualReserves();
         //amountOut 을 계산하기
-        uint amountOut = NadFunLibrary.getAmountOut(
+        uint amountOut = BondingCurveLibrary.getAmountOut(
             tokenAmount,
             CURVE.getK(),
             virtualToken,
@@ -1173,7 +1173,7 @@ contract CoreSellTest is Test, SetUp {
 
         (uint virtualNad, uint virtualToken) = CURVE.getVirtualReserves();
 
-        uint amountOut = NadFunLibrary.getAmountOut(
+        uint amountOut = BondingCurveLibrary.getAmountOut(
             tokenAmount,
             CURVE.getK(),
             virtualToken,

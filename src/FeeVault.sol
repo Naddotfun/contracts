@@ -2,19 +2,21 @@
 pragma solidity ^0.8.20;
 
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import {IWNAD} from "./interfaces/IWNAD.sol";
+
 import {IFeeVault} from "./interfaces/IFeeVault.sol";
 import "./errors/Errors.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
+import {IWNative} from "./interfaces/IWNative.sol";
 
+//BondingCurve
 /**
  * @title FeeVault
- * @dev A simple multisig vault contract for managing WNAD token withdrawals.
+ * @dev A simple multisig vault contract for managing WNATIVE token withdrawals.
  * Only authorized owners can propose and sign withdrawal requests.
  */
 contract FeeVault is IFeeVault {
-    // WNAD token interface
-    IWNAD public immutable wnad;
+    // WNATIVE token interface
+    IWNative public immutable wNative;
 
     // Multisig related state variables
     mapping(address => bool) public isOwner;
@@ -36,31 +38,31 @@ contract FeeVault is IFeeVault {
 
     /**
      * @notice Fallback function to receive NAD
-     * @dev Only accepts NAD from the WNAD contract
+     * @dev Only accepts NAD from the WNATIVE contract
      */
     receive() external payable {
-        assert(msg.sender == address(wnad)); // only accept NAD via fallback from the WNAD contract
+        assert(msg.sender == address(wNative)); // only accept NAD via fallback from the WNATIVE contract
     }
 
     /**
      * @dev Constructor to initialize the vault with initial owners
-     * @param _wnad WNAD token address
+     * @param _wNative WNATIVE token address
      * @param _owners Initial list of owner addresses
      * @param _requiredSignatures Number of signatures required for withdrawal
      */
     constructor(
-        address _wnad,
+        address _wNative,
         address[] memory _owners,
         uint256 _requiredSignatures
     ) {
-        require(_wnad != address(0), ERR_FEE_VAULT_INVALID_WNAD_ADDRESS);
+        require(_wNative != address(0), ERR_FEE_VAULT_INVALID_WNATIVE_ADDRESS);
         require(_owners.length > 0, ERR_FEE_VAULT_NO_OWNERS);
         require(
             _requiredSignatures > 0 && _requiredSignatures <= _owners.length,
             ERR_FEE_VAULT_INVALID_SIGNATURES_REQUIRED
         );
 
-        wnad = IWNAD(_wnad);
+        wNative = IWNative(_wNative);
 
         for (uint256 i = 0; i < _owners.length; i++) {
             require(_owners[i] != address(0), ERR_FEE_VAULT_INVALID_OWNER);
@@ -74,10 +76,10 @@ contract FeeVault is IFeeVault {
     }
 
     /**
-     * @dev Returns the total balance of WNAD in the vault
+     * @dev Returns the total balance of WNATIVE in the vault
      */
     function totalAssets() public view returns (uint256) {
-        return wnad.balanceOf(address(this));
+        return wNative.balanceOf(address(this));
     }
 
     /**
@@ -91,7 +93,7 @@ contract FeeVault is IFeeVault {
     /**
      * @dev Proposes a new withdrawal
      * @param receiver Address to receive the withdrawn assets
-     * @param amount Amount of WNAD to withdraw
+     * @param amount Amount of WNATIVE to withdraw
      */
     function proposeWithdrawal(
         address receiver,
@@ -143,15 +145,15 @@ contract FeeVault is IFeeVault {
      * @dev Internal function to execute a withdrawal proposal
      * @param receiver Address to receive the withdrawn assets
      * @param proposalId ID of the withdrawal proposal
-     * @param amount Amount of WNAD to withdraw
+     * @param amount Amount of WNATIVE to withdraw
      */
     function _executeWithdrawal(
         address receiver,
         uint proposalId,
         uint amount
     ) private {
-        IWNAD(wnad).withdraw(amount);
-        TransferHelper.safeTransferNad(receiver, amount);
+        IWNative(wNative).withdraw(amount);
+        TransferHelper.safeTransferNative(receiver, amount);
 
         emit WithdrawalExecuted(proposalId, receiver, amount);
     }

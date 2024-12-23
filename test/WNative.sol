@@ -2,10 +2,10 @@
 pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
-import "src/WNAD.sol";
+import "src/WNative.sol";
 
-contract WNADTest is Test {
-    WNAD wNad;
+contract WNativeTest is Test {
+    WNative wNative;
     address human;
     uint256 humanPrivateKey;
     address human2;
@@ -14,56 +14,56 @@ contract WNADTest is Test {
         humanPrivateKey = 0xA11CE;
         human = vm.addr(humanPrivateKey);
         human2 = address(0xb);
-        wNad = new WNAD();
+        wNative = new WNative();
         vm.deal(human, 100);
         vm.startPrank(human);
-        wNad.deposit{value: 100}();
+        wNative.deposit{value: 100}();
         vm.stopPrank();
     }
 
     function testDeposit() public {
-        assertEq(wNad.balanceOf(human), 100);
-        assertEq(wNad.totalSupply(), 100);
+        assertEq(wNative.balanceOf(human), 100);
+        assertEq(wNative.totalSupply(), 100);
         assertEq(human.balance, 0);
     }
 
     function testWithdraw() public {
         vm.startPrank(human);
-        wNad.withdraw(100);
-        assertEq(wNad.balanceOf(human), 0);
-        assertEq(wNad.totalSupply(), 0);
+        wNative.withdraw(100);
+        assertEq(wNative.balanceOf(human), 0);
+        assertEq(wNative.totalSupply(), 0);
         assertEq(human.balance, 100);
     }
 
     function testTotalSupply() public {
-        assertEq(wNad.totalSupply(), 100);
+        assertEq(wNative.totalSupply(), 100);
     }
 
     function testApprove() public {
         vm.startPrank(human);
-        wNad.approve(address(this), 100);
-        assertEq(wNad.allowance(human, address(this)), 100);
+        wNative.approve(address(this), 100);
+        assertEq(wNative.allowance(human, address(this)), 100);
     }
 
     function testTransferFrom() public {
         vm.startPrank(human);
-        wNad.approve(address(this), 100);
+        wNative.approve(address(this), 100);
         vm.startPrank(address(this));
-        wNad.transferFrom(human, address(this), 100);
-        assertEq(wNad.balanceOf(address(this)), 100);
+        wNative.transferFrom(human, address(this), 100);
+        assertEq(wNative.balanceOf(address(this)), 100);
     }
 
     function testPermit() public {
         address owner = human;
         address spender = address(this);
         uint256 value = 100;
-        uint256 nonce = wNad.nonces(owner);
+        uint256 nonce = wNative.nonces(owner);
         uint256 deadline = block.timestamp + 1 hours;
 
-        bytes32 DOMAIN_SEPARATOR = wNad.DOMAIN_SEPARATOR();
+        bytes32 DOMAIN_SEPARATOR = wNative.DOMAIN_SEPARATOR();
         bytes32 structHash = keccak256(
             abi.encode(
-                wNad.PERMIT_TYPEHASH(),
+                wNative.PERMIT_TYPEHASH(),
                 owner,
                 spender,
                 value,
@@ -79,9 +79,9 @@ contract WNADTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(humanPrivateKey, digest);
 
         vm.startPrank(owner);
-        wNad.permit(owner, spender, value, deadline, v, r, s);
+        wNative.permit(owner, spender, value, deadline, v, r, s);
         vm.stopPrank();
 
-        assertEq(wNad.allowance(owner, spender), value);
+        assertEq(wNative.allowance(owner, spender), value);
     }
 }

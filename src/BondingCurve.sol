@@ -21,11 +21,11 @@ contract BondingCurve is IBondingCurve {
     // Immutable state variables
     address immutable factory;
     address immutable core;
-    address public immutable wnad; // Wrapped NAD token address
+    address public immutable wNative; // Wrapped Native token address
     address public token; // Project token address
 
     // Virtual reserves for price calculation
-    uint256 private virtualNad; // Virtual NAD reserve
+    uint256 private virtualNative; // Virtual Native reserve
     uint256 private virtualToken; // Virtual token reserve
     uint256 private k; // Constant product parameter
     uint256 private targetToken; // Target token amount for listing
@@ -42,7 +42,7 @@ contract BondingCurve is IBondingCurve {
     Fee feeConfig;
 
     // Real reserves tracking actual balances
-    uint256 realNadReserves;
+    uint256 realNativeReserves;
     uint256 realTokenReserves;
 
     // State flags
@@ -68,19 +68,19 @@ contract BondingCurve is IBondingCurve {
     /**
      * @dev Constructor sets immutable factory and core addresses
      * @param _core Address of the core contract
-     * @param _wnad Address of the WNAD token
+     * @param _wNative Address of the WNATIVE token
      */
-    constructor(address _core, address _wnad) {
+    constructor(address _core, address _wNative) {
         factory = msg.sender;
         core = _core;
-        wnad = _wnad;
+        wNative = _wNative;
     }
 
     /**
      * @notice Initializes the bonding curve with its parameters
      * @dev Called once by factory during deployment
      * @param _token Project token address
-     * @param _virtualNad Initial virtual NAD reserve
+     * @param _virtualNative Initial virtual Native reserve
      * @param _virtualToken Initial virtual token reserve
      * @param _k Constant product parameter
      * @param _targetToken Target token amount for DEX listing
@@ -89,7 +89,7 @@ contract BondingCurve is IBondingCurve {
      */
     function initialize(
         address _token,
-        uint256 _virtualNad,
+        uint256 _virtualNative,
         uint256 _virtualToken,
         uint256 _k,
         uint256 _targetToken,
@@ -98,10 +98,10 @@ contract BondingCurve is IBondingCurve {
     ) external {
         require(msg.sender == factory, ERR_BONDING_CURVE_ONLY_FACTORY);
         token = _token;
-        virtualNad = _virtualNad;
+        virtualNative = _virtualNative;
         virtualToken = _virtualToken;
         k = _k;
-        realNadReserves = IERC20(wnad).balanceOf(address(this));
+        realNativeReserves = IERC20(wNative).balanceOf(address(this));
         realTokenReserves = IERC20(_token).balanceOf(address(this));
         targetToken = _targetToken;
         feeConfig = Fee(_feeDenominator, _feeNumerator);
@@ -116,10 +116,13 @@ contract BondingCurve is IBondingCurve {
      */
     function buy(address to, uint256 amountOut) external islock onlyCore {
         require(amountOut > 0, ERR_BONDING_CURVE_INVALID_AMOUNT_OUT);
-        address _wnad = wnad; //gas savings
+        address _wNative = wNative; //gas savings
         address _token = token; //gas savings
 
-        (uint256 _realNadReserves, uint256 _realTokenReserves) = getReserves();
+        (
+            uint256 _realNativeReserves,
+            uint256 _realTokenReserves
+        ) = getReserves();
 
         // Ensure remaining tokens stay above target
         require(
@@ -127,45 +130,54 @@ contract BondingCurve is IBondingCurve {
             ERR_BONDING_CURVE_OVERFLOW_TARGET
         );
 
-        uint256 balanceNad;
+        uint256 balanceNative;
 
         {
-            require(to != _wnad && to != _token, ERR_BONDING_CURVE_INVALID_TO);
+            require(
+                to != _wNative && to != _token,
+                ERR_BONDING_CURVE_INVALID_TO
+            );
             IERC20(_token).safeTransferERC20(core, amountOut);
 
-            balanceNad = IERC20(wnad).balanceOf(address(this));
+            balanceNative = IERC20(wNative).balanceOf(address(this));
         }
 
-        uint256 amountNadIn = balanceNad - _realNadReserves;
+        uint256 amountNativeIn = balanceNative - _realNativeReserves;
 
-        _update(amountNadIn, amountOut, true);
+        _update(amountNativeIn, amountOut, true);
 
-        require(virtualNad * virtualToken >= k, ERR_BONDING_CURVE_INVALID_K);
-        emit Buy(to, token, amountNadIn, amountOut);
+        require(virtualNative * virtualToken >= k, ERR_BONDING_CURVE_INVALID_K);
+        emit Buy(to, token, amountNativeIn, amountOut);
     }
 
     /**
      * @notice Executes a sell order on the bonding curve
      * @dev Transfers tokens and updates reserves accordingly
      * @param to Recipient address
-     * @param amountOut Amount of NAD to receive
+     * @param amountOut Amount of native to receive
      */
     function sell(address to, uint256 amountOut) external islock onlyCore {
         require(amountOut > 0, ERR_BONDING_CURVE_INVALID_AMOUNT_OUT);
 
-        address _wnad = wnad;
+        address _wNative = wNative;
         address _token = token;
-        (uint256 _realNadReserves, uint256 _realTokenReserves) = getReserves();
+        (
+            uint256 _realNativeReserves,
+            uint256 _realTokenReserves
+        ) = getReserves();
         require(
-            amountOut <= _realNadReserves,
+            amountOut <= _realNativeReserves,
             ERR_BONDING_CURVE_INVALID_AMOUNT_OUT
         );
 
         uint256 balanceToken;
 
         {
-            require(to != _wnad && to != _token, ERR_BONDING_CURVE_INVALID_TO);
-            IERC20(_wnad).safeTransferERC20(core, amountOut);
+            require(
+                to != _wNative && to != _token,
+                ERR_BONDING_CURVE_INVALID_TO
+            );
+            IERC20(_wNative).safeTransferERC20(core, amountOut);
             balanceToken = IERC20(_token).balanceOf(address(this));
         }
 
@@ -174,7 +186,7 @@ contract BondingCurve is IBondingCurve {
         require(amountTokenIn > 0, ERR_BONDING_CURVE_INVALID_AMOUNT_IN);
 
         _update(amountTokenIn, amountOut, false);
-        require(virtualNad * virtualToken >= k, ERR_BONDING_CURVE_INVALID_K);
+        require(virtualNative * virtualToken >= k, ERR_BONDING_CURVE_INVALID_K);
         emit Sell(to, token, amountTokenIn, amountOut);
     }
 
@@ -188,24 +200,24 @@ contract BondingCurve is IBondingCurve {
         require(!isListing, ERR_BONDING_CURVE_ALREADY_LISTED);
         IBondingCurveFactory _factory = IBondingCurveFactory(factory);
         pair = IUniswapV2Factory(_factory.getDexFactory()).createPair(
-            wnad,
+            wNative,
             token
         );
 
         // Transfer listing fee to fee vault
-        IERC20(wnad).transfer(
+        IERC20(wNative).transfer(
             ICore(_factory.getCore()).getFeeVault(),
             _factory.getListingFee()
         );
 
         // Transfer remaining tokens to the pair
-        uint256 listingWNadAmount = IERC20(wnad).balanceOf(address(this));
-        IERC20(wnad).transfer(pair, listingWNadAmount);
+        uint256 listingNativeAmount = IERC20(wNative).balanceOf(address(this));
+        IERC20(wNative).transfer(pair, listingNativeAmount);
         uint256 listingTokenAmount = IERC20(token).balanceOf(address(this));
         IERC20(token).transfer(pair, listingTokenAmount);
 
         // Reset reserves and provide liquidity
-        realNadReserves = 0;
+        realNativeReserves = 0;
         realTokenReserves = 0;
         uint256 liquidity = IUniswapV2Pair(pair).mint(address(this));
 
@@ -216,7 +228,7 @@ contract BondingCurve is IBondingCurve {
             address(this),
             token,
             pair,
-            listingWNadAmount,
+            listingNativeAmount,
             listingTokenAmount,
             liquidity
         );
@@ -229,14 +241,14 @@ contract BondingCurve is IBondingCurve {
      * @param isBuy Whether this update is for a buy order
      */
     function _update(uint256 amountIn, uint256 amountOut, bool isBuy) private {
-        realNadReserves = IERC20(wnad).balanceOf(address(this));
+        realNativeReserves = IERC20(wNative).balanceOf(address(this));
         realTokenReserves = IERC20(token).balanceOf(address(this));
 
         if (isBuy) {
-            virtualNad += amountIn;
+            virtualNative += amountIn;
             virtualToken -= amountOut;
         } else {
-            virtualNad -= amountOut;
+            virtualNative -= amountOut;
             virtualToken += amountIn;
         }
 
@@ -246,38 +258,43 @@ contract BondingCurve is IBondingCurve {
             emit Lock(address(this));
         }
 
-        emit Sync(realNadReserves, realTokenReserves, virtualNad, virtualToken);
+        emit Sync(
+            realNativeReserves,
+            realTokenReserves,
+            virtualNative,
+            virtualToken
+        );
     }
 
     // View functions
 
     /**
      * @notice Gets the current real token reserves
-     * @return nadReserves The current real NAD reserves
+     * @return nativeReserves The current real NAD reserves
      * @return tokenReserves The current real token reserves
      */
     function getReserves()
         public
         view
         override
-        returns (uint256 nadReserves, uint256 tokenReserves)
+        returns (uint256 nativeReserves, uint256 tokenReserves)
     {
-        nadReserves = realNadReserves;
+        nativeReserves = realNativeReserves;
         tokenReserves = realTokenReserves;
     }
 
     /**
      * @notice Gets the current virtual reserves
-     * @return virtualNadReserve The current virtual NAD reserves
+     * @return virtualNativeReserve The current virtual NAD reserves
      * @return virtualTokenReserve The current virtual token reserves
      */
     function getVirtualReserves()
         public
         view
         override
-        returns (uint256 virtualNadReserve, uint256 virtualTokenReserve)
+        returns (uint256 virtualNativeReserve, uint256 virtualTokenReserve)
     {
-        virtualNadReserve = virtualNad;
+        virtualNativeReserve = virtualNative;
         virtualTokenReserve = virtualToken;
     }
 

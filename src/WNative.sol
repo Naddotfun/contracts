@@ -3,12 +3,12 @@ pragma solidity ^0.8.20;
 
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
-import "./interfaces/IWNAD.sol";
+import "./interfaces/IWNative.sol";
 import "./errors/Errors.sol";
 
-contract WNAD is IERC20, IWNAD {
+contract WNative is IERC20, IWNative {
     string public name = "Wrapped NAD Token";
-    string public symbol = "WNAD";
+    string public symbol = "WNative";
     uint8 public decimals = 18;
 
     event Deposit(address indexed to, uint256 amount);
@@ -66,7 +66,7 @@ contract WNAD is IERC20, IWNAD {
     function withdraw(uint256 amount) public {
         require(balanceOf[msg.sender] >= amount, "Insufficient balance");
         balanceOf[msg.sender] -= amount;
-        TransferHelper.safeTransferNad(msg.sender, amount);
+        TransferHelper.safeTransferNative(msg.sender, amount);
         emit Withdrawal(msg.sender, amount);
     }
 
@@ -90,6 +90,7 @@ contract WNAD is IERC20, IWNAD {
         emit Approval(msg.sender, spender, amount);
         return true;
     }
+
     // 사용자가 자신의 주소에서 다른 주소로 이더를 전송하는 함수
 
     function transfer(address to, uint256 amount) public returns (bool) {

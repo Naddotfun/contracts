@@ -5,10 +5,10 @@ import {Test, console} from "forge-std/Test.sol";
 import {FeeVault} from "src/FeeVault.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IFeeVault} from "src/interfaces/IFeeVault.sol";
-import "./SetUpV2.sol";
+import "./SetUp.sol";
 import "src/errors/Errors.sol";
 
-contract FeeVaultTest is Test, SetUpV2 {
+contract FeeVaultTest is Test, SetUp {
     event WithdrawalProposed(
         uint256 indexed proposalId,
         address receiver,
@@ -26,7 +26,7 @@ contract FeeVaultTest is Test, SetUpV2 {
     }
 
     function testConstructor() public view {
-        assertEq(address(FeeVault(FEE_VAULT).wnad()), address(wNAD));
+        assertEq(address(FeeVault(FEE_VAULT).wNative()), address(WNATIVE));
 
         assertEq(FeeVault(FEE_VAULT).requiredSignatures(), 3);
         assertEq(FeeVault(FEE_VAULT).ownerCount(), 5);
@@ -38,11 +38,11 @@ contract FeeVaultTest is Test, SetUpV2 {
         assertTrue(FeeVault(FEE_VAULT).isOwner(FEE_VAULT_OWNER_E));
     }
 
-    function testRevertConstructorInvalidWNAD() public {
+    function testRevertConstructorInvalidWNative() public {
         address[] memory owners = new address[](1);
         owners[0] = FEE_VAULT_OWNER_A;
 
-        vm.expectRevert(bytes(ERR_FEE_VAULT_INVALID_WNAD_ADDRESS));
+        vm.expectRevert(bytes(ERR_FEE_VAULT_INVALID_WNATIVE_ADDRESS));
         new FeeVault(address(0), owners, 1);
     }
 
@@ -50,7 +50,7 @@ contract FeeVaultTest is Test, SetUpV2 {
         address[] memory owners = new address[](0);
 
         vm.expectRevert(bytes(ERR_FEE_VAULT_NO_OWNERS));
-        new FeeVault(address(wNAD), owners, 1);
+        new FeeVault(address(WNATIVE), owners, 1);
     }
 
     function testRevertConstructorInvalidSignaturesRequired() public {
@@ -59,7 +59,7 @@ contract FeeVaultTest is Test, SetUpV2 {
         owners[1] = FEE_VAULT_OWNER_B;
 
         vm.expectRevert(bytes(ERR_FEE_VAULT_INVALID_SIGNATURES_REQUIRED));
-        new FeeVault(address(wNAD), owners, 3);
+        new FeeVault(address(WNATIVE), owners, 3);
     }
 
     function testRevertConstructorInvalidOwner() public {
@@ -68,7 +68,7 @@ contract FeeVaultTest is Test, SetUpV2 {
         owners[1] = address(0);
 
         vm.expectRevert(bytes(ERR_FEE_VAULT_INVALID_OWNER));
-        new FeeVault(address(wNAD), owners, 1);
+        new FeeVault(address(WNATIVE), owners, 1);
     }
 
     function testRevertConstructorDuplicateOwner() public {
@@ -77,15 +77,15 @@ contract FeeVaultTest is Test, SetUpV2 {
         owners[1] = FEE_VAULT_OWNER_A;
 
         vm.expectRevert(bytes(ERR_FEE_VAULT_DUPLICATE_OWNER));
-        new FeeVault(address(wNAD), owners, 1);
+        new FeeVault(address(WNATIVE), owners, 1);
     }
 
     function testProposeWithdrawal() public {
         uint256 amount = 1000;
         vm.deal(FEE_VAULT_OWNER_A, amount);
 
-        wNAD.deposit{value: amount}();
-        wNAD.transfer(address(FEE_VAULT), amount);
+        WNATIVE.deposit{value: amount}();
+        WNATIVE.transfer(address(FEE_VAULT), amount);
 
         vm.startPrank(FEE_VAULT_OWNER_A);
 
@@ -129,8 +129,8 @@ contract FeeVaultTest is Test, SetUpV2 {
         uint256 amount = 1000;
         vm.deal(FEE_VAULT_OWNER_A, amount);
 
-        wNAD.deposit{value: amount}();
-        wNAD.transfer(address(FEE_VAULT), amount);
+        WNATIVE.deposit{value: amount}();
+        WNATIVE.transfer(address(FEE_VAULT), amount);
 
         // First signature (proposal)
         vm.prank(FEE_VAULT_OWNER_A);
@@ -160,8 +160,8 @@ contract FeeVaultTest is Test, SetUpV2 {
         uint256 amount = 1000;
         vm.deal(FEE_VAULT_OWNER_A, amount);
 
-        wNAD.deposit{value: amount}();
-        wNAD.transfer(address(FEE_VAULT), amount);
+        WNATIVE.deposit{value: amount}();
+        WNATIVE.transfer(address(FEE_VAULT), amount);
         vm.prank(FEE_VAULT_OWNER_A);
         FeeVault(FEE_VAULT).proposeWithdrawal(TRADER_A, amount);
 
@@ -179,8 +179,8 @@ contract FeeVaultTest is Test, SetUpV2 {
         uint256 amount = 1000;
         vm.deal(FEE_VAULT_OWNER_A, amount);
 
-        wNAD.deposit{value: amount}();
-        wNAD.transfer(address(FEE_VAULT), amount);
+        WNATIVE.deposit{value: amount}();
+        WNATIVE.transfer(address(FEE_VAULT), amount);
 
         // Create and execute a proposal
         vm.prank(FEE_VAULT_OWNER_A);
@@ -202,8 +202,8 @@ contract FeeVaultTest is Test, SetUpV2 {
         uint256 amount = 1000;
         vm.deal(FEE_VAULT_OWNER_A, amount);
 
-        wNAD.deposit{value: amount}();
-        wNAD.transfer(address(FEE_VAULT), amount);
+        WNATIVE.deposit{value: amount}();
+        WNATIVE.transfer(address(FEE_VAULT), amount);
 
         vm.prank(FEE_VAULT_OWNER_A);
         FeeVault(FEE_VAULT).proposeWithdrawal(TRADER_A, amount);

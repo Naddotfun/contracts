@@ -6,9 +6,9 @@ import {BondingCurve} from "src/BondingCurve.sol";
 import {BondingCurveFactory} from "src/BondingCurveFactory.sol";
 import {Token} from "src/Token.sol";
 import "src/errors/Errors.sol";
-import {IWNAD} from "src/interfaces/IWNAD.sol";
-import {WNAD} from "src/WNAD.sol";
-import {NadFunLibrary} from "src/utils/NadFunLibrary.sol";
+import {IWNative} from "src/interfaces/IWNative.sol";
+import {WNative} from "src/WNative.sol";
+import {BondingCurveLibrary} from "src/utils/BondingCurveLibrary.sol";
 import {Core} from "src/Core.sol";
 import {FeeVault} from "src/FeeVault.sol";
 import {UniswapV2Factory} from "src/uniswap/UniswapV2Factory.sol";
@@ -26,16 +26,16 @@ contract BondingCurveFactoryTest is Test, SetUp {
         assertEq(config.deployFee, DEPLOY_FEE);
         assertEq(config.listingFee, LISTING_FEE);
         assertEq(config.tokenTotalSupply, TOKEN_TOTAL_SUPPLY);
-        assertEq(config.virtualNad, VIRTUAL_NAD);
+        assertEq(config.virtualNative, VIRTUAL_NATIVE);
         assertEq(config.virtualToken, VIRTUAL_TOKEN);
         assertEq(config.k, K);
         assertEq(config.targetToken, TARGET_TOKEN);
         assertEq(config.feeNumerator, FEE_NUMERATOR);
         assertEq(config.feeDenominator, FEE_DENOMINATOR);
 
-        // Check owner and WNAD
+        // Check owner and WNative
         assertEq(BONDING_CURVE_FACTORY.getOwner(), OWNER);
-        assertEq(address(BONDING_CURVE_FACTORY.WNAD()), address(wNAD));
+        assertEq(address(BONDING_CURVE_FACTORY.wNative()), address(WNATIVE));
     }
 
     function testCreateCurve() public {
@@ -75,7 +75,7 @@ contract BondingCurveFactoryTest is Test, SetUp {
 
         // Check curve properties
         (uint256 vNad, uint256 vToken) = curve.getVirtualReserves();
-        assertEq(vNad, VIRTUAL_NAD);
+        assertEq(vNad, VIRTUAL_NATIVE);
         assertEq(vToken, VIRTUAL_TOKEN);
 
         vm.stopPrank();
@@ -95,7 +95,7 @@ contract BondingCurveFactoryTest is Test, SetUp {
         uint256 newDeployFee = 0.03 ether;
         uint256 newListingFee = 2 ether;
         uint256 newTokenTotalSupply = 2 * 10 ** 27;
-        uint256 newVirtualNad = 40 * 10 ** 18;
+        uint256 newVirtualNative = 40 * 10 ** 18;
         uint256 newVirtualToken = 2_073_000_191 * 10 ** 18;
         uint256 newTargetToken = 306_900_000 * 10 ** 18;
         uint16 newFeeNumerator = 2000;
@@ -106,7 +106,7 @@ contract BondingCurveFactoryTest is Test, SetUp {
                 deployFee: newDeployFee,
                 listingFee: newListingFee,
                 tokenTotalSupply: newTokenTotalSupply,
-                virtualNad: newVirtualNad,
+                virtualNative: newVirtualNative,
                 virtualToken: newVirtualToken,
                 targetToken: newTargetToken,
                 feeNumerator: newFeeNumerator,
@@ -122,9 +122,9 @@ contract BondingCurveFactoryTest is Test, SetUp {
         assertEq(config.deployFee, newDeployFee);
         assertEq(config.listingFee, newListingFee);
         assertEq(config.tokenTotalSupply, newTokenTotalSupply);
-        assertEq(config.virtualNad, newVirtualNad);
+        assertEq(config.virtualNative, newVirtualNative);
         assertEq(config.virtualToken, newVirtualToken);
-        assertEq(config.k, newVirtualNad * newVirtualToken);
+        assertEq(config.k, newVirtualNative * newVirtualToken);
         assertEq(config.targetToken, newTargetToken);
         assertEq(config.feeNumerator, newFeeNumerator);
         assertEq(config.feeDenominator, newFeeDenominator);
@@ -149,7 +149,7 @@ contract BondingCurveFactoryTest is Test, SetUp {
                 deployFee: 0.03 ether,
                 listingFee: 2 ether,
                 tokenTotalSupply: 2 * 10 ** 27,
-                virtualNad: 40 * 10 ** 18,
+                virtualNative: 40 * 10 ** 18,
                 virtualToken: 2_073_000_191 * 10 ** 18,
                 targetToken: 306_900_000 * 10 ** 18,
                 feeNumerator: 2000,
@@ -172,7 +172,7 @@ contract BondingCurveFactoryTest is Test, SetUp {
     function testRevertInvalidDeployFee() public {
         vm.startPrank(OWNER);
         vm.deal(OWNER, DEPLOY_FEE - 1);
-        vm.expectRevert(bytes(ERR_CORE_INVALID_SEND_NAD));
+        vm.expectRevert(bytes(ERR_CORE_INVALID_SEND_NATIVE));
         CORE.createCurve{value: DEPLOY_FEE - 1}(
             TRADER_A,
             "Test",
