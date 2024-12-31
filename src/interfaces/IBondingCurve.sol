@@ -26,7 +26,7 @@ interface IBondingCurve {
         address indexed curve,
         address indexed token,
         address indexed pair,
-        uint256 listingWNadAamount,
+        uint256 listingWNativeAmount,
         uint256 listingTokenAmount,
         uint256 burnLiquidity
     );
@@ -36,7 +36,7 @@ interface IBondingCurve {
         uint256 virtualWNative,
         uint256 virtualToken,
         uint256 k,
-        uint256 targetWNad,
+        uint256 targetWNative,
         uint8 feeDenominator,
         uint16 feeNumerator
     ) external;
