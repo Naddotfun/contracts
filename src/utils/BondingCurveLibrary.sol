@@ -108,7 +108,7 @@ library BondingCurveLibrary {
      * @param factory Address of the bonding curve factory
      * @param token Token address associated with the curve
      * @return curve Address of the bonding curve
-     * @return virtualNad Virtual NAD reserve
+     * @return virtualNative Virtual NAD reserve
      * @return virtualToken Virtual token reserve
      * @return k Constant product k
      */
@@ -120,20 +120,20 @@ library BondingCurveLibrary {
         view
         returns (
             address curve,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken,
             uint256 k
         )
     {
         curve = getCurve(factory, token);
-        (virtualNad, virtualToken) = getVirtualReserves(curve);
+        (virtualNative, virtualToken) = getVirtualReserves(curve);
         k = BondingCurveLibrary.getK(curve);
     }
 
     /**
      * @notice Retrieves curve data directly from curve address
      * @param curve Address of the bonding curve
-     * @return virtualNad Virtual NAD reserve
+     * @return virtualNative Virtual NAD reserve
      * @return virtualToken Virtual token reserve
      * @return k Constant product k
      */
@@ -142,9 +142,9 @@ library BondingCurveLibrary {
     )
         internal
         view
-        returns (uint256 virtualNad, uint256 virtualToken, uint256 k)
+        returns (uint256 virtualNative, uint256 virtualToken, uint256 k)
     {
-        (virtualNad, virtualToken) = getVirtualReserves(curve);
+        (virtualNative, virtualToken) = getVirtualReserves(curve);
         k = BondingCurveLibrary.getK(curve);
     }
 
@@ -174,13 +174,13 @@ library BondingCurveLibrary {
     /**
      * @notice Retrieves virtual reserves from a bonding curve
      * @param curve Address of the bonding curve
-     * @return virtualNad Virtual NAD reserve
+     * @return virtualNative Virtual NAD reserve
      * @return virtualToken Virtual token reserve
      */
     function getVirtualReserves(
         address curve
-    ) internal view returns (uint256 virtualNad, uint256 virtualToken) {
-        (virtualNad, virtualToken) = IBondingCurve(curve).getVirtualReserves();
+    ) internal view returns (uint256 virtualNative, uint256 virtualToken) {
+        (virtualNative, virtualToken) = IBondingCurve(curve).getVirtualReserves();
     }
 
     /**

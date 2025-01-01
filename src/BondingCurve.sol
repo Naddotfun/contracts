@@ -13,7 +13,7 @@ import "./errors/Errors.sol";
 /**
  * @title BondingCurve
  * @dev Implementation of a bonding curve for token price discovery
- * Manages the relationship between NAD and project tokens using a constant product formula
+ * Manages the relationship between Native and project tokens using a constant product formula
  */
 contract BondingCurve is IBondingCurve {
     using TransferHelper for IERC20;
@@ -270,7 +270,7 @@ contract BondingCurve is IBondingCurve {
 
     /**
      * @notice Gets the current real token reserves
-     * @return nativeReserves The current real NAD reserves
+     * @return nativeReserves The current real Native reserves
      * @return tokenReserves The current real token reserves
      */
     function getReserves()
@@ -285,7 +285,7 @@ contract BondingCurve is IBondingCurve {
 
     /**
      * @notice Gets the current virtual reserves
-     * @return virtualNativeReserve The current virtual NAD reserves
+     * @return virtualNativeReserve The current virtual Native reserves
      * @return virtualTokenReserve The current virtual token reserves
      */
     function getVirtualReserves()

@@ -45,7 +45,7 @@ contract BondingCurveFactoryTest is Test, SetUp {
         (
             address curveAddress,
             address tokenAddress,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken,
             uint256 amountOut
         ) = CORE.createCurve{value: DEPLOY_FEE}(

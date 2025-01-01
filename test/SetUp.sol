@@ -175,11 +175,11 @@ contract SetUp is Test {
         //만약 1000개가 남아있는데 100개가 남을때까지 사고싶다면?
         //1000 - 100 = 900 만큼 사면됨.
         uint256 amountOut = realTokenReserves - TARGET_TOKEN;
-        (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE.getVirtualReserves();
         uint256 amountIn = BondingCurveLibrary.getAmountIn(
             amountOut,
             K,
-            virtualNad,
+            virtualNative,
             virtualToken
         );
         uint256 fee = amountIn / 100;

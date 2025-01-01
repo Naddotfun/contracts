@@ -165,7 +165,7 @@ contract BondingCurveLibraryTest is Test, SetUp {
         // Test getCurveData with factory and token
         (
             address curve,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken,
             uint256 k
         ) = BondingCurveLibrary.getCurveData(
@@ -177,15 +177,15 @@ contract BondingCurveLibraryTest is Test, SetUp {
         assertEq(curve, address(CURVE), "Curve address mismatch");
         (uint256 expectedVNad, uint256 expectedVToken) = CURVE
             .getVirtualReserves();
-        assertEq(virtualNad, expectedVNad, "Virtual NAD mismatch");
+        assertEq(virtualNative, expectedVNad, "Virtual NAD mismatch");
         assertEq(virtualToken, expectedVToken, "Virtual token mismatch");
         assertEq(k, CURVE.getK(), "K value mismatch");
 
         // Test getCurveData with curve address directly
-        (virtualNad, virtualToken, k) = BondingCurveLibrary.getCurveData(
+        (virtualNative, virtualToken, k) = BondingCurveLibrary.getCurveData(
             address(CURVE)
         );
-        assertEq(virtualNad, expectedVNad, "Virtual NAD mismatch (direct)");
+        assertEq(virtualNative, expectedVNad, "Virtual NAD mismatch (direct)");
         assertEq(
             virtualToken,
             expectedVToken,
@@ -219,12 +219,12 @@ contract BondingCurveLibraryTest is Test, SetUp {
     function testGetVirtualReserves() public {
         CreateBondingCurve(CREATOR);
 
-        (uint256 virtualNad, uint256 virtualToken) = BondingCurveLibrary
+        (uint256 virtualNative, uint256 virtualToken) = BondingCurveLibrary
             .getVirtualReserves(address(CURVE));
 
         (uint256 expectedVNad, uint256 expectedVToken) = CURVE
             .getVirtualReserves();
-        assertEq(virtualNad, expectedVNad, "Virtual NAD mismatch");
+        assertEq(virtualNative, expectedVNad, "Virtual NAD mismatch");
         assertEq(virtualToken, expectedVToken, "Virtual token mismatch");
     }
 

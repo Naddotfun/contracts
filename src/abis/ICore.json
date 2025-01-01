@@ -1,567 +1,638 @@
-[
-  {
-    "type": "function",
-    "name": "buy",
-    "inputs": [
-      {
-        "name": "amountIn",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "fee",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "deadline",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "payable"
+{
+  "abi": [
+    {
+      "type": "function",
+      "name": "buy",
+      "inputs": [
+        { "name": "amountIn", "type": "uint256", "internalType": "uint256" },
+        { "name": "fee", "type": "uint256", "internalType": "uint256" },
+        { "name": "token", "type": "address", "internalType": "address" },
+        { "name": "to", "type": "address", "internalType": "address" },
+        { "name": "deadline", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [],
+      "stateMutability": "payable"
+    },
+    {
+      "type": "function",
+      "name": "buyAmountOutMin",
+      "inputs": [
+        { "name": "amountIn", "type": "uint256", "internalType": "uint256" },
+        {
+          "name": "amountOutMin",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        { "name": "fee", "type": "uint256", "internalType": "uint256" },
+        { "name": "token", "type": "address", "internalType": "address" },
+        { "name": "to", "type": "address", "internalType": "address" },
+        { "name": "deadline", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [],
+      "stateMutability": "payable"
+    },
+    {
+      "type": "function",
+      "name": "buyExactAmountOut",
+      "inputs": [
+        { "name": "amountOut", "type": "uint256", "internalType": "uint256" },
+        { "name": "amountInMax", "type": "uint256", "internalType": "uint256" },
+        { "name": "token", "type": "address", "internalType": "address" },
+        { "name": "to", "type": "address", "internalType": "address" },
+        { "name": "deadline", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [],
+      "stateMutability": "payable"
+    },
+    {
+      "type": "function",
+      "name": "createCurve",
+      "inputs": [
+        { "name": "creator", "type": "address", "internalType": "address" },
+        { "name": "name", "type": "string", "internalType": "string" },
+        { "name": "symbol", "type": "string", "internalType": "string" },
+        { "name": "tokenURI", "type": "string", "internalType": "string" },
+        { "name": "amountIn", "type": "uint256", "internalType": "uint256" },
+        { "name": "fee", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [
+        { "name": "curve", "type": "address", "internalType": "address" },
+        { "name": "token", "type": "address", "internalType": "address" },
+        { "name": "virtualNad", "type": "uint256", "internalType": "uint256" },
+        {
+          "name": "virtualToken",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        { "name": "amountOut", "type": "uint256", "internalType": "uint256" }
+      ],
+      "stateMutability": "payable"
+    },
+    {
+      "type": "function",
+      "name": "getAmountIn",
+      "inputs": [
+        { "name": "amountOut", "type": "uint256", "internalType": "uint256" },
+        { "name": "k", "type": "uint256", "internalType": "uint256" },
+        { "name": "reserveIn", "type": "uint256", "internalType": "uint256" },
+        { "name": "reserveOut", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [
+        { "name": "amountIn", "type": "uint256", "internalType": "uint256" }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "getAmountOut",
+      "inputs": [
+        { "name": "amountIn", "type": "uint256", "internalType": "uint256" },
+        { "name": "k", "type": "uint256", "internalType": "uint256" },
+        { "name": "reserveIn", "type": "uint256", "internalType": "uint256" },
+        { "name": "reserveOut", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [
+        { "name": "amountOut", "type": "uint256", "internalType": "uint256" }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "getCurveData",
+      "inputs": [
+        { "name": "_factory", "type": "address", "internalType": "address" },
+        { "name": "token", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [
+        { "name": "curve", "type": "address", "internalType": "address" },
+        { "name": "virtualNad", "type": "uint256", "internalType": "uint256" },
+        {
+          "name": "virtualToken",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        { "name": "k", "type": "uint256", "internalType": "uint256" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getCurveData",
+      "inputs": [
+        { "name": "curve", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [
+        { "name": "virtualNad", "type": "uint256", "internalType": "uint256" },
+        {
+          "name": "virtualToken",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        { "name": "k", "type": "uint256", "internalType": "uint256" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getFeeVault",
+      "inputs": [],
+      "outputs": [
+        { "name": "feeVault", "type": "address", "internalType": "address" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "sell",
+      "inputs": [
+        { "name": "amountIn", "type": "uint256", "internalType": "uint256" },
+        { "name": "token", "type": "address", "internalType": "address" },
+        { "name": "to", "type": "address", "internalType": "address" },
+        { "name": "deadline", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "sellAmountOutMin",
+      "inputs": [
+        { "name": "amountIn", "type": "uint256", "internalType": "uint256" },
+        {
+          "name": "amountOutMin",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        { "name": "token", "type": "address", "internalType": "address" },
+        { "name": "to", "type": "address", "internalType": "address" },
+        { "name": "deadline", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "sellAmountOutMinWithPermit",
+      "inputs": [
+        { "name": "amountIn", "type": "uint256", "internalType": "uint256" },
+        {
+          "name": "amountOutMin",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        { "name": "token", "type": "address", "internalType": "address" },
+        { "name": "from", "type": "address", "internalType": "address" },
+        { "name": "to", "type": "address", "internalType": "address" },
+        { "name": "deadline", "type": "uint256", "internalType": "uint256" },
+        { "name": "v", "type": "uint8", "internalType": "uint8" },
+        { "name": "r", "type": "bytes32", "internalType": "bytes32" },
+        { "name": "s", "type": "bytes32", "internalType": "bytes32" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "sellExactAmountOut",
+      "inputs": [
+        { "name": "amountOut", "type": "uint256", "internalType": "uint256" },
+        { "name": "amountInMax", "type": "uint256", "internalType": "uint256" },
+        { "name": "token", "type": "address", "internalType": "address" },
+        { "name": "to", "type": "address", "internalType": "address" },
+        { "name": "deadline", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [],
+      "stateMutability": "payable"
+    },
+    {
+      "type": "function",
+      "name": "sellExactAmountOutwithPermit",
+      "inputs": [
+        { "name": "amountOut", "type": "uint256", "internalType": "uint256" },
+        { "name": "amountInMax", "type": "uint256", "internalType": "uint256" },
+        { "name": "token", "type": "address", "internalType": "address" },
+        { "name": "from", "type": "address", "internalType": "address" },
+        { "name": "to", "type": "address", "internalType": "address" },
+        { "name": "deadline", "type": "uint256", "internalType": "uint256" },
+        { "name": "v", "type": "uint8", "internalType": "uint8" },
+        { "name": "r", "type": "bytes32", "internalType": "bytes32" },
+        { "name": "s", "type": "bytes32", "internalType": "bytes32" }
+      ],
+      "outputs": [],
+      "stateMutability": "payable"
+    },
+    {
+      "type": "function",
+      "name": "sellPermit",
+      "inputs": [
+        { "name": "amountIn", "type": "uint256", "internalType": "uint256" },
+        { "name": "token", "type": "address", "internalType": "address" },
+        { "name": "from", "type": "address", "internalType": "address" },
+        { "name": "to", "type": "address", "internalType": "address" },
+        { "name": "deadline", "type": "uint256", "internalType": "uint256" },
+        { "name": "v", "type": "uint8", "internalType": "uint8" },
+        { "name": "r", "type": "bytes32", "internalType": "bytes32" },
+        { "name": "s", "type": "bytes32", "internalType": "bytes32" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    }
+  ],
+  "bytecode": { "object": "0x", "sourceMap": "", "linkReferences": {} },
+  "deployedBytecode": { "object": "0x", "sourceMap": "", "linkReferences": {} },
+  "methodIdentifiers": {
+    "buy(uint256,uint256,address,address,uint256)": "526cc7a7",
+    "buyAmountOutMin(uint256,uint256,uint256,address,address,uint256)": "3bd7042d",
+    "buyExactAmountOut(uint256,uint256,address,address,uint256)": "19a5049f",
+    "createCurve(address,string,string,string,uint256,uint256)": "02a57915",
+    "getAmountIn(uint256,uint256,uint256,uint256)": "571fd012",
+    "getAmountOut(uint256,uint256,uint256,uint256)": "52707d8c",
+    "getCurveData(address)": "f98355e4",
+    "getCurveData(address,address)": "61babc76",
+    "getFeeVault()": "ec0f7cf0",
+    "sell(uint256,address,address,uint256)": "e548cedd",
+    "sellAmountOutMin(uint256,uint256,address,address,uint256)": "feb20030",
+    "sellAmountOutMinWithPermit(uint256,uint256,address,address,address,uint256,uint8,bytes32,bytes32)": "2a7f6367",
+    "sellExactAmountOut(uint256,uint256,address,address,uint256)": "849f72ce",
+    "sellExactAmountOutwithPermit(uint256,uint256,address,address,address,uint256,uint8,bytes32,bytes32)": "663a313e",
+    "sellPermit(uint256,address,address,address,uint256,uint8,bytes32,bytes32)": "34d8f707"
   },
-  {
-    "type": "function",
-    "name": "buyAmountOutMin",
-    "inputs": [
-      {
-        "name": "amountIn",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "amountOutMin",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "fee",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "deadline",
-        "type": "uint256",
-        "internalType": "uint256"
+  "rawMetadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amountIn\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fee\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"}],\"name\":\"buy\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amountIn\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amountOutMin\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fee\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"}],\"name\":\"buyAmountOutMin\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amountOut\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amountInMax\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"}],\"name\":\"buyExactAmountOut\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"creator\",\"type\":\"address\"},{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"tokenURI\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"amountIn\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fee\",\"type\":\"uint256\"}],\"name\":\"createCurve\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"curve\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"virtualNad\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"virtualToken\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amountOut\",\"type\":\"uint256\"}],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amountOut\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"k\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"reserveIn\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"reserveOut\",\"type\":\"uint256\"}],\"name\":\"getAmountIn\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"amountIn\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amountIn\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"k\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"reserveIn\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"reserveOut\",\"type\":\"uint256\"}],\"name\":\"getAmountOut\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"amountOut\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_factory\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"}],\"name\":\"getCurveData\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"curve\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"virtualNad\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"virtualToken\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"k\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"curve\",\"type\":\"address\"}],\"name\":\"getCurveData\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"virtualNad\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"virtualToken\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"k\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getFeeVault\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"feeVault\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amountIn\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"}],\"name\":\"sell\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amountIn\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amountOutMin\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"}],\"name\":\"sellAmountOutMin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amountIn\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amountOutMin\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"uint8\",\"name\":\"v\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"r\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"s\",\"type\":\"bytes32\"}],\"name\":\"sellAmountOutMinWithPermit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amountOut\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amountInMax\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"}],\"name\":\"sellExactAmountOut\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amountOut\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amountInMax\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"uint8\",\"name\":\"v\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"r\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"s\",\"type\":\"bytes32\"}],\"name\":\"sellExactAmountOutwithPermit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amountIn\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"uint8\",\"name\":\"v\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"r\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"s\",\"type\":\"bytes32\"}],\"name\":\"sellPermit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/interfaces/ICore.sol\":\"ICore\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":1000},\"remappings\":[\":@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/\",\":erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/\",\":forge-std/=lib/forge-std/src/\",\":halmos-cheatcodes/=lib/openzeppelin-contracts/lib/halmos-cheatcodes/src/\",\":openzeppelin-contracts/=lib/openzeppelin-contracts/\"],\"viaIR\":true},\"sources\":{\"src/interfaces/ICore.sol\":{\"keccak256\":\"0x106c5b0d093adc6277b59e4587d31fe71bea5160304ea43211011e3ff291e85a\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://1fa72659a894e740e5170ab0db3e8289af51d7709ef11b179a768c6330aeddaf\",\"dweb:/ipfs/QmeE4uqZrz5DFCVfko4JSxmbqwF1pDrxVeouwLLEpKwWJr\"]}},\"version\":1}",
+  "metadata": {
+    "compiler": { "version": "0.8.20+commit.a1b79de6" },
+    "language": "Solidity",
+    "output": {
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "amountIn",
+              "type": "uint256"
+            },
+            { "internalType": "uint256", "name": "fee", "type": "uint256" },
+            { "internalType": "address", "name": "token", "type": "address" },
+            { "internalType": "address", "name": "to", "type": "address" },
+            { "internalType": "uint256", "name": "deadline", "type": "uint256" }
+          ],
+          "stateMutability": "payable",
+          "type": "function",
+          "name": "buy"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "amountIn",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountOutMin",
+              "type": "uint256"
+            },
+            { "internalType": "uint256", "name": "fee", "type": "uint256" },
+            { "internalType": "address", "name": "token", "type": "address" },
+            { "internalType": "address", "name": "to", "type": "address" },
+            { "internalType": "uint256", "name": "deadline", "type": "uint256" }
+          ],
+          "stateMutability": "payable",
+          "type": "function",
+          "name": "buyAmountOutMin"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "amountOut",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountInMax",
+              "type": "uint256"
+            },
+            { "internalType": "address", "name": "token", "type": "address" },
+            { "internalType": "address", "name": "to", "type": "address" },
+            { "internalType": "uint256", "name": "deadline", "type": "uint256" }
+          ],
+          "stateMutability": "payable",
+          "type": "function",
+          "name": "buyExactAmountOut"
+        },
+        {
+          "inputs": [
+            { "internalType": "address", "name": "creator", "type": "address" },
+            { "internalType": "string", "name": "name", "type": "string" },
+            { "internalType": "string", "name": "symbol", "type": "string" },
+            { "internalType": "string", "name": "tokenURI", "type": "string" },
+            {
+              "internalType": "uint256",
+              "name": "amountIn",
+              "type": "uint256"
+            },
+            { "internalType": "uint256", "name": "fee", "type": "uint256" }
+          ],
+          "stateMutability": "payable",
+          "type": "function",
+          "name": "createCurve",
+          "outputs": [
+            { "internalType": "address", "name": "curve", "type": "address" },
+            { "internalType": "address", "name": "token", "type": "address" },
+            {
+              "internalType": "uint256",
+              "name": "virtualNad",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "virtualToken",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountOut",
+              "type": "uint256"
+            }
+          ]
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "amountOut",
+              "type": "uint256"
+            },
+            { "internalType": "uint256", "name": "k", "type": "uint256" },
+            {
+              "internalType": "uint256",
+              "name": "reserveIn",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "reserveOut",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "pure",
+          "type": "function",
+          "name": "getAmountIn",
+          "outputs": [
+            { "internalType": "uint256", "name": "amountIn", "type": "uint256" }
+          ]
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "amountIn",
+              "type": "uint256"
+            },
+            { "internalType": "uint256", "name": "k", "type": "uint256" },
+            {
+              "internalType": "uint256",
+              "name": "reserveIn",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "reserveOut",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "pure",
+          "type": "function",
+          "name": "getAmountOut",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "amountOut",
+              "type": "uint256"
+            }
+          ]
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_factory",
+              "type": "address"
+            },
+            { "internalType": "address", "name": "token", "type": "address" }
+          ],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "getCurveData",
+          "outputs": [
+            { "internalType": "address", "name": "curve", "type": "address" },
+            {
+              "internalType": "uint256",
+              "name": "virtualNad",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "virtualToken",
+              "type": "uint256"
+            },
+            { "internalType": "uint256", "name": "k", "type": "uint256" }
+          ]
+        },
+        {
+          "inputs": [
+            { "internalType": "address", "name": "curve", "type": "address" }
+          ],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "getCurveData",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "virtualNad",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "virtualToken",
+              "type": "uint256"
+            },
+            { "internalType": "uint256", "name": "k", "type": "uint256" }
+          ]
+        },
+        {
+          "inputs": [],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "getFeeVault",
+          "outputs": [
+            { "internalType": "address", "name": "feeVault", "type": "address" }
+          ]
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "amountIn",
+              "type": "uint256"
+            },
+            { "internalType": "address", "name": "token", "type": "address" },
+            { "internalType": "address", "name": "to", "type": "address" },
+            { "internalType": "uint256", "name": "deadline", "type": "uint256" }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function",
+          "name": "sell"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "amountIn",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountOutMin",
+              "type": "uint256"
+            },
+            { "internalType": "address", "name": "token", "type": "address" },
+            { "internalType": "address", "name": "to", "type": "address" },
+            { "internalType": "uint256", "name": "deadline", "type": "uint256" }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function",
+          "name": "sellAmountOutMin"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "amountIn",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountOutMin",
+              "type": "uint256"
+            },
+            { "internalType": "address", "name": "token", "type": "address" },
+            { "internalType": "address", "name": "from", "type": "address" },
+            { "internalType": "address", "name": "to", "type": "address" },
+            {
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            },
+            { "internalType": "uint8", "name": "v", "type": "uint8" },
+            { "internalType": "bytes32", "name": "r", "type": "bytes32" },
+            { "internalType": "bytes32", "name": "s", "type": "bytes32" }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function",
+          "name": "sellAmountOutMinWithPermit"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "amountOut",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountInMax",
+              "type": "uint256"
+            },
+            { "internalType": "address", "name": "token", "type": "address" },
+            { "internalType": "address", "name": "to", "type": "address" },
+            { "internalType": "uint256", "name": "deadline", "type": "uint256" }
+          ],
+          "stateMutability": "payable",
+          "type": "function",
+          "name": "sellExactAmountOut"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "amountOut",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountInMax",
+              "type": "uint256"
+            },
+            { "internalType": "address", "name": "token", "type": "address" },
+            { "internalType": "address", "name": "from", "type": "address" },
+            { "internalType": "address", "name": "to", "type": "address" },
+            {
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            },
+            { "internalType": "uint8", "name": "v", "type": "uint8" },
+            { "internalType": "bytes32", "name": "r", "type": "bytes32" },
+            { "internalType": "bytes32", "name": "s", "type": "bytes32" }
+          ],
+          "stateMutability": "payable",
+          "type": "function",
+          "name": "sellExactAmountOutwithPermit"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "amountIn",
+              "type": "uint256"
+            },
+            { "internalType": "address", "name": "token", "type": "address" },
+            { "internalType": "address", "name": "from", "type": "address" },
+            { "internalType": "address", "name": "to", "type": "address" },
+            {
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            },
+            { "internalType": "uint8", "name": "v", "type": "uint8" },
+            { "internalType": "bytes32", "name": "r", "type": "bytes32" },
+            { "internalType": "bytes32", "name": "s", "type": "bytes32" }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function",
+          "name": "sellPermit"
+        }
+      ],
+      "devdoc": { "kind": "dev", "methods": {}, "version": 1 },
+      "userdoc": { "kind": "user", "methods": {}, "version": 1 }
+    },
+    "settings": {
+      "remappings": [
+        "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+        "erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/",
+        "forge-std/=lib/forge-std/src/",
+        "halmos-cheatcodes/=lib/openzeppelin-contracts/lib/halmos-cheatcodes/src/",
+        "openzeppelin-contracts/=lib/openzeppelin-contracts/"
+      ],
+      "optimizer": { "enabled": true, "runs": 1000 },
+      "metadata": { "bytecodeHash": "ipfs" },
+      "compilationTarget": { "src/interfaces/ICore.sol": "ICore" },
+      "evmVersion": "paris",
+      "libraries": {},
+      "viaIR": true
+    },
+    "sources": {
+      "src/interfaces/ICore.sol": {
+        "keccak256": "0x106c5b0d093adc6277b59e4587d31fe71bea5160304ea43211011e3ff291e85a",
+        "urls": [
+          "bzz-raw://1fa72659a894e740e5170ab0db3e8289af51d7709ef11b179a768c6330aeddaf",
+          "dweb:/ipfs/QmeE4uqZrz5DFCVfko4JSxmbqwF1pDrxVeouwLLEpKwWJr"
+        ],
+        "license": "MIT"
       }
-    ],
-    "outputs": [],
-    "stateMutability": "payable"
+    },
+    "version": 1
   },
-  {
-    "type": "function",
-    "name": "buyExactAmountOut",
-    "inputs": [
-      {
-        "name": "amountOut",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "amountInMax",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "deadline",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "payable"
-  },
-  {
-    "type": "function",
-    "name": "createCurve",
-    "inputs": [
-      {
-        "name": "creator",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "name",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "symbol",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "tokenURI",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "amountIn",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "fee",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "curve",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "virtualNad",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "virtualToken",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "amountOut",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "payable"
-  },
-  {
-    "type": "function",
-    "name": "getAmountIn",
-    "inputs": [
-      {
-        "name": "amountOut",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "k",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "reserveIn",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "reserveOut",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "amountIn",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "pure"
-  },
-  {
-    "type": "function",
-    "name": "getAmountOut",
-    "inputs": [
-      {
-        "name": "amountIn",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "k",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "reserveIn",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "reserveOut",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "amountOut",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "pure"
-  },
-  {
-    "type": "function",
-    "name": "getCurveData",
-    "inputs": [
-      {
-        "name": "_factory",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "curve",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "virtualNad",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "virtualToken",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "k",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getCurveData",
-    "inputs": [
-      {
-        "name": "curve",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "virtualNad",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "virtualToken",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "k",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getFeeVault",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "feeVault",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "sell",
-    "inputs": [
-      {
-        "name": "amountIn",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "deadline",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "sellAmountOutMin",
-    "inputs": [
-      {
-        "name": "amountIn",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "amountOutMin",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "deadline",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "sellAmountOutMinWithPermit",
-    "inputs": [
-      {
-        "name": "amountIn",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "amountOutMin",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "from",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "deadline",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "v",
-        "type": "uint8",
-        "internalType": "uint8"
-      },
-      {
-        "name": "r",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "s",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "sellExactAmountOut",
-    "inputs": [
-      {
-        "name": "amountOut",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "amountInMax",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "deadline",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "payable"
-  },
-  {
-    "type": "function",
-    "name": "sellExactAmountOutwithPermit",
-    "inputs": [
-      {
-        "name": "amountOut",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "amountInMax",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "from",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "deadline",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "v",
-        "type": "uint8",
-        "internalType": "uint8"
-      },
-      {
-        "name": "r",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "s",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "payable"
-  },
-  {
-    "type": "function",
-    "name": "sellPermit",
-    "inputs": [
-      {
-        "name": "amountIn",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "from",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "deadline",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "v",
-        "type": "uint8",
-        "internalType": "uint8"
-      },
-      {
-        "name": "r",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "s",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  }
-]
+  "id": 61
+}

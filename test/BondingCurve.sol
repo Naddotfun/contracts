@@ -25,9 +25,9 @@ contract BondingCurveTest is Test, SetUp {
         assertEq(address(CURVE.token()), address(MEME_TOKEN));
 
         // Check virtual reserves
-        (uint256 virtualNadAmount, uint256 virtualTokenAmount) = CURVE
+        (uint256 virtualNativeAmount, uint256 virtualTokenAmount) = CURVE
             .getVirtualReserves();
-        assertEq(virtualNadAmount, VIRTUAL_NATIVE);
+        assertEq(virtualNativeAmount, VIRTUAL_NATIVE);
         assertEq(virtualTokenAmount, VIRTUAL_TOKEN);
 
         // Check fee configuration
@@ -50,11 +50,11 @@ contract BondingCurveTest is Test, SetUp {
         vm.deal(TRADER_A, amountIn + fee);
 
         // Calculate expected amount out
-        (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE.getVirtualReserves();
         uint256 expectedAmountOut = BondingCurveLibrary.getAmountOut(
             amountIn,
             CURVE.getK(),
-            virtualNad,
+            virtualNative,
             virtualToken
         );
 
@@ -70,8 +70,8 @@ contract BondingCurveTest is Test, SetUp {
 
         // Verify balances and reserves
         assertEq(MEME_TOKEN.balanceOf(TRADER_A), expectedAmountOut);
-        (uint256 realNad, uint256 realToken) = CURVE.getReserves();
-        assertEq(realNad, amountIn);
+        (uint256 realNative, uint256 realToken) = CURVE.getReserves();
+        assertEq(realNative, amountIn);
         assertEq(realToken, TOKEN_TOTAL_SUPPLY - expectedAmountOut);
         vm.stopPrank();
     }
@@ -111,7 +111,7 @@ contract BondingCurveTest is Test, SetUp {
     function testListing() public {
         // Buy enough tokens to reach target
         vm.startPrank(TRADER_A);
-        (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE.getVirtualReserves();
         (, uint256 realTokenReserves) = CURVE.getReserves();
 
         // Calculate exact amount needed to reach TARGET_TOKEN
@@ -119,7 +119,7 @@ contract BondingCurveTest is Test, SetUp {
         uint256 requiredAmount = BondingCurveLibrary.getAmountIn(
             amountOutDesired,
             CURVE.getK(),
-            virtualNad,
+            virtualNative,
             virtualToken
         );
         console.log(requiredAmount);
@@ -127,7 +127,7 @@ contract BondingCurveTest is Test, SetUp {
         uint getAmount = BondingCurveLibrary.getAmountOut(
             requiredAmount,
             CURVE.getK(),
-            virtualNad,
+            virtualNative,
             virtualToken
         );
         console.log(getAmount);
