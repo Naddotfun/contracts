@@ -24,7 +24,7 @@ contract CoreCreateTest is Test, SetUp {
         (
             address curveAddress,
             address tokenAddress,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken,
             uint256 amountOut
         ) = CORE.createCurve{value: DEPLOY_FEE}(
@@ -49,7 +49,7 @@ contract CoreCreateTest is Test, SetUp {
         // Verify initial virtual reserves
         (uint256 vNad, uint256 vToken) = BondingCurve(payable(curveAddress))
             .getVirtualReserves();
-        assertEq(vNad, virtualNad);
+        assertEq(vNad, virtualNative);
         assertEq(vToken, virtualToken);
 
         // Verify fees went to vault
@@ -67,7 +67,7 @@ contract CoreCreateTest is Test, SetUp {
         (
             address curveAddress,
             address tokenAddress,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken,
             uint256 amountOut
         ) = CORE.createCurve{value: initialNad + fee + DEPLOY_FEE}(
@@ -86,7 +86,7 @@ contract CoreCreateTest is Test, SetUp {
         // Verify initial liquidity
         (uint256 vNad, uint256 vToken) = BondingCurve(payable(curveAddress))
             .getVirtualReserves();
-        assertEq(vNad, virtualNad);
+        assertEq(vNad, virtualNative);
         assertTrue(amountOut > 0);
 
         // Verify fees went to vault
@@ -265,7 +265,7 @@ contract CoreBuyTest is Test, SetUp {
     // ============ BuyAmountOunMin Tests ============
 
     // ============ Success Tests ============
-    function testBuyAmountOutMinSuccess() public {
+    function testProtectBuySuccess() public {
         // Setup
         vm.startPrank(OWNER);
         vm.deal(OWNER, 100 ether);
@@ -274,11 +274,12 @@ contract CoreBuyTest is Test, SetUp {
         uint256 fee = amountIn / 100; // 1% fee
 
         //AMOUNT Out 계산
-        (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE
+            .getVirtualReserves();
         uint256 amountOutMin = BondingCurveLibrary.getAmountOut(
             amountIn,
             CURVE.getK(),
-            virtualNad,
+            virtualNative,
             virtualToken
         );
 
@@ -286,7 +287,7 @@ contract CoreBuyTest is Test, SetUp {
         uint256 deadline = block.timestamp + 1 hours;
 
         // Execute buy with minimum amount out
-        CORE.buyAmountOutMin{value: amountIn + fee}(
+        CORE.protectBuy{value: amountIn + fee}(
             amountIn,
             amountOutMin - 1,
             fee,
@@ -303,7 +304,7 @@ contract CoreBuyTest is Test, SetUp {
     }
 
     // ============ Failure Tests ============
-    function testBuyAmountOutMinFailInvalidNadAmount() public {
+    function testProtectBuyFailInvalidNadAmount() public {
         vm.startPrank(OWNER);
         vm.deal(OWNER, 100 ether);
 
@@ -311,11 +312,12 @@ contract CoreBuyTest is Test, SetUp {
         uint256 fee = amountIn / 100; // 1% fee
 
         //AMOUNT Out Calculation
-        (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE
+            .getVirtualReserves();
         uint256 amountOut = BondingCurveLibrary.getAmountOut(
             amountIn,
             CURVE.getK(),
-            virtualNad,
+            virtualNative,
             virtualToken
         );
 
@@ -325,7 +327,7 @@ contract CoreBuyTest is Test, SetUp {
 
         // Should fail because msg.value < amountIn + fee
         vm.expectRevert(bytes(ERR_CORE_INVALID_SEND_NATIVE));
-        CORE.buyAmountOutMin{value: amountIn}(
+        CORE.protectBuy{value: amountIn}(
             amountIn,
             amountOutMin, //Amount Out Min should be less than amountOut
             fee,
@@ -336,7 +338,7 @@ contract CoreBuyTest is Test, SetUp {
         vm.stopPrank();
     }
 
-    function testBuyAmountOutMinFailInvalidAmountOut() public {
+    function testProtectBuyFailInvalidAmountOut() public {
         vm.startPrank(OWNER);
         vm.deal(OWNER, 100 ether);
 
@@ -344,11 +346,12 @@ contract CoreBuyTest is Test, SetUp {
         uint256 fee = amountIn / 100; // 1% fee
 
         //AMOUNT Out 계산
-        (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE
+            .getVirtualReserves();
         uint256 amountOutMin = BondingCurveLibrary.getAmountOut(
             amountIn,
             CURVE.getK(),
-            virtualNad,
+            virtualNative,
             virtualToken
         );
         // Set amountOutMin higher than possible output
@@ -356,7 +359,7 @@ contract CoreBuyTest is Test, SetUp {
         uint256 deadline = block.timestamp + 1 hours;
 
         vm.expectRevert(bytes(ERR_CORE_INVALID_AMOUNT_OUT));
-        CORE.buyAmountOutMin{value: amountIn + fee}(
+        CORE.protectBuy{value: amountIn + fee}(
             amountIn,
             amountOutMin,
             fee,
@@ -367,7 +370,7 @@ contract CoreBuyTest is Test, SetUp {
         vm.stopPrank();
     }
 
-    function testBuyAmountOutMinFailExpiredDeadline() public {
+    function testProtectBuyFailExpiredDeadline() public {
         vm.startPrank(OWNER);
         vm.deal(OWNER, 100 ether);
 
@@ -375,17 +378,18 @@ contract CoreBuyTest is Test, SetUp {
         uint256 fee = amountIn / 100; // 1% fee
 
         //AMOUNT Out 계산
-        (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE
+            .getVirtualReserves();
         uint256 amountOutMin = BondingCurveLibrary.getAmountOut(
             amountIn,
             CURVE.getK(),
-            virtualNad,
+            virtualNative,
             virtualToken
         );
         uint256 deadline = block.timestamp - 1; // Expired deadline
 
         vm.expectRevert(bytes(ERR_CORE_EXPIRED));
-        CORE.buyAmountOutMin{value: amountIn + fee}(
+        CORE.protectBuy{value: amountIn + fee}(
             amountIn,
             amountOutMin,
             fee,
@@ -398,18 +402,19 @@ contract CoreBuyTest is Test, SetUp {
 
     //=========== Buy Exact Amount Out Tests ============
     // ============ Success Tests ============
-    function testBuyExactAmountOutSuccess() public {
+    function testExactOutBuySuccess() public {
         vm.startPrank(OWNER);
         vm.deal(OWNER, 100 ether);
 
         uint256 amountOut = 1 ether;
 
         // Calculate required amountIn
-        (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE
+            .getVirtualReserves();
         uint256 amountIn = BondingCurveLibrary.getAmountIn(
             amountOut,
             CURVE.getK(),
-            virtualNad,
+            virtualNative,
             virtualToken
         );
 
@@ -425,7 +430,7 @@ contract CoreBuyTest is Test, SetUp {
         uint256 deadline = block.timestamp + 1 hours;
 
         // Execute buy exact amount out
-        CORE.buyExactAmountOut{value: amountInMax}(
+        CORE.exactOutBuy{value: amountInMax}(
             amountOut,
             amountInMax,
             address(MEME_TOKEN),
@@ -439,18 +444,19 @@ contract CoreBuyTest is Test, SetUp {
     }
 
     // ============ Failure Tests ============
-    function testBuyExactAmountOutFailInvalidNadAmount() public {
+    function testExactOutBuyFailInvalidNadAmount() public {
         vm.startPrank(OWNER);
         vm.deal(OWNER, 100 ether);
 
         uint256 amountOut = 1 ether;
 
         // Calculate required amountIn
-        (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE
+            .getVirtualReserves();
         uint256 amountIn = BondingCurveLibrary.getAmountIn(
             amountOut,
             CURVE.getK(),
-            virtualNad,
+            virtualNative,
             virtualToken
         );
 
@@ -467,7 +473,7 @@ contract CoreBuyTest is Test, SetUp {
 
         // Should fail because msg.value < amountInMax
         vm.expectRevert(bytes(ERR_CORE_INVALID_SEND_NATIVE));
-        CORE.buyExactAmountOut{value: amountInMax - 1}(
+        CORE.exactOutBuy{value: amountInMax - 1}(
             amountOut,
             amountInMax,
             address(MEME_TOKEN),
@@ -477,18 +483,19 @@ contract CoreBuyTest is Test, SetUp {
         vm.stopPrank();
     }
 
-    function testBuyExactAmountOutFailInvalidAmountInMax() public {
+    function testExactOutBuyFailInvalidAmountInMax() public {
         vm.startPrank(OWNER);
         vm.deal(OWNER, 100 ether);
 
         uint256 amountOut = 1 ether;
 
         // Calculate required amountIn
-        (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE
+            .getVirtualReserves();
         uint256 amountIn = BondingCurveLibrary.getAmountIn(
             amountOut,
             CURVE.getK(),
-            virtualNad,
+            virtualNative,
             virtualToken
         );
 
@@ -505,7 +512,7 @@ contract CoreBuyTest is Test, SetUp {
         uint256 deadline = block.timestamp + 1 hours;
 
         vm.expectRevert(bytes(ERR_CORE_INVALID_AMOUNT_IN_MAX));
-        CORE.buyExactAmountOut{value: amountInMax}(
+        CORE.exactOutBuy{value: amountInMax}(
             amountOut,
             amountInMax,
             address(MEME_TOKEN),
@@ -515,18 +522,19 @@ contract CoreBuyTest is Test, SetUp {
         vm.stopPrank();
     }
 
-    function testBuyExactAmountOutFailExpiredDeadline() public {
+    function testExactOutBuyFailExpiredDeadline() public {
         vm.startPrank(OWNER);
         vm.deal(OWNER, 100 ether);
 
         uint256 amountOut = 1 ether;
 
         // Calculate required amountIn
-        (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE
+            .getVirtualReserves();
         uint256 amountIn = BondingCurveLibrary.getAmountIn(
             amountOut,
             CURVE.getK(),
-            virtualNad,
+            virtualNative,
             virtualToken
         );
 
@@ -542,7 +550,7 @@ contract CoreBuyTest is Test, SetUp {
         uint256 deadline = block.timestamp - 1; // Expired deadline
 
         vm.expectRevert(bytes(ERR_CORE_EXPIRED));
-        CORE.buyExactAmountOut{value: amountInMax}(
+        CORE.exactOutBuy{value: amountInMax}(
             amountOut,
             amountInMax,
             address(MEME_TOKEN),
@@ -572,7 +580,8 @@ contract CoreSellTest is Test, SetUp {
         uint256 initialTokenBalance = MEME_TOKEN.balanceOf(TRADER_A);
 
         // 본딩 커브의 가상 준비금 가져오기
-        (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE
+            .getVirtualReserves();
         uint256 k = CURVE.getK();
 
         // 예상 출력값 계산
@@ -580,7 +589,7 @@ contract CoreSellTest is Test, SetUp {
             amountIn,
             k,
             virtualToken,
-            virtualNad
+            virtualNative
         );
         (uint8 denominator, uint16 numerator) = CURVE.getFeeConfig();
         uint256 expectedFee = BondingCurveLibrary.getFeeAmount(
@@ -637,8 +646,8 @@ contract CoreSellTest is Test, SetUp {
         CORE.sell(amountIn, address(MEME_TOKEN), address(this), deadline);
     }
 
-    //=========== SellAmountOutMin Tests ============
-    function testSellAmountOutMinSuccess() public {
+    //=========== ProtectSell Tests ============
+    function testProtectSellSuccess() public {
         uint256 amountIn = 1e18;
 
         // TRADER_A가 토큰을 구매
@@ -651,7 +660,8 @@ contract CoreSellTest is Test, SetUp {
         uint256 initialTokenBalance = MEME_TOKEN.balanceOf(TRADER_A);
 
         // 본딩 커브의 가상 준비금 가져오기
-        (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE
+            .getVirtualReserves();
         uint256 k = CURVE.getK();
 
         // 예상 출력값 계산
@@ -659,7 +669,7 @@ contract CoreSellTest is Test, SetUp {
             amountIn,
             k,
             virtualToken,
-            virtualNad
+            virtualNative
         );
         (uint8 denominator, uint16 numerator) = CURVE.getFeeConfig();
         uint256 expectedFee = BondingCurveLibrary.getFeeAmount(
@@ -675,8 +685,8 @@ contract CoreSellTest is Test, SetUp {
         // TRADER_A가 Core 컨트랙트에 토큰 사용을 승인
         MEME_TOKEN.approve(address(CORE), amountIn);
 
-        // sellAmountOutMin 함수 실행
-        CORE.sellAmountOutMin(
+        // protectSell 함수 실행
+        CORE.protectSell(
             amountIn,
             amountOutMin,
             address(MEME_TOKEN),
@@ -698,7 +708,7 @@ contract CoreSellTest is Test, SetUp {
         );
     }
 
-    function testSellAmountOutMinFailInsufficientOutput() public {
+    function testProtectSellFailInsufficientOutput() public {
         uint256 amountIn = 1e18;
 
         // TRADER_A가 토큰을 구매
@@ -707,7 +717,8 @@ contract CoreSellTest is Test, SetUp {
         uint256 deadline = block.timestamp + 1;
 
         // 본딩 커브의 가상 준비금 가져오기
-        (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE
+            .getVirtualReserves();
         uint256 k = CURVE.getK();
 
         // 예상 출력값 계산
@@ -715,7 +726,7 @@ contract CoreSellTest is Test, SetUp {
             amountIn,
             k,
             virtualToken,
-            virtualNad
+            virtualNative
         );
 
         // amountOutMin을 예상 출력값보다 높게 설정
@@ -725,7 +736,7 @@ contract CoreSellTest is Test, SetUp {
         MEME_TOKEN.approve(address(CORE), amountIn);
 
         vm.expectRevert(bytes(ERR_CORE_INVALID_AMOUNT_OUT));
-        CORE.sellAmountOutMin(
+        CORE.protectSell(
             amountIn,
             amountOutMin,
             address(MEME_TOKEN),
@@ -735,12 +746,12 @@ contract CoreSellTest is Test, SetUp {
         vm.stopPrank();
     }
 
-    function testSellAmountOutMinFailExpiredDeadline() public {
+    function testProtectSellFailExpiredDeadline() public {
         uint256 amountIn = 1e18;
         uint256 deadline = block.timestamp - 1;
 
         vm.expectRevert(bytes(ERR_CORE_EXPIRED));
-        CORE.sellAmountOutMin(
+        CORE.protectSell(
             amountIn,
             0,
             address(MEME_TOKEN),
@@ -858,8 +869,8 @@ contract CoreSellTest is Test, SetUp {
         );
     }
 
-    //=========== SellAmountOutMinWithPermit Tests ============
-    function testSellAmountOutMinWithPermitSuccess() public {
+    //=========== ProtectSellPermit Tests ============
+    function testProtectSellPermitSuccess() public {
         uint256 amountIn = 1e18;
         uint256 amountOutMin = 0;
         uint256 deadline = block.timestamp + 1;
@@ -898,8 +909,8 @@ contract CoreSellTest is Test, SetUp {
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
 
-        // sellAmountOutMinWithPermit 함수 실행
-        CORE.sellAmountOutMinWithPermit(
+        // protectSellPermit 함수 실행
+        CORE.protectSellPermit(
             amountIn,
             amountOutMin,
             address(MEME_TOKEN),
@@ -924,13 +935,14 @@ contract CoreSellTest is Test, SetUp {
         );
     }
 
-    function testSellAmountOutMinWithPermitFailInsufficientOutput() public {
+    function testProtectSellPermitFailInsufficientOutput() public {
         uint256 amountIn = 1 ether;
         Buy(TRADER_A, amountIn);
 
         uint256 tokenAmount = MEME_TOKEN.balanceOf(TRADER_A);
         uint256 deadline = block.timestamp + 1;
-        (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE
+            .getVirtualReserves();
         uint256 k = CURVE.getK();
 
         // 예상 출력값 계산
@@ -938,7 +950,7 @@ contract CoreSellTest is Test, SetUp {
             amountIn,
             k,
             virtualToken,
-            virtualNad
+            virtualNative
         );
 
         uint amountOutMin = expectedAmountOut + 1 ether;
@@ -969,7 +981,7 @@ contract CoreSellTest is Test, SetUp {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
 
         vm.expectRevert(bytes(ERR_CORE_INVALID_AMOUNT_OUT));
-        CORE.sellAmountOutMinWithPermit(
+        CORE.protectSellPermit(
             tokenAmount,
             amountOutMin,
             address(MEME_TOKEN),
@@ -982,8 +994,8 @@ contract CoreSellTest is Test, SetUp {
         );
     }
 
-    //=========== SellExactAmountOut Tests ============
-    function testSellExactAmountOutSuccess() public {
+    //=========== ExactOutSell Tests ============
+    function testExactOutSellSuccess() public {
         // TRADER_A가 토큰을 구매
         Buy(TRADER_A, 1 ether);
         vm.startPrank(TRADER_A);
@@ -995,7 +1007,8 @@ contract CoreSellTest is Test, SetUp {
         MEME_TOKEN.approve(address(CORE), initialTokenBalance);
 
         // 본딩 커브의 가상 준비금 가져오기
-        (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE
+            .getVirtualReserves();
         uint256 k = CURVE.getK();
 
         // 예상 출력값 계산
@@ -1003,14 +1016,14 @@ contract CoreSellTest is Test, SetUp {
             initialTokenBalance,
             k,
             virtualToken,
-            virtualNad
+            virtualNative
         ) - 100;
 
         uint fee = amountOut / 100;
 
         vm.deal(TRADER_A, fee);
-        // sellExactAmountOut 함수 실행
-        CORE.sellExactAmountOut{value: fee}(
+        // exactOutSell 함수 실행
+        CORE.exactOutSell{value: fee}(
             amountOut,
             initialTokenBalance,
             address(MEME_TOKEN),
@@ -1031,10 +1044,11 @@ contract CoreSellTest is Test, SetUp {
         vm.stopPrank();
     }
 
-    function testSellExactAmountOutFailExcessiveInput() public {
+    function testExactOutSellFailExcessiveInput() public {
         Buy(TRADER_A, 1 ether);
 
-        (uint256 virtualNad, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE
+            .getVirtualReserves();
         uint256 k = CURVE.getK();
         uint tokenAmount = MEME_TOKEN.balanceOf(TRADER_A);
 
@@ -1042,7 +1056,7 @@ contract CoreSellTest is Test, SetUp {
             1 ether,
             k,
             virtualToken,
-            virtualNad
+            virtualNative
         );
 
         uint wantedAmountOut = expectedAmountOut + 1 ether;
@@ -1053,7 +1067,7 @@ contract CoreSellTest is Test, SetUp {
         MEME_TOKEN.approve(address(CORE), tokenAmount);
 
         vm.expectRevert(bytes(ERR_CORE_INVALID_AMOUNT_IN_MAX));
-        CORE.sellExactAmountOut{value: fee}(
+        CORE.exactOutSell{value: fee}(
             wantedAmountOut,
             tokenAmount,
             address(MEME_TOKEN),
@@ -1063,8 +1077,8 @@ contract CoreSellTest is Test, SetUp {
         vm.stopPrank();
     }
 
-    //=========== SellExactAmountOutWithPermit Tests ============
-    function testSellExactAmountOutWithPermitSuccess() public {
+    //=========== ExactOutSellPermit Tests ============
+    function testExactOutSellPermitSuccess() public {
         uint256 deadline = block.timestamp + 1;
 
         // TRADER_A가 토큰을 구매
@@ -1101,19 +1115,19 @@ contract CoreSellTest is Test, SetUp {
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
 
-        (uint virtualNad, uint virtualToken) = CURVE.getVirtualReserves();
+        (uint virtualNative, uint virtualToken) = CURVE.getVirtualReserves();
         //amountOut 을 계산하기
         uint amountOut = BondingCurveLibrary.getAmountOut(
             tokenAmount,
             CURVE.getK(),
             virtualToken,
-            virtualNad
+            virtualNative
         ) - 1;
 
         uint fee = (amountOut) / 100;
         vm.deal(signer, fee);
-        // sellExactAmountOutWithPermit 함수 실행
-        CORE.sellExactAmountOutwithPermit{value: fee}(
+        // exactOutSellPermit 함수 실행
+        CORE.exactOutSellPermit{value: fee}(
             amountOut,
             tokenAmount,
             address(MEME_TOKEN),
@@ -1138,7 +1152,7 @@ contract CoreSellTest is Test, SetUp {
         );
     }
 
-    function testSellExactAmountOutWithPermitFailExcessiveInput() public {
+    function testExactOutSellPermitFailExcessiveInput() public {
         Buy(TRADER_A, 1 ether);
 
         uint tokenAmount = MEME_TOKEN.balanceOf(TRADER_A);
@@ -1171,13 +1185,13 @@ contract CoreSellTest is Test, SetUp {
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
 
-        (uint virtualNad, uint virtualToken) = CURVE.getVirtualReserves();
+        (uint virtualNative, uint virtualToken) = CURVE.getVirtualReserves();
 
         uint amountOut = BondingCurveLibrary.getAmountOut(
             tokenAmount,
             CURVE.getK(),
             virtualToken,
-            virtualNad
+            virtualNative
         );
 
         uint wantedAmountOut = amountOut + 1 ether;
@@ -1185,7 +1199,7 @@ contract CoreSellTest is Test, SetUp {
         vm.deal(signer, fee);
 
         vm.expectRevert(bytes(ERR_CORE_INVALID_AMOUNT_IN_MAX));
-        CORE.sellExactAmountOutwithPermit{value: fee}(
+        CORE.exactOutSellPermit{value: fee}(
             wantedAmountOut,
             tokenAmount,
             address(MEME_TOKEN),

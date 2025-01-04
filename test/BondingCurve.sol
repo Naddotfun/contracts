@@ -50,7 +50,8 @@ contract BondingCurveTest is Test, SetUp {
         vm.deal(TRADER_A, amountIn + fee);
 
         // Calculate expected amount out
-        (uint256 virtualNative, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE
+            .getVirtualReserves();
         uint256 expectedAmountOut = BondingCurveLibrary.getAmountOut(
             amountIn,
             CURVE.getK(),
@@ -111,7 +112,8 @@ contract BondingCurveTest is Test, SetUp {
     function testListing() public {
         // Buy enough tokens to reach target
         vm.startPrank(TRADER_A);
-        (uint256 virtualNative, uint256 virtualToken) = CURVE.getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE
+            .getVirtualReserves();
         (, uint256 realTokenReserves) = CURVE.getReserves();
 
         // Calculate exact amount needed to reach TARGET_TOKEN
@@ -140,7 +142,7 @@ contract BondingCurveTest is Test, SetUp {
         vm.deal(TRADER_A, requiredAmount + fee + LISTING_FEE);
 
         uint256 deadline = block.timestamp + 1;
-        CORE.buyExactAmountOut{value: requiredAmount + fee}(
+        CORE.exactOutBuy{value: requiredAmount + fee}(
             amountOutDesired,
             requiredAmount + fee,
             address(MEME_TOKEN),

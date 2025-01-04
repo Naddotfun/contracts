@@ -16,7 +16,7 @@ import "./errors/Errors.sol";
 /**
  * @title Core
  * @notice Core contract for managing bonding curve operations and Native token interactions
- * @dev Handles creation of bonding curves, buying and selling operations with various payment methods
+ * @dev Handles creation of bonding curves, buying and selling operations with various payment mNativeods
  */
 contract Core is ICore {
     using TransferHelper for IERC20;
@@ -199,7 +199,7 @@ contract Core is ICore {
     }
 
     /**
-     * @notice Buys tokens from a bonding curve with a minimum amount out
+     * @notice Buys tokens with slippage protection
      * @param amountIn Native amount to spend
      * @param amountOutMin Minimum amount of tokens to receive
      * @param fee Fee amount for the transaction
@@ -207,7 +207,7 @@ contract Core is ICore {
      * @param to Address to receive the bought tokens
      * @param deadline Timestamp before which the transaction must be executed
      */
-    function buyAmountOutMin(
+    function protectBuy(
         uint256 amountIn,
         uint256 amountOutMin,
         uint256 fee,
@@ -252,7 +252,7 @@ contract Core is ICore {
      * @param to Address to receive the bought tokens
      * @param deadline Timestamp before which the transaction must be executed
      */
-    function buyExactAmountOut(
+    function exactOutBuy(
         uint256 amountOut,
         uint256 amountInMax,
         address token,
@@ -299,10 +299,11 @@ contract Core is ICore {
     // //-------------Sell Functions ---------------------------------------------
 
     /**
-     * @notice Sells tokens to a bonding curve
-     * @param amountIn Token amount to sell
+     * @notice Market sells tokens at the current bonding curve price. Market orders are executed immediately at the best current price,
+     *         without any slippage protection. Use with caution as the execution price may vary from the displayed price.
+     * @param amountIn Token amount to market sell
      * @param token Address of the token to sell
-     * @param to Address to receive the sold tokens
+     * @param to Address to receive the Native
      * @param deadline Timestamp before which the transaction must be executed
      */
     function sell(
@@ -349,7 +350,7 @@ contract Core is ICore {
     }
 
     /**
-     * @notice Sells tokens to a bonding curve with permit
+     * @notice Market sells tokens at the current bonding curve price. with permit
      * @param amountIn Token amount to sell
      * @param token Address of the token to sell
      * @param from Address of the token owner
@@ -411,14 +412,14 @@ contract Core is ICore {
     }
 
     /**
-     * @notice Sells tokens to a bonding curve with a minimum amount out
+     * @notice Sells tokens with slippage protection
      * @param amountIn Token amount to sell
-     * @param amountOutMin Minimum amount of Native to receive
+     * @param amountOutMin Minimum amount of Native to receive (slippage protection)
      * @param token Address of the token to sell
-     * @param to Address to receive the sold tokens
+     * @param to Address to receive the Native
      * @param deadline Timestamp before which the transaction must be executed
      */
-    function sellAmountOutMin(
+    function protectSell(
         uint256 amountIn,
         uint256 amountOutMin,
         address token,
@@ -464,7 +465,7 @@ contract Core is ICore {
     }
 
     /**
-     * @notice Sells tokens to a bonding curve with permit and a minimum amount out
+     * @notice Sells tokens with slippage protection with permit
      * @param amountIn Token amount to sell
      * @param amountOutMin Minimum amount of Native to receive
      * @param token Address of the token to sell
@@ -475,7 +476,7 @@ contract Core is ICore {
      * @param r r parameter of the permit signature
      * @param s s parameter of the permit signature
      */
-    function sellAmountOutMinWithPermit(
+    function protectSellPermit(
         uint256 amountIn,
         uint256 amountOutMin,
         address token,
@@ -537,14 +538,14 @@ contract Core is ICore {
     //amountOut 은 fee + amountOut 이어야함.
 
     /**
-     * @notice Sells an exact amount of tokens to a bonding curve
-     * @param amountOut Amount of Native to receive
-     * @param amountInMax Maximum token amount to sell
+     * @notice Sells tokens for an exact amount of Native on the bonding curve
+     * @param amountOut Exact amount of ETH to receive
+     * @param amountInMax Maximum token amount willing to sell
      * @param token Address of the token to sell
-     * @param to Address to receive the sold tokens
+     * @param to Address to receive the ETH
      * @param deadline Timestamp before which the transaction must be executed
      */
-    function sellExactAmountOut(
+    function exactOutSell(
         uint256 amountOut,
         uint256 amountInMax,
         address token,
@@ -588,7 +589,7 @@ contract Core is ICore {
     }
 
     /**
-     * @notice Sells an exact amount of tokens to a bonding curve with permit
+     * @notice Sells tokens for an exact amount of Native on the bonding curve with permit
      * @param amountOut Amount of Native to receive
      * @param amountInMax Maximum token amount to sell
      * @param token Address of the token to sell
@@ -599,7 +600,7 @@ contract Core is ICore {
      * @param r r parameter of the permit signature
      * @param s s parameter of the permit signature
      */
-    function sellExactAmountOutwithPermit(
+    function exactOutSellPermit(
         uint256 amountOut,
         uint256 amountInMax,
         address token,

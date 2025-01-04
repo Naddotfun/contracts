@@ -30,7 +30,7 @@ Nad.Pump is a smart contract system for creating and managing bonding curve-base
 
    - Central contract that coordinates all system operations
    - Handles token creation, buying, and selling operations
-   - Manages interactions with WNAD and fee collection
+   - Manages interactions with WNative and fee collection
    - Implements various safety checks and slippage protection
 
 2. **BondingCurve.sol**
@@ -45,9 +45,9 @@ Nad.Pump is a smart contract system for creating and managing bonding curve-base
    - Maintains registry of created curves
    - Ensures standardization of curve parameters
 
-4. **WNAD.sol**
-   - Wrapped NAD token implementation
-   - Provides ERC20 interface for NAD
+4. **WNative.sol**
+   - Wrapped Native token implementation
+   - Provides ERC20 interface for Native
    - Enables advanced trading features
 
 ### Supporting Contracts
@@ -93,7 +93,7 @@ Nad.Pump is a smart contract system for creating and managing bonding curve-base
 | Creator             | Initiates the creation of new coins and curves                                         |
 | Trader              | Interacts with the system to buy and sell tokens                                       |
 | Core                | Main contract handling Bonding Curve creation, buying, and selling;                    |
-| WNAD                | Wrapped NAD token used for transactions                                                |
+| WNative             | Wrapped NAD token used for transactions                                                |
 | BondingCurveFactory | Deploys new Bonding Curve contracts                                                    |
 | BondingCurve        | Manages token supply and price calculations                                            |
 | ERC20               | Standard token contract deployed for each new coin                                     |
@@ -108,22 +108,22 @@ Nad.Pump is a smart contract system for creating and managing bonding curve-base
 
 ### Buy Functions
 
-| Function            | Description                                   |
-| ------------------- | --------------------------------------------- |
-| `buy`               | Purchases tokens with NAD                     |
-| `buyAmountOutMin`   | Purchases tokens with a minimum output amount |
-| `buyExactAmountOut` | Purchases an exact amount of tokens           |
+| Function      | Description                                           |
+| ------------- | ----------------------------------------------------- |
+| `buy`         | Market Buy tokens at the current bonding curve price. |
+| `protectBuy`  | Buys tokens with slippage protection                  |
+| `exactOutBuy` | Buys an exact amount of tokens from a bonding curve   |
 
 ### Sell Functions
 
-| Function                       | Description                                          |
-| ------------------------------ | ---------------------------------------------------- |
-| `sell`                         | Sells tokens for NAD                                 |
-| `sellPermit`                   | Sells tokens using EIP-2612 permit                   |
-| `sellAmountOutMin`             | Sells tokens with a minimum output amount            |
-| `sellAmountOutMinWithPermit`   | Sells tokens with a minimum output using permit      |
-| `sellExactAmountOut`           | Sells tokens for an exact amount of NAD              |
-| `sellExactAmountOutwithPermit` | Sells tokens for an exact amount of NAD using permit |
+| Function                 | Description                                                                 |
+| ------------------------ | --------------------------------------------------------------------------- |
+| `sell`                   | Market sells tokens at the current bonding curve price                      |
+| `sellPermit`             | Market sells tokens at the current bonding curve price with permit          |
+| `protectSell`            | Sells tokens with slippage protection                                       |
+| `protectSellWithPermit`  | Sells tokens with slippage protection with permit                           |
+| `exactOutSell`           | Sells tokens for an exact amount of Native on the bonding curve             |
+| `exactOutSellWithPermit` | Sells tokens for an exact amount of Native on the bonding curve with permit |
 
 ### Utility Functions
 
@@ -174,7 +174,7 @@ event Create(
 
 - ⏰ Deadline parameter ensures transaction freshness
 - 🔐 Some functions require pre-approval of token spending
-- 💱 Supports both NAD and WNAD for transactions
+- 💱 Supports both NAD and WNative for transactions
 - 📝 EIP-2612 permit functionality available for gasless approvals
 - 🛡️ Slippage protection implemented in various functions
 

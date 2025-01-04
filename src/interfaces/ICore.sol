@@ -15,7 +15,7 @@ interface ICore {
         returns (
             address curve,
             address token,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken,
             uint256 amountOut
         );
@@ -28,7 +28,7 @@ interface ICore {
         uint256 deadline
     ) external payable;
 
-    function buyAmountOutMin(
+    function protectBuy(
         uint256 amountIn,
         uint256 amountOutMin,
         uint256 fee,
@@ -37,7 +37,7 @@ interface ICore {
         uint256 deadline
     ) external payable;
 
-    function buyExactAmountOut(
+    function exactOutBuy(
         uint256 amountOut,
         uint256 amountInMax,
         address token,
@@ -63,7 +63,7 @@ interface ICore {
         bytes32 s
     ) external;
 
-    function sellAmountOutMin(
+    function protectSell(
         uint256 amountIn,
         uint256 amountOutMin,
         address token,
@@ -71,7 +71,7 @@ interface ICore {
         uint256 deadline
     ) external;
 
-    function sellAmountOutMinWithPermit(
+    function protectSellPermit(
         uint256 amountIn,
         uint256 amountOutMin,
         address token,
@@ -83,7 +83,7 @@ interface ICore {
         bytes32 s
     ) external;
 
-    function sellExactAmountOut(
+    function exactOutSell(
         uint256 amountOut,
         uint256 amountInMax,
         address token,
@@ -91,7 +91,7 @@ interface ICore {
         uint256 deadline
     ) external payable;
 
-    function sellExactAmountOutwithPermit(
+    function exactOutSellPermit(
         uint256 amountOut,
         uint256 amountInMax,
         address token,
@@ -111,7 +111,7 @@ interface ICore {
         view
         returns (
             address curve,
-            uint256 virtualNad,
+            uint256 virtualNative,
             uint256 virtualToken,
             uint256 k
         );
@@ -121,7 +121,7 @@ interface ICore {
     )
         external
         view
-        returns (uint256 virtualNad, uint256 virtualToken, uint256 k);
+        returns (uint256 virtualNative, uint256 virtualToken, uint256 k);
 
     function getAmountOut(
         uint256 amountIn,
