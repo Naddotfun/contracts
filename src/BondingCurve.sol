@@ -255,10 +255,11 @@ contract BondingCurve is IBondingCurve {
         // Lock trading if target is reached
         if (realTokenReserves == getTargetToken()) {
             lock = true;
-            emit Lock(address(this));
+            emit Lock(token);
         }
 
         emit Sync(
+            token,
             realNativeReserves,
             realTokenReserves,
             virtualNative,

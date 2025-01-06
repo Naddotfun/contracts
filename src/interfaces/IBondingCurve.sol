@@ -2,9 +2,10 @@
 pragma solidity ^0.8.20;
 
 interface IBondingCurve {
-    event Lock(address indexed curve);
+    event Lock(address indexed token);
     event Sync(
-        uint256 reserveWNad,
+        address indexed token,
+        uint256 reserveWNative,
         uint256 reserveToken,
         uint256 virtualWNative,
         uint256 virtualToken
