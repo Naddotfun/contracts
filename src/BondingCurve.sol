@@ -218,7 +218,7 @@ contract BondingCurve is IBondingCurve {
         realNativeReserves = 0;
         realTokenReserves = 0;
         uint256 liquidity = IUniswapV2Pair(pair).mint(address(this));
-
+        IUniswapV2ERC20(pair).transfer(address(0), liquidity);
         isListing = true;
         emit Listing(
             address(this),
@@ -231,24 +231,23 @@ contract BondingCurve is IBondingCurve {
         return pair;
     }
 
-    /**
-     * @dev Burns liquidity tokens by sending them to the zero address
-     * @notice This function can only be called after listing is completed
-     * @notice Sends all liquidity tokens held by this contract to address(0)
-     */
-    function burnLiquidity() external {
-        // Verify that the bonding curve has been listed on Uniswap
-        require(isListing, ERR_BONDING_CURVE_MUST_LISTING);
+    // /**
+    //  * @dev Burns liquidity tokens by sending them to the zero address
+    //  * @notice This function can only be called after listing is completed
+    //  * @notice Sends all liquidity tokens held by this contract to address(0)
+    //  */
+    // function burnLiquidity() external {
+    //     // Verify that the bonding curve has been listed on Uniswap
+    //     require(isListing, ERR_BONDING_CURVE_MUST_LISTING);
 
-        // Get the current LP token balance of this contract
-        uint liquidity = IUniswapV2ERC20(pair).balanceOf(address(this));
+    //     // Get the current LP token balance of this contract
+    //     uint liquidity = IUniswapV2ERC20(pair).balanceOf(address(this));
 
-        // Burn the LP tokens by transferring them to the zero address
-        IUniswapV2ERC20(pair).transfer(address(0), liquidity);
+    //     // Burn the LP tokens by transferring them to the zero address
 
-        // Emit event to log the burning of LP tokens
-        emit BurnLiquidity(pair, liquidity);
-    }
+    //     // Emit event to log the burning of LP tokens
+    //     emit BurnLiquidity(pair, liquidity);
+    // }
 
     /**
      * @dev Updates virtual and real reserves after trades

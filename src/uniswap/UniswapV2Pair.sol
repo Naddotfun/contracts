@@ -264,7 +264,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         address to,
         uint value
     ) public virtual override(UniswapV2ERC20) returns (bool) {
-        return transfer(to, value);
+        return super.transfer(to, value);
     }
 
     function transferFrom(
@@ -272,6 +272,6 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         address to,
         uint value
     ) public virtual override(UniswapV2ERC20) returns (bool) {
-        return transferFrom(from, to, value);
+        return super.transferFrom(from, to, value);
     }
 }

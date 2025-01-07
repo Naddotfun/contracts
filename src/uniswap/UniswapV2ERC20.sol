@@ -96,7 +96,7 @@ contract UniswapV2ERC20 is IUniswapV2ERC20 {
     function transfer(
         address to,
         uint256 value
-    ) external virtual override returns (bool) {
+    ) public virtual override returns (bool) {
         require(
             _balanceOf[msg.sender] >= value,
             "UniswapV2: INSUFFICIENT_BALANCE"
@@ -111,7 +111,7 @@ contract UniswapV2ERC20 is IUniswapV2ERC20 {
         address from,
         address to,
         uint256 value
-    ) external virtual override returns (bool) {
+    ) public virtual override returns (bool) {
         require(_balanceOf[from] >= value, "UniswapV2: INSUFFICIENT_BALANCE");
         require(
             _allowance[from][msg.sender] >= value,
