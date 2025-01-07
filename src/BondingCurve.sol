@@ -218,6 +218,7 @@ contract BondingCurve is IBondingCurve {
         realNativeReserves = 0;
         realTokenReserves = 0;
         uint256 liquidity = IUniswapV2Pair(pair).mint(address(this));
+
         IUniswapV2ERC20(pair).transfer(address(0), liquidity);
         isListing = true;
         emit Listing(
