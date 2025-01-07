@@ -259,19 +259,4 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
             reserve1
         );
     }
-
-    function transfer(
-        address to,
-        uint value
-    ) public virtual override(UniswapV2ERC20) returns (bool) {
-        return super.transfer(to, value);
-    }
-
-    function transferFrom(
-        address from,
-        address to,
-        uint value
-    ) public virtual override(UniswapV2ERC20) returns (bool) {
-        return super.transferFrom(from, to, value);
-    }
 }
