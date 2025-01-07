@@ -143,11 +143,9 @@ contract BondingCurve is IBondingCurve {
         }
 
         uint256 amountNativeIn = balanceNative - _realNativeReserves;
-
-        _update(amountNativeIn, amountOut, true);
-
-        require(virtualNative * virtualToken >= k, ERR_BONDING_CURVE_INVALID_K);
         emit Buy(to, token, amountNativeIn, amountOut);
+        _update(amountNativeIn, amountOut, true);
+        require(virtualNative * virtualToken >= k, ERR_BONDING_CURVE_INVALID_K);
     }
 
     /**
@@ -184,10 +182,9 @@ contract BondingCurve is IBondingCurve {
         uint256 amountTokenIn = balanceToken - _realTokenReserves;
 
         require(amountTokenIn > 0, ERR_BONDING_CURVE_INVALID_AMOUNT_IN);
-
+        emit Sell(to, token, amountTokenIn, amountOut);
         _update(amountTokenIn, amountOut, false);
         require(virtualNative * virtualToken >= k, ERR_BONDING_CURVE_INVALID_K);
-        emit Sell(to, token, amountTokenIn, amountOut);
     }
 
     /**
@@ -252,12 +249,6 @@ contract BondingCurve is IBondingCurve {
             virtualToken += amountIn;
         }
 
-        // Lock trading if target is reached
-        if (realTokenReserves == getTargetToken()) {
-            lock = true;
-            emit Lock(token);
-        }
-
         emit Sync(
             token,
             realNativeReserves,
@@ -265,6 +256,11 @@ contract BondingCurve is IBondingCurve {
             virtualNative,
             virtualToken
         );
+        // Lock trading if target is reached
+        if (realTokenReserves == getTargetToken()) {
+            lock = true;
+            emit Lock(token);
+        }
     }
 
     // View functions

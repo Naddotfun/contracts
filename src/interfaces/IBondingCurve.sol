@@ -68,4 +68,6 @@ interface IBondingCurve {
         returns (uint256 reserveWNad, uint256 reserveToken);
 
     function getIsListing() external view returns (bool);
+
+    function getTargetToken() external view returns (uint256);
 }
