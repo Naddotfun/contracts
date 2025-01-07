@@ -28,9 +28,10 @@ interface IBondingCurve {
         address indexed token,
         address indexed pair,
         uint256 listingWNativeAmount,
-        uint256 listingTokenAmount,
-        uint256 burnLiquidity
+        uint256 listingTokenAmount
     );
+
+    event LpBurned(address indexed pair, uint256 liquidity);
 
     function initialize(
         address token,

@@ -143,9 +143,11 @@ contract BondingCurve is IBondingCurve {
         }
 
         uint256 amountNativeIn = balanceNative - _realNativeReserves;
-        emit Buy(to, token, amountNativeIn, amountOut);
+
         _update(amountNativeIn, amountOut, true);
+
         require(virtualNative * virtualToken >= k, ERR_BONDING_CURVE_INVALID_K);
+        emit Buy(to, token, amountNativeIn, amountOut);
     }
 
     /**
@@ -182,9 +184,10 @@ contract BondingCurve is IBondingCurve {
         uint256 amountTokenIn = balanceToken - _realTokenReserves;
 
         require(amountTokenIn > 0, ERR_BONDING_CURVE_INVALID_AMOUNT_IN);
-        emit Sell(to, token, amountTokenIn, amountOut);
+
         _update(amountTokenIn, amountOut, false);
         require(virtualNative * virtualToken >= k, ERR_BONDING_CURVE_INVALID_K);
+        emit Sell(to, token, amountTokenIn, amountOut);
     }
 
     /**
@@ -195,6 +198,36 @@ contract BondingCurve is IBondingCurve {
     function listing() external returns (address pair) {
         require(lock == true, ERR_BONDING_CURVE_ONLY_LOCK);
         require(!isListing, ERR_BONDING_CURVE_ALREADY_LISTED);
+
+        // 1. 페어 생성 및 초기 유동성 제공
+        address _pair;
+        uint256 listingNativeAmount;
+        uint256 listingTokenAmount;
+        (
+            _pair,
+            listingNativeAmount,
+            listingTokenAmount
+        ) = _createPairAndAddLiquidity();
+        pair = _pair;
+
+        isListing = true;
+        emit Listing(
+            address(this),
+            token,
+            pair,
+            listingNativeAmount,
+            listingTokenAmount
+        );
+    }
+
+    function _createPairAndAddLiquidity()
+        internal
+        returns (
+            address pair,
+            uint256 listingNativeAmount,
+            uint256 listingTokenAmount
+        )
+    {
         IBondingCurveFactory _factory = IBondingCurveFactory(factory);
         pair = IUniswapV2Factory(_factory.getDexFactory()).createPair(
             wNative,
@@ -208,27 +241,25 @@ contract BondingCurve is IBondingCurve {
         );
 
         // Transfer remaining tokens to the pair
-        uint256 listingNativeAmount = IERC20(wNative).balanceOf(address(this));
+        listingNativeAmount = IERC20(wNative).balanceOf(address(this));
         IERC20(wNative).transfer(pair, listingNativeAmount);
-        uint256 listingTokenAmount = IERC20(token).balanceOf(address(this));
+        listingTokenAmount = IERC20(token).balanceOf(address(this));
         IERC20(token).transfer(pair, listingTokenAmount);
 
         // Reset reserves and provide liquidity
         realNativeReserves = 0;
         realTokenReserves = 0;
-        uint256 liquidity = IUniswapV2Pair(pair).mint(address(this));
+        IUniswapV2Pair(pair).mint(address(this));
+    }
 
-        // Burn LP tokens by sending to zero address
-        IERC20(pair).transfer(address(0), liquidity);
-        isListing = true;
-        emit Listing(
-            address(this),
-            token,
-            pair,
-            listingNativeAmount,
-            listingTokenAmount,
+    function _burnLPTokens(address pair) internal returns (uint256) {
+        uint256 liquidity = IERC20(pair).balanceOf(address(this));
+        IERC20(pair).transfer(
+            0x000000000000000000000000000000000000dEaD,
             liquidity
         );
+        emit LpBurned(pair, liquidity);
+        return liquidity;
     }
 
     /**
@@ -249,6 +280,12 @@ contract BondingCurve is IBondingCurve {
             virtualToken += amountIn;
         }
 
+        // Lock trading if target is reached
+        if (realTokenReserves == getTargetToken()) {
+            lock = true;
+            emit Lock(token);
+        }
+
         emit Sync(
             token,
             realNativeReserves,
@@ -256,11 +293,6 @@ contract BondingCurve is IBondingCurve {
             virtualNative,
             virtualToken
         );
-        // Lock trading if target is reached
-        if (realTokenReserves == getTargetToken()) {
-            lock = true;
-            emit Lock(token);
-        }
     }
 
     // View functions

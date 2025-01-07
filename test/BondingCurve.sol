@@ -116,15 +116,21 @@ contract BondingCurveTest is Test, SetUp {
             .getVirtualReserves();
         (, uint256 realTokenReserves) = CURVE.getReserves();
 
+        console.log(virtualNative, "virtualNative");
+        console.log(virtualToken, "virtualToken");
+        console.log(realTokenReserves, "realTokenReserves");
+        console.log(TARGET_TOKEN, "TARGET_TOKEN");
+
         // Calculate exact amount needed to reach TARGET_TOKEN
         uint256 amountOutDesired = realTokenReserves - TARGET_TOKEN;
+        console.log(amountOutDesired, "amountOutDesired");
         uint256 requiredAmount = BondingCurveLibrary.getAmountIn(
             amountOutDesired,
             CURVE.getK(),
             virtualNative,
             virtualToken
         );
-        console.log(requiredAmount);
+        console.log(requiredAmount, "requiredAmount");
 
         uint getAmount = BondingCurveLibrary.getAmountOut(
             requiredAmount,
@@ -132,13 +138,14 @@ contract BondingCurveTest is Test, SetUp {
             virtualNative,
             virtualToken
         );
-        console.log(getAmount);
+        console.log(getAmount, "getAmount");
 
         uint256 fee = BondingCurveLibrary.getFeeAmount(
             requiredAmount,
             FEE_DENOMINATOR,
             FEE_NUMERATOR
         );
+        console.log(fee, "fee");
         vm.deal(TRADER_A, requiredAmount + fee + LISTING_FEE);
 
         uint256 deadline = block.timestamp + 1;
@@ -152,6 +159,7 @@ contract BondingCurveTest is Test, SetUp {
 
         // Verify token balance is exactly TARGET_TOKEN
         (, uint256 remainingTokens) = CURVE.getReserves();
+        console.log(remainingTokens, "remainingTokens");
         assertEq(
             remainingTokens,
             TARGET_TOKEN,
@@ -162,10 +170,33 @@ contract BondingCurveTest is Test, SetUp {
         assertTrue(CURVE.lock(), "Curve should be locked");
 
         // Try listing
+        // Try listing
         vm.deal(TRADER_A, LISTING_FEE);
-        address pair = CURVE.listing();
+        address pair = CURVE.listing{gas: 5000000}();
+
         assertTrue(pair != address(0), "Pair should be created");
         assertTrue(CURVE.isListing(), "Should be listed");
+
+        // LP 토큰 소각 테스트 추가
+        uint256 liquidity = CURVE._burnLPTokens(pair);
+
+        // LP 토큰이 DEAD 주소로 전송되었는지 확인
+        address DEAD = 0x000000000000000000000000000000000000dEaD;
+        assertEq(
+            IERC20(pair).balanceOf(DEAD),
+            liquidity,
+            "LP tokens should be transferred to DEAD address"
+        );
+
+        // 본딩 커브 컨트랙트의 LP 토큰 잔액이 0인지 확인
+        assertEq(
+            IERC20(pair).balanceOf(address(CURVE)),
+            0,
+            "Bonding curve should have no LP tokens"
+        );
+
+        // LpBurned 이벤트 확인
+        vm.expectEmit(true, true, true, true);
 
         vm.stopPrank();
     }
