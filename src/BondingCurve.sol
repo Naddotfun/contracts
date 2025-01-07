@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IUniswapV2Factory} from "./uniswap/interfaces/IUniswapV2Factory.sol";
 import {IUniswapV2Pair} from "./uniswap/interfaces/IUniswapV2Pair.sol";
+import {IUniswapV2ERC20} from "./uniswap/interfaces/IUniswapV2ERC20.sol";
 import {ICore} from "./interfaces/ICore.sol";
 import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
 import {IBondingCurve} from "./interfaces/IBondingCurve.sol";
@@ -23,7 +24,7 @@ contract BondingCurve is IBondingCurve {
     address immutable core;
     address public immutable wNative; // Wrapped Native token address
     address public token; // Project token address
-
+    address public pair;
     // Virtual reserves for price calculation
     uint256 private virtualNative; // Virtual Native reserve
     uint256 private virtualToken; // Virtual token reserve
@@ -190,9 +191,9 @@ contract BondingCurve is IBondingCurve {
     /**
      * @notice Lists the token on Uniswap after reaching target
      * @dev Creates trading pair and provides initial liquidity
-     * @return pair Address of the created Uniswap pair
+
      */
-    function listing() external returns (address pair) {
+    function listing() external returns (address) {
         require(lock == true, ERR_BONDING_CURVE_ONLY_LOCK);
         require(!isListing, ERR_BONDING_CURVE_ALREADY_LISTED);
         IBondingCurveFactory _factory = IBondingCurveFactory(factory);
@@ -218,8 +219,6 @@ contract BondingCurve is IBondingCurve {
         realTokenReserves = 0;
         uint256 liquidity = IUniswapV2Pair(pair).mint(address(this));
 
-        // Burn LP tokens by sending to zero address
-        IERC20(pair).transfer(address(0), liquidity);
         isListing = true;
         emit Listing(
             address(this),
@@ -229,6 +228,26 @@ contract BondingCurve is IBondingCurve {
             listingTokenAmount,
             liquidity
         );
+        return pair;
+    }
+
+    /**
+     * @dev Burns liquidity tokens by sending them to the zero address
+     * @notice This function can only be called after listing is completed
+     * @notice Sends all liquidity tokens held by this contract to address(0)
+     */
+    function burnLiquidity() external {
+        // Verify that the bonding curve has been listed on Uniswap
+        require(isListing, ERR_BONDING_CURVE_MUST_LISTING);
+
+        // Get the current LP token balance of this contract
+        uint liquidity = IUniswapV2ERC20(pair).balanceOf(address(this));
+
+        // Burn the LP tokens by transferring them to the zero address
+        IUniswapV2ERC20(pair).transfer(address(0), liquidity);
+
+        // Emit event to log the burning of LP tokens
+        emit BurnLiquidity(pair, liquidity);
     }
 
     /**

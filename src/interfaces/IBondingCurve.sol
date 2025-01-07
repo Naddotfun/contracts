@@ -31,6 +31,7 @@ interface IBondingCurve {
         uint256 listingTokenAmount,
         uint256 burnLiquidity
     );
+    event BurnLiquidity(address indexed pair, uint liquidity);
 
     function initialize(
         address token,
@@ -47,6 +48,8 @@ interface IBondingCurve {
     function sell(address to, uint256 amountOut) external;
 
     function listing() external returns (address pair);
+
+    function burnLiquidity() external;
 
     function getLock() external view returns (bool);
 

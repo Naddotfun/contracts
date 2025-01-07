@@ -19,7 +19,7 @@ contract BondingCurveTest is Test, SetUp {
 
     // ========== Success Cases ==========
 
-    function testInitialization() public {
+    function testInitialization() public view {
         // Check initial state variables
         assertEq(address(CURVE.wNative()), address(WNATIVE));
         assertEq(address(CURVE.token()), address(MEME_TOKEN));
@@ -166,7 +166,11 @@ contract BondingCurveTest is Test, SetUp {
         address pair = CURVE.listing();
         assertTrue(pair != address(0), "Pair should be created");
         assertTrue(CURVE.isListing(), "Should be listed");
-
+        uint beforeBurnliquidity = IERC20(pair).balanceOf(address(CURVE));
+        assertTrue(beforeBurnliquidity > 0, "Pair should have liquidity");
+        CURVE.burnLiquidity();
+        uint afterBurnLiqudity = IERC20(pair).balanceOf(address(CURVE));
+        assertEq(afterBurnLiqudity, 0);
         vm.stopPrank();
     }
 
