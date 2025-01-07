@@ -1,481 +1,272 @@
-{
-  "abi": [
-    {
-      "type": "function",
-      "name": "addWhiteList",
-      "inputs": [
-        { "name": "accounts", "type": "address[]", "internalType": "address[]" }
-      ],
-      "outputs": [],
-      "stateMutability": "nonpayable"
-    },
-    {
-      "type": "function",
-      "name": "deposit",
-      "inputs": [
-        { "name": "account", "type": "address", "internalType": "address" }
-      ],
-      "outputs": [],
-      "stateMutability": "payable"
-    },
-    {
-      "type": "function",
-      "name": "getBalance",
-      "inputs": [
-        { "name": "account", "type": "address", "internalType": "address" }
-      ],
-      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-      "stateMutability": "view"
-    },
-    {
-      "type": "function",
-      "name": "getConfig",
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "",
-          "type": "tuple",
-          "internalType": "struct IMintParty.Config",
-          "components": [
-            { "name": "name", "type": "string", "internalType": "string" },
-            { "name": "symbol", "type": "string", "internalType": "string" },
-            { "name": "tokenURI", "type": "string", "internalType": "string" },
-            {
-              "name": "fundingAmount",
-              "type": "uint256",
-              "internalType": "uint256"
-            },
-            {
-              "name": "whiteListCount",
-              "type": "uint256",
-              "internalType": "uint256"
-            }
-          ]
-        }
-      ],
-      "stateMutability": "view"
-    },
-    {
-      "type": "function",
-      "name": "getFinished",
-      "inputs": [],
-      "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
-      "stateMutability": "view"
-    },
-    {
-      "type": "function",
-      "name": "getOwner",
-      "inputs": [],
-      "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
-      "stateMutability": "view"
-    },
-    {
-      "type": "function",
-      "name": "getTotalBalance",
-      "inputs": [],
-      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-      "stateMutability": "view"
-    },
-    {
-      "type": "function",
-      "name": "initialize",
-      "inputs": [
-        { "name": "account", "type": "address", "internalType": "address" },
-        { "name": "name", "type": "string", "internalType": "string" },
-        { "name": "symbol", "type": "string", "internalType": "string" },
-        { "name": "tokenURI", "type": "string", "internalType": "string" },
-        {
-          "name": "fundingAmount",
-          "type": "uint256",
-          "internalType": "uint256"
-        },
-        {
-          "name": "whiteListCount",
-          "type": "uint256",
-          "internalType": "uint256"
-        }
-      ],
-      "outputs": [],
-      "stateMutability": "nonpayable"
-    },
-    {
-      "type": "function",
-      "name": "withdraw",
-      "inputs": [],
-      "outputs": [],
-      "stateMutability": "nonpayable"
-    },
-    {
-      "type": "event",
-      "name": "MintPartyClosed",
-      "inputs": [],
-      "anonymous": false
-    },
-    {
-      "type": "event",
-      "name": "MintPartyDeposit",
-      "inputs": [
-        {
-          "name": "account",
-          "type": "address",
-          "indexed": false,
-          "internalType": "address"
-        },
-        {
-          "name": "amount",
-          "type": "uint256",
-          "indexed": false,
-          "internalType": "uint256"
-        }
-      ],
-      "anonymous": false
-    },
-    {
-      "type": "event",
-      "name": "MintPartyFinished",
-      "inputs": [
-        {
-          "name": "token",
-          "type": "address",
-          "indexed": true,
-          "internalType": "address"
-        },
-        {
-          "name": "curve",
-          "type": "address",
-          "indexed": true,
-          "internalType": "address"
-        }
-      ],
-      "anonymous": false
-    },
-    {
-      "type": "event",
-      "name": "MintPartyWhiteListAdded",
-      "inputs": [
-        {
-          "name": "account",
-          "type": "address",
-          "indexed": false,
-          "internalType": "address"
-        },
-        {
-          "name": "amount",
-          "type": "uint256",
-          "indexed": false,
-          "internalType": "uint256"
-        }
-      ],
-      "anonymous": false
-    },
-    {
-      "type": "event",
-      "name": "MintPartyWhiteListRemoved",
-      "inputs": [
-        {
-          "name": "account",
-          "type": "address",
-          "indexed": false,
-          "internalType": "address"
-        },
-        {
-          "name": "amount",
-          "type": "uint256",
-          "indexed": false,
-          "internalType": "uint256"
-        }
-      ],
-      "anonymous": false
-    },
-    {
-      "type": "event",
-      "name": "MintPartyWithdraw",
-      "inputs": [
-        {
-          "name": "account",
-          "type": "address",
-          "indexed": false,
-          "internalType": "address"
-        },
-        {
-          "name": "amount",
-          "type": "uint256",
-          "indexed": false,
-          "internalType": "uint256"
-        }
-      ],
-      "anonymous": false
-    }
-  ],
-  "bytecode": { "object": "0x", "sourceMap": "", "linkReferences": {} },
-  "deployedBytecode": { "object": "0x", "sourceMap": "", "linkReferences": {} },
-  "methodIdentifiers": {
-    "addWhiteList(address[])": "5e1045ec",
-    "deposit(address)": "f340fa01",
-    "getBalance(address)": "f8b2cb4f",
-    "getConfig()": "c3f909d4",
-    "getFinished()": "cacfdb88",
-    "getOwner()": "893d20e8",
-    "getTotalBalance()": "12b58349",
-    "initialize(address,string,string,string,uint256,uint256)": "286d5000",
-    "withdraw()": "3ccfd60b"
-  },
-  "rawMetadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[],\"name\":\"MintPartyClosed\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"MintPartyDeposit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"curve\",\"type\":\"address\"}],\"name\":\"MintPartyFinished\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"MintPartyWhiteListAdded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"MintPartyWhiteListRemoved\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"MintPartyWithdraw\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"accounts\",\"type\":\"address[]\"}],\"name\":\"addWhiteList\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"getBalance\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getConfig\",\"outputs\":[{\"components\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"tokenURI\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"fundingAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"whiteListCount\",\"type\":\"uint256\"}],\"internalType\":\"struct IMintParty.Config\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getFinished\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getOwner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getTotalBalance\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"tokenURI\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"fundingAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"whiteListCount\",\"type\":\"uint256\"}],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/interfaces/IMintParty.sol\":\"IMintParty\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":1000},\"remappings\":[\":@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/\",\":erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/\",\":forge-std/=lib/forge-std/src/\",\":halmos-cheatcodes/=lib/openzeppelin-contracts/lib/halmos-cheatcodes/src/\",\":openzeppelin-contracts/=lib/openzeppelin-contracts/\"],\"viaIR\":true},\"sources\":{\"src/interfaces/IMintParty.sol\":{\"keccak256\":\"0x595817e348113abd3cbd56e4b2595898d1ff198ccaf365b2961e582f699222b7\",\"license\":\"GPL-2.0-or-later\",\"urls\":[\"bzz-raw://5f6fb5a30985416fed07e5b1605c48910ee666a5eee31d87643ea769699b4ff6\",\"dweb:/ipfs/QmTTzgsEDe9DA7TdgnvnNRFmysHV3HvLC5UfJpWKqV3MW5\"]}},\"version\":1}",
-  "metadata": {
-    "compiler": { "version": "0.8.20+commit.a1b79de6" },
-    "language": "Solidity",
-    "output": {
-      "abi": [
-        {
-          "inputs": [],
-          "type": "event",
-          "name": "MintPartyClosed",
-          "anonymous": false
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "account",
-              "type": "address",
-              "indexed": false
-            },
-            {
-              "internalType": "uint256",
-              "name": "amount",
-              "type": "uint256",
-              "indexed": false
-            }
-          ],
-          "type": "event",
-          "name": "MintPartyDeposit",
-          "anonymous": false
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "token",
-              "type": "address",
-              "indexed": true
-            },
-            {
-              "internalType": "address",
-              "name": "curve",
-              "type": "address",
-              "indexed": true
-            }
-          ],
-          "type": "event",
-          "name": "MintPartyFinished",
-          "anonymous": false
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "account",
-              "type": "address",
-              "indexed": false
-            },
-            {
-              "internalType": "uint256",
-              "name": "amount",
-              "type": "uint256",
-              "indexed": false
-            }
-          ],
-          "type": "event",
-          "name": "MintPartyWhiteListAdded",
-          "anonymous": false
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "account",
-              "type": "address",
-              "indexed": false
-            },
-            {
-              "internalType": "uint256",
-              "name": "amount",
-              "type": "uint256",
-              "indexed": false
-            }
-          ],
-          "type": "event",
-          "name": "MintPartyWhiteListRemoved",
-          "anonymous": false
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "account",
-              "type": "address",
-              "indexed": false
-            },
-            {
-              "internalType": "uint256",
-              "name": "amount",
-              "type": "uint256",
-              "indexed": false
-            }
-          ],
-          "type": "event",
-          "name": "MintPartyWithdraw",
-          "anonymous": false
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address[]",
-              "name": "accounts",
-              "type": "address[]"
-            }
-          ],
-          "stateMutability": "nonpayable",
-          "type": "function",
-          "name": "addWhiteList"
-        },
-        {
-          "inputs": [
-            { "internalType": "address", "name": "account", "type": "address" }
-          ],
-          "stateMutability": "payable",
-          "type": "function",
-          "name": "deposit"
-        },
-        {
-          "inputs": [
-            { "internalType": "address", "name": "account", "type": "address" }
-          ],
-          "stateMutability": "view",
-          "type": "function",
-          "name": "getBalance",
-          "outputs": [
-            { "internalType": "uint256", "name": "", "type": "uint256" }
-          ]
-        },
-        {
-          "inputs": [],
-          "stateMutability": "view",
-          "type": "function",
-          "name": "getConfig",
-          "outputs": [
-            {
-              "internalType": "struct IMintParty.Config",
-              "name": "",
-              "type": "tuple",
-              "components": [
-                { "internalType": "string", "name": "name", "type": "string" },
-                {
-                  "internalType": "string",
-                  "name": "symbol",
-                  "type": "string"
-                },
-                {
-                  "internalType": "string",
-                  "name": "tokenURI",
-                  "type": "string"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "fundingAmount",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "whiteListCount",
-                  "type": "uint256"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "inputs": [],
-          "stateMutability": "view",
-          "type": "function",
-          "name": "getFinished",
-          "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }]
-        },
-        {
-          "inputs": [],
-          "stateMutability": "view",
-          "type": "function",
-          "name": "getOwner",
-          "outputs": [
-            { "internalType": "address", "name": "", "type": "address" }
-          ]
-        },
-        {
-          "inputs": [],
-          "stateMutability": "view",
-          "type": "function",
-          "name": "getTotalBalance",
-          "outputs": [
-            { "internalType": "uint256", "name": "", "type": "uint256" }
-          ]
-        },
-        {
-          "inputs": [
-            { "internalType": "address", "name": "account", "type": "address" },
-            { "internalType": "string", "name": "name", "type": "string" },
-            { "internalType": "string", "name": "symbol", "type": "string" },
-            { "internalType": "string", "name": "tokenURI", "type": "string" },
-            {
-              "internalType": "uint256",
-              "name": "fundingAmount",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "whiteListCount",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "nonpayable",
-          "type": "function",
-          "name": "initialize"
-        },
-        {
-          "inputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function",
-          "name": "withdraw"
-        }
-      ],
-      "devdoc": { "kind": "dev", "methods": {}, "version": 1 },
-      "userdoc": { "kind": "user", "methods": {}, "version": 1 }
-    },
-    "settings": {
-      "remappings": [
-        "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
-        "erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/",
-        "forge-std/=lib/forge-std/src/",
-        "halmos-cheatcodes/=lib/openzeppelin-contracts/lib/halmos-cheatcodes/src/",
-        "openzeppelin-contracts/=lib/openzeppelin-contracts/"
-      ],
-      "optimizer": { "enabled": true, "runs": 1000 },
-      "metadata": { "bytecodeHash": "ipfs" },
-      "compilationTarget": { "src/interfaces/IMintParty.sol": "IMintParty" },
-      "evmVersion": "paris",
-      "libraries": {},
-      "viaIR": true
-    },
-    "sources": {
-      "src/interfaces/IMintParty.sol": {
-        "keccak256": "0x595817e348113abd3cbd56e4b2595898d1ff198ccaf365b2961e582f699222b7",
-        "urls": [
-          "bzz-raw://5f6fb5a30985416fed07e5b1605c48910ee666a5eee31d87643ea769699b4ff6",
-          "dweb:/ipfs/QmTTzgsEDe9DA7TdgnvnNRFmysHV3HvLC5UfJpWKqV3MW5"
-        ],
-        "license": "GPL-2.0-or-later"
+[
+  {
+    "type": "function",
+    "name": "addWhiteList",
+    "inputs": [
+      {
+        "name": "accounts",
+        "type": "address[]",
+        "internalType": "address[]"
       }
-    },
-    "version": 1
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
-  "id": 64
-}
+  {
+    "type": "function",
+    "name": "deposit",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "getBalance",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getConfig",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct IMintParty.Config",
+        "components": [
+          {
+            "name": "name",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "symbol",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "tokenURI",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "fundingAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "whiteListCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getFinished",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getOwner",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getTotalBalance",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "initialize",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "symbol",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "tokenURI",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "fundingAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "whiteListCount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "withdraw",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "MintPartyClosed",
+    "inputs": [],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MintPartyDeposit",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MintPartyFinished",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "curve",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MintPartyWhiteListAdded",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MintPartyWhiteListRemoved",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MintPartyWithdraw",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  }
+]
