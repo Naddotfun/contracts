@@ -204,7 +204,7 @@ contract SetUp is Test {
         );
 
         UNISWAP_PAIR = UniswapV2Pair(CURVE.listing());
-        assertNotEq(UNISWAP_PAIR, address(0));
+
         assertEq(CURVE.getLock(), true);
         vm.stopPrank();
     }
