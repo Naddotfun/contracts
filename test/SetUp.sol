@@ -12,7 +12,9 @@ import {Lock} from "../src/Lock.sol";
 import {UniswapV2Factory} from "../src/uniswap/UniswapV2Factory.sol";
 import {UniswapV2Pair} from "../src/uniswap/UniswapV2Pair.sol";
 import {UniswapV2Router} from "../src/uniswap/UniswapV2Router.sol";
-
+// import {UniswapV2Factory} from "@uniswap/v2-core/contracts/UniswapV2Factory.sol";
+// import {UniswapV2Pair} from "@uniswap/v2-core/contracts/UniswapV2Pair.sol";
+// import {UniswapV2Router02} from "@v2-periphery/contracts/UniswapV2Router02.sol";
 import {Token} from "../src/Token.sol";
 import {Core} from "../src/Core.sol";
 import {BondingCurveLibrary} from "../src/utils/BondingCurveLibrary.sol";
