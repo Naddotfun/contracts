@@ -5,7 +5,7 @@ interface IUniswapV2Factory {
         address indexed token0,
         address indexed token1,
         address pair,
-        uint256
+        uint
     );
 
     function feeTo() external view returns (address);
@@ -17,9 +17,9 @@ interface IUniswapV2Factory {
         address tokenB
     ) external view returns (address pair);
 
-    function allPairs(uint256) external view returns (address pair);
+    function allPairs(uint) external view returns (address pair);
 
-    function allPairsLength() external view returns (uint256);
+    function allPairsLength() external view returns (uint);
 
     function createPair(
         address tokenA,
