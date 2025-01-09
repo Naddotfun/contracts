@@ -6,7 +6,6 @@ import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
 import {IToken} from "./interfaces/IToken.sol";
 import {Token} from "./Token.sol";
 import {BondingCurve} from "./BondingCurve.sol";
-import {TransferHelper} from "./utils/TransferHelper.sol";
 import "./errors/Errors.sol";
 
 /**

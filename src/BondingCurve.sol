@@ -2,10 +2,11 @@
 pragma solidity ^0.8.20;
 
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import {IUniswapV2Factory} from "./uniswap/interfaces/IUniswapV2Factory.sol";
-import {IUniswapV2Pair} from "./uniswap/interfaces/IUniswapV2Pair.sol";
-import {IUniswapV2ERC20} from "./uniswap/interfaces/IUniswapV2ERC20.sol";
+
 import {ICore} from "./interfaces/ICore.sol";
+import {IUniswapV2Factory} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
+import {IUniswapV2Pair} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
+import {IUniswapV2ERC20} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2ERC20.sol";
 import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
 import {IBondingCurve} from "./interfaces/IBondingCurve.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
