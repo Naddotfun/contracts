@@ -1,19 +1,21 @@
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
-import "./interfaces/IUniswapV2Pair.sol";
-import "./UniswapV2ERC20.sol";
-import "./libraries/Math.sol";
-import "./libraries/UQ112x112.sol";
-import "./interfaces/IERC20.sol";
-import "./interfaces/IUniswapV2Factory.sol";
-import "./interfaces/IUniswapV2Callee.sol";
+import {IUniswapV2Pair} from "./interfaces/IUniswapV2Pair.sol";
+import {UniswapV2ERC20} from "./UniswapV2ERC20.sol";
+import {Math} from "./libraries/Math.sol";
+import {UQ112x112} from "./libraries/UQ112x112.sol";
 
-contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
+import {IUniswapV2Factory} from "./interfaces/IUniswapV2Factory.sol";
+import {IUniswapV2Callee} from "./interfaces/IUniswapV2Callee.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20, ReentrancyGuard {
+    using SafeERC20 for IERC20;
     using UQ112x112 for uint224;
 
     uint256 public constant override MINIMUM_LIQUIDITY = 10 ** 3;
-    bytes4 private constant SELECTOR =
-        bytes4(keccak256(bytes("transfer(address,uint256)")));
 
     address public override factory;
     address public override token0;
@@ -27,15 +29,6 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     uint256 public override price1CumulativeLast;
     uint256 public override kLast;
 
-    uint256 private unlocked = 1;
-
-    modifier lock() {
-        require(unlocked == 1, "UniswapV2: LOCKED");
-        unlocked = 0;
-        _;
-        unlocked = 1;
-    }
-
     function getReserves()
         public
         view
@@ -48,16 +41,6 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         _reserve0 = reserve0;
         _reserve1 = reserve1;
         _blockTimestampLast = blockTimestampLast;
-    }
-
-    function _safeTransfer(address token, address to, uint256 value) private {
-        (bool success, bytes memory data) = token.call(
-            abi.encodeWithSelector(SELECTOR, to, value)
-        );
-        require(
-            success && (data.length == 0 || abi.decode(data, (bool))),
-            "UniswapV2: TRANSFER_FAILED"
-        );
     }
 
     constructor() {
@@ -121,7 +104,9 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         }
     }
 
-    function mint(address to) external lock returns (uint256 liquidity) {
+    function mint(
+        address to
+    ) external nonReentrant returns (uint256 liquidity) {
         (uint112 _reserve0, uint112 _reserve1, ) = getReserves();
         uint256 balance0 = IERC20(token0).balanceOf(address(this));
         uint256 balance1 = IERC20(token1).balanceOf(address(this));
@@ -149,7 +134,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 
     function burn(
         address to
-    ) external lock returns (uint256 amount0, uint256 amount1) {
+    ) external nonReentrant returns (uint256 amount0, uint256 amount1) {
         (uint112 _reserve0, uint112 _reserve1, ) = getReserves();
         address _token0 = token0;
         address _token1 = token1;
@@ -168,8 +153,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
             "UniswapV2: INSUFFICIENT_LIQUIDITY_BURNED"
         );
         _burn(address(this), liquidity);
-        _safeTransfer(_token0, to, amount0);
-        _safeTransfer(_token1, to, amount1);
+        IERC20(_token0).safeTransfer(to, amount0);
+        IERC20(_token1).safeTransfer(to, amount1);
         uint256 balance0 = IERC20(_token0).balanceOf(address(this));
         uint256 balance1 = IERC20(_token1).balanceOf(address(this));
 
@@ -183,7 +168,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint256 amount1Out,
         address to,
         bytes calldata data
-    ) external lock {
+    ) external nonReentrant {
         require(
             amount0Out > 0 || amount1Out > 0,
             "UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT"
@@ -200,8 +185,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
             address _token0 = token0;
             address _token1 = token1;
             require(to != _token0 && to != _token1, "UniswapV2: INVALID_TO");
-            if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out);
-            if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out);
+            if (amount0Out > 0) IERC20(_token0).safeTransfer(to, amount0Out);
+            if (amount1Out > 0) IERC20(_token1).safeTransfer(to, amount1Out);
             if (data.length > 0)
                 IUniswapV2Callee(to).uniswapV2Call(
                     msg.sender,
@@ -236,22 +221,20 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
     }
 
-    function skim(address to) external lock {
+    function skim(address to) external nonReentrant {
         address _token0 = token0;
         address _token1 = token1;
-        _safeTransfer(
-            _token0,
+        IERC20(_token0).safeTransfer(
             to,
             IERC20(_token0).balanceOf(address(this)) - reserve0
         );
-        _safeTransfer(
-            _token1,
+        IERC20(_token1).safeTransfer(
             to,
             IERC20(_token1).balanceOf(address(this)) - reserve1
         );
     }
 
-    function sync() external lock {
+    function sync() external nonReentrant {
         _update(
             IERC20(token0).balanceOf(address(this)),
             IERC20(token1).balanceOf(address(this)),
