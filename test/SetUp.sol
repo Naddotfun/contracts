@@ -10,6 +10,8 @@ import {WNative} from "../src/WNative.sol";
 import {FeeVault} from "../src/FeeVault.sol";
 import {Lock} from "../src/Lock.sol";
 import {UniswapV2Factory} from "../src/uniswap/UniswapV2Factory.sol";
+import {UniswapV2Pair} from "../src/uniswap/UniswapV2Pair.sol";
+import {UniswapV2Router} from "../src/uniswap/UniswapV2Router.sol";
 
 import {Token} from "../src/Token.sol";
 import {Core} from "../src/Core.sol";
@@ -25,9 +27,12 @@ contract SetUp is Test {
     UniswapV2Factory public DEX_FACTORY;
     Lock public LOCK;
     FeeVault public FEE_VAULT;
-    MintParty public MINT_PARTY;
+    // MintParty public MINT_PARTY;
     Core public CORE;
     Token public MEME_TOKEN;
+    UniswapV2Pair public UNISWAP_PAIR;
+    UniswapV2Router public UNISWAP_ROUTER;
+
     uint256 constant DEPLOY_FEE = 2 * 10 ** 16;
     uint256 constant LISTING_FEE = 1 ether;
     uint256 constant VIRTUAL_NATIVE = 30 * 10 ** 18;
@@ -42,8 +47,8 @@ contract SetUp is Test {
     uint256 DEFAULT_LOCK_TIME = 48 hours;
 
     //MINT PARTY
-    uint256 MINT_PARTY_FUNDING_AMOUNT = 1 ether;
-    uint256 MINT_PARTY_MAXIMUM_WHITE_LIST = 4;
+    // uint256 MINT_PARTY_FUNDING_AMOUNT = 1 ether;
+    // uint256 MINT_PARTY_MAXIMUM_WHITE_LIST = 4;
 
     address constant OWNER = address(0xa);
     address constant CREATOR = address(0xb);
@@ -103,15 +108,18 @@ contract SetUp is Test {
             address(WNATIVE)
         );
 
-        LOCK = new Lock(address(BONDING_CURVE_FACTORY), DEFAULT_LOCK_TIME);
-        MINT_PARTY_FACTORY = new MintPartyFactory(
-            address(CORE),
-            address(WNATIVE),
-            address(LOCK),
-            address(BONDING_CURVE_FACTORY)
-        );
+        // LOCK = new Lock(address(BONDING_CURVE_FACTORY), DEFAULT_LOCK_TIME);
+        // MINT_PARTY_FACTORY = new MintPartyFactory(
+        //     address(CORE),
+        //     address(WNATIVE),
+        //     address(LOCK),
+        //     address(BONDING_CURVE_FACTORY)
+        // );
         DEX_FACTORY = new UniswapV2Factory(OWNER);
-
+        UNISWAP_ROUTER = new UniswapV2Router(
+            address(DEX_FACTORY),
+            address(WNATIVE)
+        );
         vm.stopPrank();
     }
 
@@ -132,7 +140,7 @@ contract SetUp is Test {
             });
         BONDING_CURVE_FACTORY.initialize(params);
 
-        MINT_PARTY_FACTORY.initialize(MINT_PARTY_MAXIMUM_WHITE_LIST);
+        // MINT_PARTY_FACTORY.initialize(MINT_PARTY_MAXIMUM_WHITE_LIST);
 
         vm.stopPrank();
     }
@@ -195,25 +203,26 @@ contract SetUp is Test {
             block.timestamp + 1
         );
 
-        CURVE.listing();
+        UNISWAP_PAIR = UniswapV2Pair(CURVE.listing());
+        assertNotEq(UNISWAP_PAIR, address(0));
         assertEq(CURVE.getLock(), true);
         vm.stopPrank();
     }
 
-    function CreateMintParty(address account) public {
-        vm.startPrank(account);
-        vm.deal(account, MINT_PARTY_FUNDING_AMOUNT);
+    // function CreateMintParty(address account) public {
+    //     vm.startPrank(account);
+    //     vm.deal(account, MINT_PARTY_FUNDING_AMOUNT);
 
-        MINT_PARTY = MintParty(
-            MINT_PARTY_FACTORY.create{value: MINT_PARTY_FUNDING_AMOUNT}(
-                account,
-                "TEST",
-                "TEST",
-                "TEST",
-                MINT_PARTY_FUNDING_AMOUNT,
-                uint8(MINT_PARTY_MAXIMUM_WHITE_LIST)
-            )
-        );
-        vm.stopPrank();
-    }
+    //     MINT_PARTY = MintParty(
+    //         MINT_PARTY_FACTORY.create{value: MINT_PARTY_FUNDING_AMOUNT}(
+    //             account,
+    //             "TEST",
+    //             "TEST",
+    //             "TEST",
+    //             MINT_PARTY_FUNDING_AMOUNT,
+    //             uint8(MINT_PARTY_MAXIMUM_WHITE_LIST)
+    //         )
+    //     );
+    //     vm.stopPrank();
+    // }
 }
