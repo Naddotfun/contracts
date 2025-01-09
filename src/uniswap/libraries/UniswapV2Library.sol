@@ -2,7 +2,6 @@
 pragma solidity ^0.8.20;
 import "../interfaces/IUniswapV2Pair.sol";
 import "../interfaces/IUniswapV2Factory.sol";
-import {Test, console} from "forge-std/Test.sol";
 
 library UniswapV2Library {
     // returns sorted token addresses, used to handle return values from pairs sorted in this order

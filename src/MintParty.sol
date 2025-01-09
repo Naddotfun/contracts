@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.20;
-import {console} from "forge-std/console.sol";
+
 import {ICore} from "./interfaces/ICore.sol";
 import {IWNative} from "./interfaces/IWNative.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
