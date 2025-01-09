@@ -7,6 +7,8 @@ optimizer_runs = 1000
 via_ir = true
 ffi = true
 
+[profile.lite]
+optimizer = false
 
 # Multiple Solidity version support
 solc = "0.8.20" # Specify multiple compiler versions
