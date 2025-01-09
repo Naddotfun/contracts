@@ -5,12 +5,14 @@ import "./interfaces/IUniswapV2Router.sol";
 import "./interfaces/IUniswapV2Factory.sol";
 import "./interfaces/IUniswapV2Pair.sol";
 import "./libraries/UniswapV2Library.sol";
-import "../utils/TransferHelper.sol";
 import "../interfaces/IWNative.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {TransferHelper} from "../utils/TransferHelper.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract UniswapV2Router is IUniswapV2Router {
+    using SafeERC20 for IERC20;
     address public immutable override factory;
     address public immutable override WNATIVE;
 
@@ -101,18 +103,8 @@ contract UniswapV2Router is IUniswapV2Router {
             amountBMin
         );
         address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
-        TransferHelper.safeTransferFrom(
-            IERC20(tokenA),
-            msg.sender,
-            pair,
-            amountA
-        );
-        TransferHelper.safeTransferFrom(
-            IERC20(tokenB),
-            msg.sender,
-            pair,
-            amountB
-        );
+        IERC20(tokenA).safeTransferFrom(msg.sender, pair, amountA);
+        IERC20(tokenB).safeTransferFrom(msg.sender, pair, amountB);
         liquidity = IUniswapV2Pair(pair).mint(to);
     }
 
@@ -140,12 +132,7 @@ contract UniswapV2Router is IUniswapV2Router {
             amountNativeMin
         );
         address pair = UniswapV2Library.pairFor(factory, token, WNATIVE);
-        TransferHelper.safeTransferFrom(
-            IERC20(token),
-            msg.sender,
-            pair,
-            amountToken
-        );
+        IERC20(token).safeTransferFrom(msg.sender, pair, amountToken);
         IWNative(WNATIVE).deposit{value: amountNATIVE}();
         assert(IWNative(WNATIVE).transfer(pair, amountNATIVE));
         liquidity = IUniswapV2Pair(pair).mint(to);
@@ -174,13 +161,8 @@ contract UniswapV2Router is IUniswapV2Router {
         returns (uint amountA, uint amountB)
     {
         address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
-        // IUniswapV2Pair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
-        TransferHelper.safeTransferFrom(
-            IERC20(pair),
-            msg.sender,
-            pair,
-            liquidity
-        );
+
+        IERC20(pair).safeTransferFrom(msg.sender, pair, liquidity);
         (uint amount0, uint amount1) = IUniswapV2Pair(pair).burn(to);
         (address token0, ) = UniswapV2Library.sortTokens(tokenA, tokenB);
         (amountA, amountB) = tokenA == token0
@@ -219,7 +201,7 @@ contract UniswapV2Router is IUniswapV2Router {
             address(this),
             deadline
         );
-        TransferHelper.safeTransferERC20(IERC20(token), to, amountToken);
+        IERC20(token).safeTransfer(to, amountToken);
         IWNative(WNATIVE).withdraw(amountNATIVE);
         TransferHelper.safeTransferNative(to, amountNATIVE);
     }
@@ -310,11 +292,7 @@ contract UniswapV2Router is IUniswapV2Router {
             address(this),
             deadline
         );
-        TransferHelper.safeTransferERC20(
-            IERC20(token),
-            to,
-            IERC20(token).balanceOf(address(this))
-        );
+        IERC20(token).safeTransfer(to, IERC20(token).balanceOf(address(this)));
         IWNative(WNATIVE).withdraw(amountNative);
         TransferHelper.safeTransferNative(to, amountNative);
     }
@@ -392,8 +370,7 @@ contract UniswapV2Router is IUniswapV2Router {
             amounts[amounts.length - 1] >= amountOutMin,
             "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
         );
-        TransferHelper.safeTransferFrom(
-            IERC20(path[0]),
+        IERC20(path[0]).safeTransferFrom(
             msg.sender,
             UniswapV2Library.pairFor(factory, path[0], path[1]),
             amounts[0]
@@ -419,8 +396,7 @@ contract UniswapV2Router is IUniswapV2Router {
             amounts[0] <= amountInMax,
             "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT"
         );
-        TransferHelper.safeTransferFrom(
-            IERC20(path[0]),
+        IERC20(path[0]).safeTransferFrom(
             msg.sender,
             UniswapV2Library.pairFor(factory, path[0], path[1]),
             amounts[0]
@@ -479,8 +455,7 @@ contract UniswapV2Router is IUniswapV2Router {
             amounts[0] <= amountInMax,
             "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT"
         );
-        TransferHelper.safeTransferFrom(
-            IERC20(path[0]),
+        IERC20(path[0]).safeTransferFrom(
             msg.sender,
             UniswapV2Library.pairFor(factory, path[0], path[1]),
             amounts[0]
@@ -512,8 +487,7 @@ contract UniswapV2Router is IUniswapV2Router {
             amounts[amounts.length - 1] >= amountOutMin,
             "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
         );
-        TransferHelper.safeTransferFrom(
-            IERC20(path[0]),
+        IERC20(path[0]).safeTransferFrom(
             msg.sender,
             UniswapV2Library.pairFor(factory, path[0], path[1]),
             amounts[0]
@@ -605,8 +579,7 @@ contract UniswapV2Router is IUniswapV2Router {
         address to,
         uint deadline
     ) external virtual override ensure(deadline) {
-        TransferHelper.safeTransferFrom(
-            IERC20(path[0]),
+        IERC20(path[0]).safeTransferFrom(
             msg.sender,
             UniswapV2Library.pairFor(factory, path[0], path[1]),
             amountIn
@@ -655,8 +628,7 @@ contract UniswapV2Router is IUniswapV2Router {
             path[path.length - 1] == WNATIVE,
             "UniswapV2Router: INVALID_PATH"
         );
-        TransferHelper.safeTransferFrom(
-            IERC20(path[0]),
+        IERC20(path[0]).safeTransferFrom(
             msg.sender,
             UniswapV2Library.pairFor(factory, path[0], path[1]),
             amountIn

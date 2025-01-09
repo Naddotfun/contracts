@@ -8,6 +8,7 @@ import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
 import {IBondingCurve} from "./interfaces/IBondingCurve.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./errors/Errors.sol";
 
 /**
@@ -16,8 +17,7 @@ import "./errors/Errors.sol";
  * Allows users to lock their tokens and unlock them based on either time elapsed or token listing status
  */
 contract Lock is ILock, Ownable, ReentrancyGuard {
-    using TransferHelper for IERC20;
-
+    using SafeERC20 for IERC20;
     IBondingCurveFactory public immutable bondingCurveFactory;
 
     uint256 public reserves;
@@ -88,10 +88,11 @@ contract Lock is ILock, Ownable, ReentrancyGuard {
 
         if (availableAmount > 0) {
             lockedTokenBalance[token] -= availableAmount;
-            IERC20(token).safeTransferERC20(account, availableAmount);
+            IERC20(token).safeTransfer(account, availableAmount);
             emit Unlocked(token, account, availableAmount);
         }
     }
+
     /**
      * @dev Processes the unlock operation
      * @param token Token address
@@ -207,6 +208,7 @@ contract Lock is ILock, Ownable, ReentrancyGuard {
     ) external view returns (uint256) {
         return lockedTokenBalance[token];
     }
+
     /**
      * @notice Internal function to check if a token is listed on the bonding curve
      * @param token The address of the token to check
@@ -216,6 +218,7 @@ contract Lock is ILock, Ownable, ReentrancyGuard {
         address curve = bondingCurveFactory.getCurve(token);
         return IBondingCurve(curve).getIsListing();
     }
+
     /* ========== OWNER FUNCTIONS ========== */
 
     /**

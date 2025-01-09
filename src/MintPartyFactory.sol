@@ -6,7 +6,7 @@ import {IMintParty} from "./interfaces/IMintParty.sol";
 import {IMintPartyFactory} from "./interfaces/IMintPartyFactory.sol";
 import {MintParty} from "./MintParty.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {TransferHelper} from "./utils/TransferHelper.sol";
+
 import "./errors/Errors.sol";
 
 /**
@@ -16,8 +16,6 @@ import "./errors/Errors.sol";
  * and maintains a registry of parties created by accounts
  */
 contract MintPartyFactory is IMintPartyFactory {
-    using TransferHelper for IERC20;
-
     address private owner;
     address immutable core;
     address immutable WNad;

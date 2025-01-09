@@ -10,6 +10,7 @@ import {IUniswapV2ERC20} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2E
 import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
 import {IBondingCurve} from "./interfaces/IBondingCurve.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./errors/Errors.sol";
 
 /**
@@ -18,7 +19,7 @@ import "./errors/Errors.sol";
  * Manages the relationship between Native and project tokens using a constant product formula
  */
 contract BondingCurve is IBondingCurve {
-    using TransferHelper for IERC20;
+    using SafeERC20 for IERC20;
 
     // Immutable state variables
     address immutable factory;
@@ -139,7 +140,7 @@ contract BondingCurve is IBondingCurve {
                 to != _wNative && to != _token,
                 ERR_BONDING_CURVE_INVALID_TO
             );
-            IERC20(_token).safeTransferERC20(core, amountOut);
+            IERC20(_token).safeTransfer(core, amountOut);
 
             balanceNative = IERC20(wNative).balanceOf(address(this));
         }
@@ -177,7 +178,7 @@ contract BondingCurve is IBondingCurve {
                 to != _wNative && to != _token,
                 ERR_BONDING_CURVE_INVALID_TO
             );
-            IERC20(_wNative).safeTransferERC20(core, amountOut);
+            IERC20(_wNative).safeTransfer(core, amountOut);
             balanceToken = IERC20(_token).balanceOf(address(this));
         }
 

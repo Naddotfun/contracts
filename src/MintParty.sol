@@ -11,6 +11,7 @@ import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
 import {BondingCurveLibrary} from "./utils/BondingCurveLibrary.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./errors/Errors.sol";
 
 /**
@@ -20,7 +21,7 @@ import "./errors/Errors.sol";
  * of newly minted tokens among participants.
  */
 contract MintParty is IMintParty, ReentrancyGuard {
-    using TransferHelper for IERC20;
+    using SafeERC20 for IERC20;
 
     address private owner;
     address immutable core;
@@ -285,7 +286,7 @@ contract MintParty is IMintParty, ReentrancyGuard {
 
         // 각 계정별로 정확한 금액만 전송하고 lock
         for (uint256 i = 0; i < whitelistAccounts.length; i++) {
-            IERC20(token).safeTransferERC20(lock, amountPerAccount);
+            IERC20(token).safeTransfer(lock, amountPerAccount);
             ILock(lock).lock(token, whitelistAccounts[i]);
 
             emit TokensLocked(whitelistAccounts[i], amountPerAccount);
