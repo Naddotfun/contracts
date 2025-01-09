@@ -110,7 +110,7 @@ contract BondingCurveFactory is IBondingCurveFactory {
         Config memory _config = getConfig();
 
         curve = address(new BondingCurve(core, wNative));
-        token = address(new Token(name, symbol, tokenURI));
+        token = address(new Token(name, symbol, tokenURI, core));
 
         IToken(token).mint(curve);
 
