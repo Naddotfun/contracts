@@ -20,15 +20,16 @@ contract Token is IToken, ERC20Permit {
     string public tokenURI;
     IBondingCurve curve;
     address private core;
-    modifier beforeListed(address from, address to) {
-        bool isListing = curve.getIsListing();
 
-        if (!isListing) {
+    modifier beforeListed(address from, address to) {
+        if (!curve.getIsListing()) {
+            // Static array access is more gas efficient
+            bool isFromAllowed = from == address(curve) || from == core;
+
+            bool isToAllowed = to == address(curve) || to == core;
+
             require(
-                from == address(curve) ||
-                    from == core ||
-                    to == address(curve) ||
-                    to == core,
+                isFromAllowed || isToAllowed,
                 "Token: transfer not allowed before listing"
             );
         }
