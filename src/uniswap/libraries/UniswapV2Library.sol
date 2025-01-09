@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.20;
 import "../interfaces/IUniswapV2Pair.sol";
+import "../interfaces/IUniswapV2Factory.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 library UniswapV2Library {
     // returns sorted token addresses, used to handle return values from pairs sorted in this order
@@ -20,22 +22,24 @@ library UniswapV2Library {
         address factory,
         address tokenA,
         address tokenB
-    ) internal pure returns (address pair) {
+    ) internal view returns (address pair) {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
-        pair = address(
-            uint160(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            hex"ff",
-                            factory,
-                            keccak256(abi.encodePacked(token0, token1)),
-                            hex"96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f" // init code hash
-                        )
-                    )
-                )
-            )
-        );
+        // @Uniswap V2
+        // pair = address(
+        //     uint160(
+        //         uint256(
+        //             keccak256(
+        //                 abi.encodePacked(
+        //                     hex"ff",
+        //                     factory,
+        //                     keccak256(abi.encodePacked(token0, token1)),
+        //                     hex"96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f" // init code hash
+        //                 )
+        //             )
+        //         )
+        //     )
+        // );
+        pair = IUniswapV2Factory(factory).getPair(token0, token1);
     }
 
     // fetches and sorts the reserves for a pair
@@ -109,19 +113,14 @@ library UniswapV2Library {
         require(path.length >= 2, "UniswapV2Library: INVALID_PATH");
         amounts = new uint256[](path.length);
         amounts[0] = amountIn;
-        unchecked {
-            for (uint256 i; i < path.length - 1; i++) {
-                (uint256 reserveIn, uint256 reserveOut) = getReserves(
-                    factory,
-                    path[i],
-                    path[i + 1]
-                );
-                amounts[i + 1] = getAmountOut(
-                    amounts[i],
-                    reserveIn,
-                    reserveOut
-                );
-            }
+
+        for (uint i; i < path.length - 1; i++) {
+            (uint reserveIn, uint reserveOut) = getReserves(
+                factory,
+                path[i],
+                path[i + 1]
+            );
+            amounts[i + 1] = getAmountOut(amounts[i], reserveIn, reserveOut);
         }
     }
 
@@ -134,15 +133,14 @@ library UniswapV2Library {
         require(path.length >= 2, "UniswapV2Library: INVALID_PATH");
         amounts = new uint256[](path.length);
         amounts[amounts.length - 1] = amountOut;
-        unchecked {
-            for (uint256 i = path.length - 1; i > 0; i--) {
-                (uint256 reserveIn, uint256 reserveOut) = getReserves(
-                    factory,
-                    path[i - 1],
-                    path[i]
-                );
-                amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut);
-            }
+
+        for (uint256 i = path.length - 1; i > 0; i--) {
+            (uint256 reserveIn, uint256 reserveOut) = getReserves(
+                factory,
+                path[i - 1],
+                path[i]
+            );
+            amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut);
         }
     }
 }
