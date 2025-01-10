@@ -182,9 +182,6 @@ contract Core is ICore {
         ) = getCurveData(factory, token);
         checkFee(curve, amountIn, fee);
 
-        IWNative(wNative).deposit{value: amountIn + fee}();
-        sendFeeByVault(fee);
-
         // Calculate and verify amountOut
         uint256 amountOut = getAmountOut(
             amountIn,
@@ -192,10 +189,17 @@ contract Core is ICore {
             virtualNative,
             virtualToken
         );
+        {
+            IWNative(wNative).deposit{value: amountIn + fee}();
 
-        IERC20(wNative).safeTransfer(curve, amountIn);
-        IBondingCurve(curve).buy(to, amountOut);
-        IERC20(token).safeTransfer(to, amountOut);
+            sendFeeByVault(fee);
+
+            IERC20(wNative).safeTransfer(curve, amountIn);
+
+            IBondingCurve(curve).buy(to, amountOut);
+
+            IERC20(token).safeTransfer(to, amountOut);
+        }
     }
 
     /**
@@ -226,9 +230,6 @@ contract Core is ICore {
         checkFee(curve, amountIn, fee);
         // TransferHelper.safeTransferNative(owner, fee);
 
-        IWNative(wNative).deposit{value: amountIn + fee}();
-
-        sendFeeByVault(fee);
         uint256 amountOut = getAmountOut(
             amountIn,
             k,
@@ -237,11 +238,15 @@ contract Core is ICore {
         );
 
         require(amountOut >= amountOutMin, ERR_CORE_INVALID_AMOUNT_OUT);
+        {
+            IWNative(wNative).deposit{value: amountIn + fee}();
 
-        IERC20(wNative).safeTransfer(curve, amountIn);
+            sendFeeByVault(fee);
+            IERC20(wNative).safeTransfer(curve, amountIn);
 
-        IBondingCurve(curve).buy(to, amountOut);
-        IERC20(token).safeTransfer(to, amountOut);
+            IBondingCurve(curve).buy(to, amountOut);
+            IERC20(token).safeTransfer(to, amountOut);
+        }
     }
 
     /**
@@ -284,16 +289,17 @@ contract Core is ICore {
         );
 
         require(amountIn + fee <= amountInMax, ERR_CORE_INVALID_AMOUNT_IN_MAX);
-
-        uint256 restValue = amountInMax - (amountIn + fee);
-        if (restValue > 0) {
-            TransferHelper.safeTransferNative(msg.sender, restValue);
+        {
+            IWNative(wNative).deposit{value: amountIn + fee}();
+            sendFeeByVault(fee);
+            IERC20(wNative).safeTransfer(curve, amountIn);
+            IBondingCurve(curve).buy(to, amountOut);
+            IERC20(token).safeTransfer(to, amountOut);
+            uint256 restValue = amountInMax - (amountIn + fee);
+            if (restValue > 0) {
+                TransferHelper.safeTransferNative(msg.sender, restValue);
+            }
         }
-        IWNative(wNative).deposit{value: amountIn + fee}();
-        sendFeeByVault(fee);
-        IERC20(wNative).safeTransfer(curve, amountIn);
-        IBondingCurve(curve).buy(to, amountOut);
-        IERC20(token).safeTransfer(to, amountOut);
     }
 
     // //-------------Sell Functions ---------------------------------------------
@@ -314,15 +320,17 @@ contract Core is ICore {
     ) external ensure(deadline) {
         require(amountIn > 0, ERR_CORE_INVALID_AMOUNT_IN);
 
+        require(
+            IERC20(token).allowance(msg.sender, address(this)) >= amountIn,
+            ERR_CORE_INVALID_ALLOWANCE
+        );
         (
             address curve,
             uint256 virtualNative,
             uint256 virtualToken,
             uint256 k
         ) = getCurveData(factory, token);
-        uint256 allowance = IERC20(token).allowance(msg.sender, address(this));
-        require(allowance >= amountIn, ERR_CORE_INVALID_ALLOWANCE);
-        IERC20(token).safeTransferFrom(msg.sender, curve, amountIn);
+
         uint256 amountOut = getAmountOut(
             amountIn,
             k,
@@ -333,17 +341,19 @@ contract Core is ICore {
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve)
             .getFeeConfig();
 
-        IBondingCurve(curve).sell(to, amountOut);
         uint256 fee = BondingCurveLibrary.getFeeAmount(
             amountOut,
             denominator,
             numerator
         );
+        {
+            IERC20(token).safeTransferFrom(msg.sender, curve, amountIn);
+            IBondingCurve(curve).sell(to, amountOut);
+            sendFeeByVault(fee);
+            IWNative(wNative).withdraw(amountOut - fee);
 
-        sendFeeByVault(fee);
-        IWNative(wNative).withdraw(amountOut - fee);
-
-        TransferHelper.safeTransferNative(to, amountOut - fee);
+            TransferHelper.safeTransferNative(to, amountOut - fee);
+        }
     }
 
     /**
@@ -383,7 +393,7 @@ contract Core is ICore {
             uint256 virtualToken,
             uint256 k
         ) = getCurveData(factory, token);
-        IERC20(token).safeTransferFrom(from, curve, amountIn);
+
         uint256 amountOut = getAmountOut(
             amountIn,
             k,
@@ -394,16 +404,22 @@ contract Core is ICore {
         (uint8 denominator, uint16 numerator) = IBondingCurve(curve)
             .getFeeConfig();
 
-        IBondingCurve(curve).sell(to, amountOut);
         uint256 fee = BondingCurveLibrary.getFeeAmount(
             amountOut,
             denominator,
             numerator
         );
-        sendFeeByVault(fee);
-        IWNative(wNative).withdraw(amountOut - fee);
+        {
+            IERC20(token).safeTransferFrom(from, curve, amountIn);
 
-        TransferHelper.safeTransferNative(to, amountOut - fee);
+            IBondingCurve(curve).sell(to, amountOut);
+
+            sendFeeByVault(fee);
+
+            IWNative(wNative).withdraw(amountOut - fee);
+
+            TransferHelper.safeTransferNative(to, amountOut - fee);
+        }
     }
 
     /**
@@ -421,9 +437,9 @@ contract Core is ICore {
         address to,
         uint256 deadline
     ) external ensure(deadline) {
+        require(amountIn > 0, ERR_CORE_INVALID_AMOUNT_IN);
         uint256 allowance = IERC20(token).allowance(msg.sender, address(this));
         require(allowance >= amountIn, ERR_CORE_INVALID_ALLOWANCE);
-        require(amountIn > 0, ERR_CORE_INVALID_AMOUNT_IN);
 
         (
             address curve,
@@ -431,7 +447,7 @@ contract Core is ICore {
             uint256 virtualToken,
             uint256 k
         ) = getCurveData(factory, token);
-        IERC20(token).safeTransferFrom(msg.sender, curve, amountIn);
+
         uint256 amountOut = getAmountOut(
             amountIn,
             k,
@@ -448,12 +464,17 @@ contract Core is ICore {
         );
 
         require(amountOut - fee >= amountOutMin, ERR_CORE_INVALID_AMOUNT_OUT);
+        {
+            IERC20(token).safeTransferFrom(msg.sender, curve, amountIn);
 
-        IBondingCurve(curve).sell(to, amountOut);
-        sendFeeByVault(fee);
-        IWNative(wNative).withdraw(amountOut - fee);
+            IBondingCurve(curve).sell(to, amountOut);
 
-        TransferHelper.safeTransferNative(to, amountOut - fee);
+            sendFeeByVault(fee);
+
+            IWNative(wNative).withdraw(amountOut - fee);
+
+            TransferHelper.safeTransferNative(to, amountOut - fee);
+        }
     }
 
     /**
@@ -499,7 +520,7 @@ contract Core is ICore {
             uint256 virtualToken,
             uint256 k
         ) = getCurveData(factory, token);
-        IERC20(token).safeTransferFrom(from, curve, amountIn);
+
         // Calculate and verify amountOut
         uint256 amountOut = getAmountOut(
             amountIn,
@@ -516,13 +537,17 @@ contract Core is ICore {
         );
 
         require(amountOut - fee >= amountOutMin, ERR_CORE_INVALID_AMOUNT_OUT);
+        {
+            IERC20(token).safeTransferFrom(from, curve, amountIn);
 
-        IBondingCurve(curve).sell(to, amountOut);
+            IBondingCurve(curve).sell(to, amountOut);
 
-        sendFeeByVault(fee);
-        IWNative(wNative).withdraw(amountOut - fee);
+            sendFeeByVault(fee);
 
-        TransferHelper.safeTransferNative(to, amountOut - fee);
+            IWNative(wNative).withdraw(amountOut - fee);
+
+            TransferHelper.safeTransferNative(to, amountOut - fee);
+        }
     }
 
     //amountOut 은 fee + amountOut 이어야함.
@@ -542,9 +567,10 @@ contract Core is ICore {
         address to,
         uint256 deadline
     ) external payable ensure(deadline) {
-        uint256 allowance = IERC20(token).allowance(msg.sender, address(this));
+        require(amountInMax > 0, ERR_CORE_INVALID_AMOUNT_IN);
+
         require(
-            allowance >= amountInMax && amountInMax > 0,
+            IERC20(token).allowance(msg.sender, address(this)) >= amountInMax,
             ERR_CORE_INVALID_ALLOWANCE
         );
 
@@ -554,10 +580,13 @@ contract Core is ICore {
             uint256 virtualToken,
             uint256 k
         ) = getCurveData(factory, token);
-        uint256 fee = msg.value;
-        checkFee(curve, amountOut, fee);
-        IWNative(wNative).deposit{value: fee}();
-        sendFeeByVault(fee);
+
+        {
+            uint256 fee = msg.value;
+            checkFee(curve, amountOut, fee);
+            IWNative(wNative).deposit{value: fee}();
+            sendFeeByVault(fee);
+        }
 
         uint256 amountIn = getAmountIn(
             amountOut,
@@ -567,14 +596,15 @@ contract Core is ICore {
         );
 
         require(amountIn <= amountInMax, ERR_CORE_INVALID_AMOUNT_IN_MAX);
+        {
+            IERC20(token).safeTransferFrom(msg.sender, curve, amountIn);
 
-        IERC20(token).safeTransferFrom(msg.sender, curve, amountIn);
+            IBondingCurve(curve).sell(to, amountOut);
 
-        IBondingCurve(curve).sell(to, amountOut);
+            IWNative(wNative).withdraw(amountOut);
 
-        IWNative(wNative).withdraw(amountOut);
-
-        TransferHelper.safeTransferNative(to, amountOut);
+            TransferHelper.safeTransferNative(to, amountOut);
+        }
     }
 
     /**
@@ -600,6 +630,7 @@ contract Core is ICore {
         bytes32 r,
         bytes32 s
     ) external payable ensure(deadline) {
+        require(amountInMax > 0, ERR_CORE_INVALID_AMOUNT_IN_MAX);
         IERC20Permit(token).permit(
             from,
             address(this),
@@ -609,7 +640,6 @@ contract Core is ICore {
             r,
             s
         );
-        require(amountInMax > 0, ERR_CORE_INVALID_AMOUNT_IN_MAX);
 
         (
             address curve,
@@ -617,25 +647,27 @@ contract Core is ICore {
             uint256 virtualToken,
             uint256 k
         ) = getCurveData(factory, token);
-        uint256 fee = msg.value;
-        checkFee(curve, amountOut, fee);
-        IWNative(wNative).deposit{value: fee}();
-        sendFeeByVault(fee);
+        {
+            uint256 fee = msg.value;
+            checkFee(curve, amountOut, fee);
+            IWNative(wNative).deposit{value: fee}();
+            sendFeeByVault(fee);
+        }
         uint256 amountIn = getAmountIn(
             amountOut,
             k,
             virtualToken,
             virtualNative
         );
-
         require(amountIn <= amountInMax, ERR_CORE_INVALID_AMOUNT_IN_MAX);
+        {
+            IERC20(token).safeTransferFrom(msg.sender, curve, amountIn);
+            IBondingCurve(curve).sell(to, amountOut);
 
-        IERC20(token).safeTransferFrom(msg.sender, curve, amountIn);
-        IBondingCurve(curve).sell(to, amountOut);
+            IWNative(wNative).withdraw(amountOut);
 
-        IWNative(wNative).withdraw(amountOut);
-
-        TransferHelper.safeTransferNative(to, amountOut);
+            TransferHelper.safeTransferNative(to, amountOut);
+        }
     }
 
     //----------------------------Common Functions ---------------------------------------------------
