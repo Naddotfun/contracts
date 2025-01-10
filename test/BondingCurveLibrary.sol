@@ -15,7 +15,7 @@ contract BondingCurveLibraryTest is Test, SetUp {
     uint256 constant RESERVE_OUT = 100 ether;
     uint256 constant TEST_K = RESERVE_IN * RESERVE_OUT;
 
-    function testGetAmountOut() public {
+    function testGetAmountOut() public pure {
         uint256 amountOut = BondingCurveLibrary.getAmountOut(
             AMOUNT_IN,
             TEST_K,
@@ -143,7 +143,7 @@ contract BondingCurveLibraryTest is Test, SetUp {
         );
     }
 
-    function testGetFeeAmount() public {
+    function testGetFeeAmount() public pure {
         uint256 amount = 100 ether;
         uint8 denominator = 10;
         uint16 numerator = 1000;
@@ -305,7 +305,7 @@ contract BondingCurveLibraryTest is Test, SetUp {
         assertEq(newK, exactK, "K should remain constant");
     }
 
-    function testFuzzGetAmountOut(uint256 amountIn) public {
+    function testFuzzGetAmountOut(uint256 amountIn) public pure {
         vm.assume(amountIn > 0 && amountIn < RESERVE_OUT);
         vm.assume(amountIn < type(uint256).max / RESERVE_OUT); // Prevent overflow
 

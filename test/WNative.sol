@@ -21,7 +21,7 @@ contract WNativeTest is Test {
         vm.stopPrank();
     }
 
-    function testDeposit() public {
+    function testDeposit() public view {
         assertEq(wNative.balanceOf(human), 100);
         assertEq(wNative.totalSupply(), 100);
         assertEq(human.balance, 0);
@@ -35,7 +35,7 @@ contract WNativeTest is Test {
         assertEq(human.balance, 100);
     }
 
-    function testTotalSupply() public {
+    function testTotalSupply() public view {
         assertEq(wNative.totalSupply(), 100);
     }
 
