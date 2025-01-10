@@ -5,8 +5,7 @@ import "../errors/errors.sol";
 
 /**
  * @title TransferHelper
- * @dev Helper functions for safely transferring ETH and ERC20 tokens
- * Adapted from https://github.com/Uniswap/v3-core/blob/main/contracts/libraries/TransferHelper.sol
+ * @dev Helper functions for safely transferring Native
  */
 library TransferHelper {
     /**
