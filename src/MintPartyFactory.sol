@@ -32,12 +32,7 @@ contract MintPartyFactory is IMintPartyFactory {
      * @param _wnad Address of the WNAD token
      * @param _lock Address of the lock contract
      */
-    constructor(
-        address _core,
-        address _wnad,
-        address _lock,
-        address _bondingCurveFactory
-    ) {
+    constructor(address _core, address _wnad, address _lock, address _bondingCurveFactory) {
         owner = msg.sender;
         core = _core;
         WNad = _wnad;
@@ -55,7 +50,7 @@ contract MintPartyFactory is IMintPartyFactory {
 
     /**
      * @dev Initializes the factory with required contract addresses and configurations
-  
+     *
      * @param _maxWhiteList Maximum number of participants allowed in a party
      */
     function initialize(uint256 _maxWhiteList) external onlyOwner {
@@ -84,51 +79,21 @@ contract MintPartyFactory is IMintPartyFactory {
         uint256 fundingAmount,
         uint8 whiteListCount
     ) external payable returns (address) {
-        require(
-            whiteListCount <= maxWhiteList,
-            ERR_MINT_PARTY_FACTORY_INVALID_MAXIMUM_WHITELIST
-        );
-        require(
-            msg.value == fundingAmount,
-            ERR_MINT_PARTY_FACTORY_INVALID_FUNDING_AMOUNT
-        );
+        require(whiteListCount <= maxWhiteList, ERR_MINT_PARTY_FACTORY_INVALID_MAXIMUM_WHITELIST);
+        require(msg.value == fundingAmount, ERR_MINT_PARTY_FACTORY_INVALID_FUNDING_AMOUNT);
 
         // Check if account has an existing party
         address existingParty = parties[account];
 
         // Verify existing party is finished or doesn't exist
         if (existingParty != address(0)) {
-            require(
-                IMintParty(existingParty).getFinished(),
-                ERR_MINT_PARTY_FACTORY_NOT_FINISHED
-            );
+            require(IMintParty(existingParty).getFinished(), ERR_MINT_PARTY_FACTORY_NOT_FINISHED);
         }
 
         // Create new MintParty instance
-        MintParty party = new MintParty(
-            account,
-            core,
-            WNad,
-            lock,
-            bondingCurveFactory
-        );
-        party.initialize(
-            account,
-            name,
-            symbol,
-            tokenURI,
-            fundingAmount,
-            whiteListCount
-        );
-        emit MintPartyCreated(
-            address(party),
-            account,
-            fundingAmount,
-            whiteListCount,
-            name,
-            symbol,
-            tokenURI
-        );
+        MintParty party = new MintParty(account, core, WNad, lock, bondingCurveFactory);
+        party.initialize(account, name, symbol, tokenURI, fundingAmount, whiteListCount);
+        emit MintPartyCreated(address(party), account, fundingAmount, whiteListCount, name, symbol, tokenURI);
 
         // Make initial deposit for party creator
         IMintParty(party).deposit{value: fundingAmount}(account);

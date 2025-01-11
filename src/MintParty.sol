@@ -68,13 +68,7 @@ contract MintParty is IMintParty, ReentrancyGuard {
      * @param _lock Address of the lock contract
      * @param _bondingCurveFactory Address of the bonding curve factory
      */
-    constructor(
-        address _owner,
-        address _core,
-        address _wNative,
-        address _lock,
-        address _bondingCurveFactory
-    ) {
+    constructor(address _owner, address _core, address _wNative, address _lock, address _bondingCurveFactory) {
         owner = _owner;
         core = _core;
         wNative = _wNative;
@@ -111,14 +105,8 @@ contract MintParty is IMintParty, ReentrancyGuard {
      */
     function deposit(address account) external payable nonReentrant {
         require(!finished, ERR_MINT_PARTY_FINISHED);
-        require(
-            balances[account] == 0 && whitelists[account] == 0,
-            ERR_MINT_PARTY_ALREADY_DEPOSITED
-        );
-        require(
-            msg.value == config.fundingAmount,
-            ERR_MINT_PARTY_INVALID_FUNDING_AMOUNT
-        );
+        require(balances[account] == 0 && whitelists[account] == 0, ERR_MINT_PARTY_ALREADY_DEPOSITED);
+        require(msg.value == config.fundingAmount, ERR_MINT_PARTY_INVALID_FUNDING_AMOUNT);
 
         totalBalance += msg.value;
         balances[account] += msg.value;
@@ -161,9 +149,7 @@ contract MintParty is IMintParty, ReentrancyGuard {
         // Remove account from whitelist if present
         for (uint256 i = 0; i < whitelistAccounts.length; i++) {
             if (whitelistAccounts[i] == msg.sender) {
-                whitelistAccounts[i] = whitelistAccounts[
-                    whitelistAccounts.length - 1
-                ];
+                whitelistAccounts[i] = whitelistAccounts[whitelistAccounts.length - 1];
                 whitelistAccounts.pop();
                 emit MintPartyWhiteListRemoved(msg.sender, amount);
                 break;
@@ -189,10 +175,7 @@ contract MintParty is IMintParty, ReentrancyGuard {
         uint256 accountsLength = accounts.length;
 
         // validate total whitelist count
-        require(
-            _currentLength + accountsLength <= _whiteListCount,
-            ERR_MINT_PARTY_INVALID_WHITE_LIST
-        );
+        require(_currentLength + accountsLength <= _whiteListCount, ERR_MINT_PARTY_INVALID_WHITE_LIST);
 
         unchecked {
             for (uint256 i; i < accountsLength; ++i) {
@@ -201,10 +184,7 @@ contract MintParty is IMintParty, ReentrancyGuard {
 
                 // validate balance and whitelist
                 require(balance > 0, ERR_MINT_PARTY_BALANCE_ZERO);
-                require(
-                    whitelists[account] == 0,
-                    ERR_MINT_PARTY_WHITELIST_ALREADY_ADDED
-                );
+                require(whitelists[account] == 0, ERR_MINT_PARTY_WHITELIST_ALREADY_ADDED);
 
                 // update whitelist and balance
                 _addToWhitelist(account, balance);
@@ -222,37 +202,21 @@ contract MintParty is IMintParty, ReentrancyGuard {
      * Called automatically when whitelist is full
      */
     function createBondingCurve() private {
-        require(
-            whitelistAccounts.length == config.whiteListCount,
-            ERR_MINT_PARTY_INVALID_WHITE_LIST
-        );
+        require(whitelistAccounts.length == config.whiteListCount, ERR_MINT_PARTY_INVALID_WHITE_LIST);
 
         uint256 _totalBalance = calculateSendBalance();
 
-        (uint8 denominator, uint16 numerator) = IBondingCurveFactory(
-            bondingCurveFactory
-        ).getFeeConfig();
+        (uint8 denominator, uint16 numerator) = IBondingCurveFactory(bondingCurveFactory).getFeeConfig();
 
-        uint256 deployFee = IBondingCurveFactory(bondingCurveFactory)
-            .getDelpyFee();
+        uint256 deployFee = IBondingCurveFactory(bondingCurveFactory).getDelpyFee();
 
         uint256 amountIn = _totalBalance - deployFee;
 
-        uint256 fee = BondingCurveLibrary.getFeeAmount(
-            amountIn,
-            denominator,
-            numerator
-        );
+        uint256 fee = BondingCurveLibrary.getFeeAmount(amountIn, denominator, numerator);
 
         amountIn = amountIn - fee;
-        (address curve, address token, , , uint256 amountOut) = ICore(core)
-            .createCurve{value: amountIn + fee + deployFee}(
-            address(this),
-            config.name,
-            config.symbol,
-            config.tokenURI,
-            amountIn,
-            fee
+        (address curve, address token,,, uint256 amountOut) = ICore(core).createCurve{value: amountIn + fee + deployFee}(
+            address(this), config.name, config.symbol, config.tokenURI, amountIn, fee
         );
         lockWhiteListTokens(token, amountOut);
 

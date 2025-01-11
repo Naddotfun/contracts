@@ -18,6 +18,7 @@ import "./errors/Errors.sol";
  */
 contract Lock is ILock, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
+
     IBondingCurveFactory public immutable bondingCurveFactory;
 
     uint256 public reserves;
@@ -38,16 +39,9 @@ contract Lock is ILock, Ownable, ReentrancyGuard {
      * @param _bondingCurveFactory Address of the bonding curve factory
      * @param _defaultLockTime Initial default lock time
      */
-    constructor(
-        address _bondingCurveFactory,
-        uint256 _defaultLockTime
-    ) Ownable(msg.sender) {
+    constructor(address _bondingCurveFactory, uint256 _defaultLockTime) Ownable(msg.sender) {
         require(_bondingCurveFactory != address(0), "Invalid factory address");
-        require(
-            _defaultLockTime >= MIN_LOCK_TIME &&
-                _defaultLockTime <= MAX_LOCK_TIME,
-            "Invalid lock time"
-        );
+        require(_defaultLockTime >= MIN_LOCK_TIME && _defaultLockTime <= MAX_LOCK_TIME, "Invalid lock time");
 
         bondingCurveFactory = IBondingCurveFactory(_bondingCurveFactory);
         defaultLockTime = _defaultLockTime;
@@ -99,10 +93,7 @@ contract Lock is ILock, Ownable, ReentrancyGuard {
      * @param account Account address
      * @return Amount available for unlock
      */
-    function _processUnlock(
-        address token,
-        address account
-    ) internal returns (uint256) {
+    function _processUnlock(address token, address account) internal returns (uint256) {
         if (_isTokenListed(token)) {
             return _processListingUnlock(token, account);
         }
@@ -112,10 +103,7 @@ contract Lock is ILock, Ownable, ReentrancyGuard {
     /**
      * @dev Processes unlock when token is listed
      */
-    function _processListingUnlock(
-        address token,
-        address account
-    ) internal returns (uint256 availableAmount) {
+    function _processListingUnlock(address token, address account) internal returns (uint256 availableAmount) {
         for (uint256 i = 0; i < locked[token][account].length; i++) {
             availableAmount += locked[token][account][i].amount;
         }
@@ -128,17 +116,10 @@ contract Lock is ILock, Ownable, ReentrancyGuard {
     /**
      * @dev Processes time-based unlock
      */
-    function _processTimeBasedUnlock(
-        address token,
-        address account
-    ) internal returns (uint256 availableAmount) {
+    function _processTimeBasedUnlock(address token, address account) internal returns (uint256 availableAmount) {
         uint256 writeIndex = 0;
 
-        for (
-            uint256 readIndex = 0;
-            readIndex < locked[token][account].length;
-            readIndex++
-        ) {
+        for (uint256 readIndex = 0; readIndex < locked[token][account].length; readIndex++) {
             LockInfo storage info = locked[token][account][readIndex];
             if (info.unlockTime <= block.timestamp) {
                 availableAmount += info.amount;
@@ -163,10 +144,7 @@ contract Lock is ILock, Ownable, ReentrancyGuard {
      * @param account Address of the account to check
      * @return Amount of tokens that can be unlocked
      */
-    function getAvailableUnlockAmount(
-        address token,
-        address account
-    ) external view returns (uint256) {
+    function getAvailableUnlockAmount(address token, address account) external view returns (uint256) {
         uint256 availableAmount;
         bool isListing = _isTokenListed(token);
 
@@ -191,10 +169,7 @@ contract Lock is ILock, Ownable, ReentrancyGuard {
      * @param account The address of the account to query
      * @return Array of lock information for the specified token and account
      */
-    function getLocked(
-        address token,
-        address account
-    ) external view returns (LockInfo[] memory) {
+    function getLocked(address token, address account) external view returns (LockInfo[] memory) {
         return locked[token][account];
     }
 
@@ -203,9 +178,7 @@ contract Lock is ILock, Ownable, ReentrancyGuard {
      * @param token The address of the token to query
      * @return The total locked balance of the specified token
      */
-    function getTokenLockedBalance(
-        address token
-    ) external view returns (uint256) {
+    function getTokenLockedBalance(address token) external view returns (uint256) {
         return lockedTokenBalance[token];
     }
 
@@ -226,10 +199,7 @@ contract Lock is ILock, Ownable, ReentrancyGuard {
      * @param _newLockTime New lock time duration
      */
     function updateDefaultLockTime(uint256 _newLockTime) external onlyOwner {
-        require(
-            _newLockTime >= MIN_LOCK_TIME && _newLockTime <= MAX_LOCK_TIME,
-            "Invalid lock time"
-        );
+        require(_newLockTime >= MIN_LOCK_TIME && _newLockTime <= MAX_LOCK_TIME, "Invalid lock time");
 
         uint256 oldTime = defaultLockTime;
         defaultLockTime = _newLockTime;

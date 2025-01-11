@@ -11,18 +11,8 @@ interface IBondingCurve {
         uint256 virtualToken
     );
 
-    event Buy(
-        address indexed sender,
-        address indexed token,
-        uint256 amountIn,
-        uint256 amountOut
-    );
-    event Sell(
-        address indexed sender,
-        address indexed token,
-        uint256 amountIn,
-        uint256 amountOut
-    );
+    event Buy(address indexed sender, address indexed token, uint256 amountIn, uint256 amountOut);
+    event Sell(address indexed sender, address indexed token, uint256 amountIn, uint256 amountOut);
     event Listing(
         address indexed curve,
         address indexed token,
@@ -56,20 +46,11 @@ interface IBondingCurve {
 
     function getK() external view returns (uint256);
 
-    function getFeeConfig()
-        external
-        view
-        returns (uint8 denominator, uint16 numerator);
+    function getFeeConfig() external view returns (uint8 denominator, uint16 numerator);
 
-    function getVirtualReserves()
-        external
-        view
-        returns (uint256 virtualWNative, uint256 virtualToken);
+    function getVirtualReserves() external view returns (uint256 virtualWNative, uint256 virtualToken);
 
-    function getReserves()
-        external
-        view
-        returns (uint256 reserveWNative, uint256 reserveToken);
+    function getReserves() external view returns (uint256 reserveWNative, uint256 reserveToken);
 
     function getIsListing() external view returns (bool);
 

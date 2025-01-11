@@ -9,17 +9,9 @@ import "./SetUp.sol";
 import "src/errors/Errors.sol";
 
 contract FeeVaultTest is Test, SetUp {
-    event WithdrawalProposed(
-        uint256 indexed proposalId,
-        address receiver,
-        uint256 amount
-    );
+    event WithdrawalProposed(uint256 indexed proposalId, address receiver, uint256 amount);
     event WithdrawalSigned(uint256 indexed proposalId, address signer);
-    event WithdrawalExecuted(
-        uint256 indexed proposalId,
-        address receiver,
-        uint256 amount
-    );
+    event WithdrawalExecuted(uint256 indexed proposalId, address receiver, uint256 amount);
 
     function setUp() public override {
         super.setUp();

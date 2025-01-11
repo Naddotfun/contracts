@@ -28,20 +28,15 @@ contract Token is IToken, ERC20Permit {
 
             bool isToAllowed = to == address(curve) || to == core;
 
-            require(
-                isFromAllowed || isToAllowed,
-                "Token: transfer not allowed before listing"
-            );
+            require(isFromAllowed || isToAllowed, "Token: transfer not allowed before listing");
         }
         _;
     }
 
-    constructor(
-        string memory name,
-        string memory symbol,
-        string memory _tokenURI,
-        address _core
-    ) ERC20(name, symbol) ERC20Permit(name) {
+    constructor(string memory name, string memory symbol, string memory _tokenURI, address _core)
+        ERC20(name, symbol)
+        ERC20Permit(name)
+    {
         tokenURI = _tokenURI;
         _minted = false;
         _factory = msg.sender;
@@ -61,29 +56,15 @@ contract Token is IToken, ERC20Permit {
         _burn(msg.sender, amount);
     }
 
-    function nonces(
-        address owner
-    )
-        public
-        view
-        virtual
-        override(ERC20Permit, IERC20Permit)
-        returns (uint256)
-    {
+    function nonces(address owner) public view virtual override(ERC20Permit, IERC20Permit) returns (uint256) {
         return super.nonces(owner);
     }
 
     function permitTypeHash() public pure virtual returns (bytes32) {
-        return
-            keccak256(
-                "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
-            );
+        return keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
     }
 
-    function transfer(
-        address to,
-        uint256 value
-    )
+    function transfer(address to, uint256 value)
         public
         virtual
         override(ERC20, IERC20)

@@ -14,8 +14,6 @@ INTERFACES=(
     "IBondingCurve"
     "IBondingCurveFactory"
     "ICore"
-    "IMintParty"
-    "IMintPartyFactory"
     "IToken"
     "ILock"
 )

@@ -25,8 +25,7 @@ contract BondingCurveTest is Test, SetUp {
         assertEq(address(CURVE.token()), address(MEME_TOKEN));
 
         // Check virtual reserves
-        (uint256 virtualNativeAmount, uint256 virtualTokenAmount) = CURVE
-            .getVirtualReserves();
+        (uint256 virtualNativeAmount, uint256 virtualTokenAmount) = CURVE.getVirtualReserves();
         assertEq(virtualNativeAmount, VIRTUAL_NATIVE);
         assertEq(virtualTokenAmount, VIRTUAL_TOKEN);
 
@@ -50,24 +49,13 @@ contract BondingCurveTest is Test, SetUp {
         vm.deal(TRADER_A, amountIn + fee);
 
         // Calculate expected amount out
-        (uint256 virtualNative, uint256 virtualToken) = CURVE
-            .getVirtualReserves();
-        uint256 expectedAmountOut = BondingCurveLibrary.getAmountOut(
-            amountIn,
-            CURVE.getK(),
-            virtualNative,
-            virtualToken
-        );
+        (uint256 virtualNative, uint256 virtualToken) = CURVE.getVirtualReserves();
+        uint256 expectedAmountOut =
+            BondingCurveLibrary.getAmountOut(amountIn, CURVE.getK(), virtualNative, virtualToken);
 
         // Execute buy through core
         uint256 deadline = block.timestamp + 1;
-        CORE.buy{value: amountIn + fee}(
-            amountIn,
-            fee,
-            address(MEME_TOKEN),
-            TRADER_A,
-            deadline
-        );
+        CORE.buy{value: amountIn + fee}(amountIn, fee, address(MEME_TOKEN), TRADER_A, deadline);
 
         // Verify balances and reserves
         assertEq(MEME_TOKEN.balanceOf(TRADER_A), expectedAmountOut);
@@ -81,21 +69,11 @@ contract BondingCurveTest is Test, SetUp {
         // First buy some tokens
         vm.startPrank(TRADER_A);
         uint256 buyAmountIn = 1 ether;
-        uint256 buyFee = BondingCurveLibrary.getFeeAmount(
-            buyAmountIn,
-            FEE_DENOMINATOR,
-            FEE_NUMERATOR
-        );
+        uint256 buyFee = BondingCurveLibrary.getFeeAmount(buyAmountIn, FEE_DENOMINATOR, FEE_NUMERATOR);
         vm.deal(TRADER_A, buyAmountIn + buyFee);
 
         uint256 deadline = block.timestamp + 1;
-        CORE.buy{value: buyAmountIn + buyFee}(
-            buyAmountIn,
-            buyFee,
-            address(MEME_TOKEN),
-            TRADER_A,
-            deadline
-        );
+        CORE.buy{value: buyAmountIn + buyFee}(buyAmountIn, buyFee, address(MEME_TOKEN), TRADER_A, deadline);
 
         // Now sell the tokens
         uint256 tokenBalance = MEME_TOKEN.balanceOf(TRADER_A);
@@ -112,51 +90,27 @@ contract BondingCurveTest is Test, SetUp {
     function testListing() public {
         // Buy enough tokens to reach target
         vm.startPrank(TRADER_A);
-        (uint256 virtualNative, uint256 virtualToken) = CURVE
-            .getVirtualReserves();
+        (uint256 virtualNative, uint256 virtualToken) = CURVE.getVirtualReserves();
         (, uint256 realTokenReserves) = CURVE.getReserves();
 
         // Calculate exact amount needed to reach TARGET_TOKEN
         uint256 amountOutDesired = realTokenReserves - TARGET_TOKEN;
-        uint256 requiredAmount = BondingCurveLibrary.getAmountIn(
-            amountOutDesired,
-            CURVE.getK(),
-            virtualNative,
-            virtualToken
-        );
-        console.log(requiredAmount);
+        uint256 requiredAmount =
+            BondingCurveLibrary.getAmountIn(amountOutDesired, CURVE.getK(), virtualNative, virtualToken);
 
-        uint getAmount = BondingCurveLibrary.getAmountOut(
-            requiredAmount,
-            CURVE.getK(),
-            virtualNative,
-            virtualToken
-        );
-        console.log(getAmount);
+        uint256 getAmount = BondingCurveLibrary.getAmountOut(requiredAmount, CURVE.getK(), virtualNative, virtualToken);
 
-        uint256 fee = BondingCurveLibrary.getFeeAmount(
-            requiredAmount,
-            FEE_DENOMINATOR,
-            FEE_NUMERATOR
-        );
+        uint256 fee = BondingCurveLibrary.getFeeAmount(requiredAmount, FEE_DENOMINATOR, FEE_NUMERATOR);
         vm.deal(TRADER_A, requiredAmount + fee + LISTING_FEE);
 
         uint256 deadline = block.timestamp + 1;
         CORE.exactOutBuy{value: requiredAmount + fee}(
-            amountOutDesired,
-            requiredAmount + fee,
-            address(MEME_TOKEN),
-            TRADER_A,
-            deadline
+            requiredAmount + fee, amountOutDesired, address(MEME_TOKEN), TRADER_A, deadline
         );
 
         // Verify token balance is exactly TARGET_TOKEN
         (, uint256 remainingTokens) = CURVE.getReserves();
-        assertEq(
-            remainingTokens,
-            TARGET_TOKEN,
-            "Token balance should be exactly TARGET_TOKEN"
-        );
+        assertEq(remainingTokens, TARGET_TOKEN, "Token balance should be exactly TARGET_TOKEN");
 
         // Verify lock is activated
         assertTrue(CURVE.lock(), "Curve should be locked");
@@ -166,7 +120,7 @@ contract BondingCurveTest is Test, SetUp {
         address pair = CURVE.listing();
         assertTrue(pair != address(0), "Pair should be created");
         assertTrue(CURVE.isListing(), "Should be listed");
-        uint curveLiquidity = IERC20(pair).balanceOf(address(CURVE));
+        uint256 curveLiquidity = IERC20(pair).balanceOf(address(CURVE));
         assertEq(curveLiquidity, 0, "Pair should have no liquidity");
 
         vm.stopPrank();
@@ -206,21 +160,11 @@ contract BondingCurveTest is Test, SetUp {
     function testRevertListingNotEnoughTokens() public {
         vm.startPrank(TRADER_A);
         uint256 amountIn = 1 ether;
-        uint256 fee = BondingCurveLibrary.getFeeAmount(
-            amountIn,
-            FEE_DENOMINATOR,
-            FEE_NUMERATOR
-        );
+        uint256 fee = BondingCurveLibrary.getFeeAmount(amountIn, FEE_DENOMINATOR, FEE_NUMERATOR);
         vm.deal(TRADER_A, amountIn + fee);
 
         uint256 deadline = block.timestamp + 1;
-        CORE.buy{value: amountIn + fee}(
-            amountIn,
-            fee,
-            address(MEME_TOKEN),
-            TRADER_A,
-            deadline
-        );
+        CORE.buy{value: amountIn + fee}(amountIn, fee, address(MEME_TOKEN), TRADER_A, deadline);
 
         vm.expectRevert(bytes(ERR_BONDING_CURVE_ONLY_LOCK));
         CURVE.listing();

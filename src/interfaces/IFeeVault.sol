@@ -21,11 +21,7 @@ interface IFeeVault {
     /**
      * @dev Emitted when a new withdrawal is proposed
      */
-    event WithdrawalProposed(
-        uint256 indexed proposalId,
-        address receiver,
-        uint256 amount
-    );
+    event WithdrawalProposed(uint256 indexed proposalId, address receiver, uint256 amount);
 
     /**
      * @dev Emitted when an owner signs a withdrawal proposal
@@ -35,11 +31,7 @@ interface IFeeVault {
     /**
      * @dev Emitted when a withdrawal is executed
      */
-    event WithdrawalExecuted(
-        uint256 indexed proposalId,
-        address receiver,
-        uint256 amount
-    );
+    event WithdrawalExecuted(uint256 indexed proposalId, address receiver, uint256 amount);
 
     /**
      * @dev Returns the total balance of WNAD in the vault

@@ -8,18 +8,9 @@ interface IDexRouter {
 
     function vault() external view returns (address);
 
-    function getFeeConfig()
-        external
-        view
-        returns (uint denominator, uint numerator);
+    function getFeeConfig() external view returns (uint256 denominator, uint256 numerator);
 
-    function buy(
-        uint256 amountIn,
-        uint256 fee,
-        address token,
-        address to,
-        uint256 deadline
-    ) external payable;
+    function buy(uint256 amountIn, uint256 fee, address token, address to, uint256 deadline) external payable;
 
     function protectBuy(
         uint256 amountIn,
@@ -30,20 +21,11 @@ interface IDexRouter {
         uint256 deadline
     ) external payable;
 
-    function exactOutBuy(
-        uint256 amountOut,
-        uint256 amountInMax,
-        address token,
-        address to,
-        uint256 deadline
-    ) external payable;
+    function exactOutBuy(uint256 amountOut, uint256 amountInMax, address token, address to, uint256 deadline)
+        external
+        payable;
 
-    function sell(
-        uint256 amountIn,
-        address token,
-        address to,
-        uint256 deadline
-    ) external;
+    function sell(uint256 amountIn, address token, address to, uint256 deadline) external;
 
     function sellPermit(
         uint256 amountIn,
@@ -56,13 +38,8 @@ interface IDexRouter {
         bytes32 s
     ) external;
 
-    function protectSell(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address token,
-        address to,
-        uint256 deadline
-    ) external;
+    function protectSell(uint256 amountIn, uint256 amountOutMin, address token, address to, uint256 deadline)
+        external;
 
     function protectSellPermit(
         uint256 amountIn,
@@ -76,13 +53,9 @@ interface IDexRouter {
         bytes32 s
     ) external;
 
-    function exactOutSell(
-        uint256 amountOut,
-        uint256 amountInMax,
-        address token,
-        address to,
-        uint256 deadline
-    ) external payable;
+    function exactOutSell(uint256 amountOut, uint256 amountInMax, address token, address to, uint256 deadline)
+        external
+        payable;
 
     function exactOutSellPermit(
         uint256 amountOut,

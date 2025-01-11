@@ -25,6 +25,7 @@ interface IBondingCurveFactory {
         uint16 feeNumerator;
         uint8 feeDenominator;
     }
+
     struct InitializeParams {
         uint256 deployFee;
         uint256 listingFee;
@@ -64,19 +65,9 @@ interface IBondingCurveFactory {
 
     event SetDexFactory(address indexed dexFactory);
 
-    function create(
-        address creator,
-        string memory name,
-        string memory symbol,
-        string memory tokenUrl
-    )
+    function create(address creator, string memory name, string memory symbol, string memory tokenUrl)
         external
-        returns (
-            address curve,
-            address token,
-            uint256 virtualNative,
-            uint256 virtualToken
-        );
+        returns (address curve, address token, uint256 virtualNative, uint256 virtualToken);
 
     function getCurve(address token) external view returns (address curve);
 
@@ -90,10 +81,7 @@ interface IBondingCurveFactory {
 
     function getConfig() external view returns (Config memory);
 
-    function getFeeConfig()
-        external
-        view
-        returns (uint8 denominator, uint16 numerator);
+    function getFeeConfig() external view returns (uint8 denominator, uint16 numerator);
 
     function getDelpyFee() external view returns (uint256 deployFee);
 

@@ -21,8 +21,7 @@ contract BondingCurveFactoryTest is Test, SetUp {
 
     function testInitialization() public {
         // Check initial configuration
-        BondingCurveFactory.Config memory config = BONDING_CURVE_FACTORY
-            .getConfig();
+        BondingCurveFactory.Config memory config = BONDING_CURVE_FACTORY.getConfig();
         assertEq(config.deployFee, DEPLOY_FEE);
         assertEq(config.listingFee, LISTING_FEE);
         assertEq(config.tokenTotalSupply, TOKEN_TOTAL_SUPPLY);
@@ -42,20 +41,8 @@ contract BondingCurveFactoryTest is Test, SetUp {
         vm.startPrank(OWNER);
         vm.deal(OWNER, DEPLOY_FEE);
         // Create new curve through Core
-        (
-            address curveAddress,
-            address tokenAddress,
-            uint256 virtualNative,
-            uint256 virtualToken,
-            uint256 amountOut
-        ) = CORE.createCurve{value: DEPLOY_FEE}(
-                TRADER_A,
-                "Test Token",
-                "TEST",
-                "test.url",
-                0,
-                0
-            );
+        (address curveAddress, address tokenAddress, uint256 virtualNative, uint256 virtualToken, uint256 amountOut) =
+            CORE.createCurve{value: DEPLOY_FEE}(TRADER_A, "Test Token", "TEST", "test.url", 0, 0);
 
         // Verify curve creation
         assertTrue(curveAddress != address(0));
@@ -101,24 +88,22 @@ contract BondingCurveFactoryTest is Test, SetUp {
         uint16 newFeeNumerator = 2000;
         uint8 newFeeDenominator = 20;
 
-        IBondingCurveFactory.InitializeParams
-            memory params = IBondingCurveFactory.InitializeParams({
-                deployFee: newDeployFee,
-                listingFee: newListingFee,
-                tokenTotalSupply: newTokenTotalSupply,
-                virtualNative: newVirtualNative,
-                virtualToken: newVirtualToken,
-                targetToken: newTargetToken,
-                feeNumerator: newFeeNumerator,
-                feeDenominator: newFeeDenominator,
-                dexFactory: address(DEX_FACTORY)
-            });
+        IBondingCurveFactory.InitializeParams memory params = IBondingCurveFactory.InitializeParams({
+            deployFee: newDeployFee,
+            listingFee: newListingFee,
+            tokenTotalSupply: newTokenTotalSupply,
+            virtualNative: newVirtualNative,
+            virtualToken: newVirtualToken,
+            targetToken: newTargetToken,
+            feeNumerator: newFeeNumerator,
+            feeDenominator: newFeeDenominator,
+            dexFactory: address(DEX_FACTORY)
+        });
 
         BONDING_CURVE_FACTORY.initialize(params);
 
         // Verify updated config
-        BondingCurveFactory.Config memory config = BONDING_CURVE_FACTORY
-            .getConfig();
+        BondingCurveFactory.Config memory config = BONDING_CURVE_FACTORY.getConfig();
         assertEq(config.deployFee, newDeployFee);
         assertEq(config.listingFee, newListingFee);
         assertEq(config.tokenTotalSupply, newTokenTotalSupply);
@@ -144,18 +129,17 @@ contract BondingCurveFactoryTest is Test, SetUp {
     function testRevertNonOwnerInitialize() public {
         vm.startPrank(TRADER_A);
 
-        IBondingCurveFactory.InitializeParams
-            memory params = IBondingCurveFactory.InitializeParams({
-                deployFee: 0.03 ether,
-                listingFee: 2 ether,
-                tokenTotalSupply: 2 * 10 ** 27,
-                virtualNative: 40 * 10 ** 18,
-                virtualToken: 2_073_000_191 * 10 ** 18,
-                targetToken: 306_900_000 * 10 ** 18,
-                feeNumerator: 2000,
-                feeDenominator: 20,
-                dexFactory: address(DEX_FACTORY)
-            });
+        IBondingCurveFactory.InitializeParams memory params = IBondingCurveFactory.InitializeParams({
+            deployFee: 0.03 ether,
+            listingFee: 2 ether,
+            tokenTotalSupply: 2 * 10 ** 27,
+            virtualNative: 40 * 10 ** 18,
+            virtualToken: 2_073_000_191 * 10 ** 18,
+            targetToken: 306_900_000 * 10 ** 18,
+            feeNumerator: 2000,
+            feeDenominator: 20,
+            dexFactory: address(DEX_FACTORY)
+        });
 
         vm.expectRevert(bytes(ERR_BONDING_CURVE_FACTORY_ONLY_OWNER));
         BONDING_CURVE_FACTORY.initialize(params);
@@ -173,14 +157,7 @@ contract BondingCurveFactoryTest is Test, SetUp {
         vm.startPrank(OWNER);
         vm.deal(OWNER, DEPLOY_FEE - 1);
         vm.expectRevert(bytes(ERR_CORE_INVALID_SEND_NATIVE));
-        CORE.createCurve{value: DEPLOY_FEE - 1}(
-            TRADER_A,
-            "Test",
-            "TEST",
-            "test.url",
-            0,
-            0
-        );
+        CORE.createCurve{value: DEPLOY_FEE - 1}(TRADER_A, "Test", "TEST", "test.url", 0, 0);
         vm.stopPrank();
     }
 }

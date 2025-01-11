@@ -104,11 +104,7 @@ contract SetUp is Test {
         FEE_VAULT = new FeeVault(address(WNATIVE), owners, 3);
         CORE = new Core(address(WNATIVE), address(FEE_VAULT));
 
-        BONDING_CURVE_FACTORY = new BondingCurveFactory(
-            OWNER,
-            address(CORE),
-            address(WNATIVE)
-        );
+        BONDING_CURVE_FACTORY = new BondingCurveFactory(OWNER, address(CORE), address(WNATIVE));
 
         // LOCK = new Lock(address(BONDING_CURVE_FACTORY), DEFAULT_LOCK_TIME);
         // MINT_PARTY_FACTORY = new MintPartyFactory(
@@ -118,28 +114,24 @@ contract SetUp is Test {
         //     address(BONDING_CURVE_FACTORY)
         // );
         DEX_FACTORY = new UniswapV2Factory(OWNER);
-        UNISWAP_ROUTER = new UniswapV2Router(
-            address(DEX_FACTORY),
-            address(WNATIVE)
-        );
+        UNISWAP_ROUTER = new UniswapV2Router(address(DEX_FACTORY), address(WNATIVE));
         vm.stopPrank();
     }
 
     function initializeContracts() private {
         vm.startPrank(OWNER);
         CORE.initialize(address(BONDING_CURVE_FACTORY));
-        IBondingCurveFactory.InitializeParams
-            memory params = IBondingCurveFactory.InitializeParams({
-                deployFee: DEPLOY_FEE,
-                listingFee: LISTING_FEE,
-                tokenTotalSupply: TOKEN_TOTAL_SUPPLY,
-                virtualNative: VIRTUAL_NATIVE,
-                virtualToken: VIRTUAL_TOKEN,
-                targetToken: TARGET_TOKEN,
-                feeNumerator: FEE_NUMERATOR,
-                feeDenominator: FEE_DENOMINATOR,
-                dexFactory: address(DEX_FACTORY)
-            });
+        IBondingCurveFactory.InitializeParams memory params = IBondingCurveFactory.InitializeParams({
+            deployFee: DEPLOY_FEE,
+            listingFee: LISTING_FEE,
+            tokenTotalSupply: TOKEN_TOTAL_SUPPLY,
+            virtualNative: VIRTUAL_NATIVE,
+            virtualToken: VIRTUAL_TOKEN,
+            targetToken: TARGET_TOKEN,
+            feeNumerator: FEE_NUMERATOR,
+            feeDenominator: FEE_DENOMINATOR,
+            dexFactory: address(DEX_FACTORY)
+        });
         BONDING_CURVE_FACTORY.initialize(params);
 
         // MINT_PARTY_FACTORY.initialize(MINT_PARTY_MAXIMUM_WHITE_LIST);
@@ -151,9 +143,8 @@ contract SetUp is Test {
         vm.startPrank(account);
         vm.deal(account, DEPLOY_FEE);
 
-        (address curveAddress, address tokenAddress, , , ) = CORE.createCurve{
-            value: DEPLOY_FEE
-        }(account, "test", "test", "testurl", 0, 0);
+        (address curveAddress, address tokenAddress,,,) =
+            CORE.createCurve{value: DEPLOY_FEE}(account, "test", "test", "testurl", 0, 0);
 
         CURVE = BondingCurve(payable(curveAddress));
         MEME_TOKEN = Token(tokenAddress);
@@ -166,15 +157,9 @@ contract SetUp is Test {
         uint256 totalAmount = amountIn + fee;
         vm.deal(account, totalAmount);
 
-        uint deadline = block.timestamp + 1;
+        uint256 deadline = block.timestamp + 1;
 
-        CORE.buy{value: totalAmount}(
-            amountIn,
-            fee,
-            address(MEME_TOKEN),
-            account,
-            deadline
-        );
+        CORE.buy{value: totalAmount}(amountIn, fee, address(MEME_TOKEN), account, deadline);
         vm.stopPrank();
     }
 
@@ -185,25 +170,13 @@ contract SetUp is Test {
         //만약 1000개가 남아있는데 100개가 남을때까지 사고싶다면?
         //1000 - 100 = 900 만큼 사면됨.
         uint256 amountOut = realTokenReserves - TARGET_TOKEN;
-        (uint256 virtualNative, uint256 virtualToken) = CURVE
-            .getVirtualReserves();
-        uint256 amountIn = BondingCurveLibrary.getAmountIn(
-            amountOut,
-            K,
-            virtualNative,
-            virtualToken
-        );
+        (uint256 virtualNative, uint256 virtualToken) = CURVE.getVirtualReserves();
+        uint256 amountIn = BondingCurveLibrary.getAmountIn(amountOut, K, virtualNative, virtualToken);
         uint256 fee = amountIn / 100;
         uint256 amountInMax = amountIn + fee;
         vm.deal(account, amountInMax);
 
-        CORE.exactOutBuy{value: amountInMax}(
-            amountOut,
-            amountInMax,
-            address(MEME_TOKEN),
-            account,
-            block.timestamp + 1
-        );
+        CORE.exactOutBuy{value: amountInMax}(amountInMax, amountOut, address(MEME_TOKEN), account, block.timestamp + 1);
 
         UNISWAP_PAIR = UniswapV2Pair(CURVE.listing());
 

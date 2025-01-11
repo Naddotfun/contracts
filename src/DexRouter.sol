@@ -18,25 +18,20 @@ import "./errors/Errors.sol";
  */
 contract DexRouter is IDexRouter {
     using SafeERC20 for IERC20;
+
     address public immutable dexFactory;
     address public immutable WNATIVE;
     address public immutable vault;
 
-    uint public feeDenominator;
-    uint public feeNumerator;
+    uint256 public feeDenominator;
+    uint256 public feeNumerator;
 
-    modifier ensure(uint deadline) {
+    modifier ensure(uint256 deadline) {
         require(deadline >= block.timestamp, ERR_DEX_ROUTER_EXPIRED);
         _;
     }
 
-    constructor(
-        address _factory,
-        address _WNATIVE,
-        address _vault,
-        uint _feeDenominator,
-        uint _feeNumerator
-    ) {
+    constructor(address _factory, address _WNATIVE, address _vault, uint256 _feeDenominator, uint256 _feeNumerator) {
         dexFactory = _factory;
         WNATIVE = _WNATIVE;
         vault = _vault;
@@ -48,14 +43,11 @@ contract DexRouter is IDexRouter {
         assert(msg.sender == WNATIVE); // only accept NATIVE via fallback from the WNATIVE contract
     }
 
-    function checkFee(uint amount, uint fee) internal view {
-        require(
-            fee >= (amount * feeDenominator) / feeNumerator,
-            ERR_DEX_ROUTER_INVALID_FEE
-        );
+    function checkFee(uint256 amount, uint256 fee) internal view {
+        require(fee >= (amount * feeDenominator) / feeNumerator, ERR_DEX_ROUTER_INVALID_FEE);
     }
 
-    function getFee(uint amount) internal view returns (uint) {
+    function getFee(uint256 amount) internal view returns (uint256) {
         return (amount * feeDenominator) / feeNumerator;
     }
 
@@ -67,19 +59,10 @@ contract DexRouter is IDexRouter {
         IERC20(WNATIVE).safeTransfer(address(vault), fee);
     }
 
-    function _swap(
-        address tokenIn,
-        address tokenOut,
-        uint256 amountOut,
-        address to,
-        address pair
-    ) private {
-        (address token0, ) = UniswapV2Library.sortTokens(tokenIn, tokenOut);
+    function _swap(address tokenIn, address tokenOut, uint256 amountOut, address to, address pair) private {
+        (address token0,) = UniswapV2Library.sortTokens(tokenIn, tokenOut);
         IUniswapV2Pair(pair).swap(
-            token0 == tokenIn ? 0 : amountOut,
-            token0 == tokenIn ? amountOut : 0,
-            to,
-            new bytes(0)
+            token0 == tokenIn ? 0 : amountOut, token0 == tokenIn ? amountOut : 0, to, new bytes(0)
         );
     }
 
@@ -92,32 +75,19 @@ contract DexRouter is IDexRouter {
      * @param to Address to receive the bought tokens
      * @param deadline Timestamp before which the transaction must be executed
      */
-    function buy(
-        uint256 amountIn,
-        uint256 fee,
-        address token,
-        address to,
-        uint256 deadline
-    ) external payable ensure(deadline) {
-        require(
-            msg.value >= amountIn + fee,
-            ERR_DEX_ROUTER_INVALID_SEND_NATIVE
-        );
+    function buy(uint256 amountIn, uint256 fee, address token, address to, uint256 deadline)
+        external
+        payable
+        ensure(deadline)
+    {
+        require(msg.value >= amountIn + fee, ERR_DEX_ROUTER_INVALID_SEND_NATIVE);
         require(amountIn > 0, ERR_DEX_ROUTER_INVALID_AMOUNT_IN);
         require(fee > 0, ERR_DEX_ROUTER_INVALID_FEE);
         checkFee(amountIn, fee);
 
         address pair = UniswapV2Library.pairFor(dexFactory, WNATIVE, token);
-        (uint reserveNative, uint reserveToken) = UniswapV2Library.getReserves(
-            dexFactory,
-            WNATIVE,
-            token
-        );
-        uint amountOut = UniswapV2Library.getAmountOut(
-            amountIn,
-            reserveNative,
-            reserveToken
-        );
+        (uint256 reserveNative, uint256 reserveToken) = UniswapV2Library.getReserves(dexFactory, WNATIVE, token);
+        uint256 amountOut = UniswapV2Library.getAmountOut(amountIn, reserveNative, reserveToken);
 
         IWNative(WNATIVE).deposit{value: amountIn + fee}();
         //send Fee
@@ -152,20 +122,9 @@ contract DexRouter is IDexRouter {
         checkFee(amountIn, fee);
 
         address pair = UniswapV2Library.pairFor(dexFactory, WNATIVE, token);
-        (uint reserveNative, uint reserveToken) = UniswapV2Library.getReserves(
-            dexFactory,
-            WNATIVE,
-            token
-        );
-        uint amountOut = UniswapV2Library.getAmountOut(
-            amountIn,
-            reserveNative,
-            reserveToken
-        );
-        require(
-            amountOut >= amountOutMin,
-            ERR_DEX_ROUTER_INVALID_AMOUNT_OUT_MIN
-        );
+        (uint256 reserveNative, uint256 reserveToken) = UniswapV2Library.getReserves(dexFactory, WNATIVE, token);
+        uint256 amountOut = UniswapV2Library.getAmountOut(amountIn, reserveNative, reserveToken);
+        require(amountOut >= amountOutMin, ERR_DEX_ROUTER_INVALID_AMOUNT_OUT_MIN);
         {
             IWNative(WNATIVE).deposit{value: amountIn + fee}();
 
@@ -184,31 +143,18 @@ contract DexRouter is IDexRouter {
      * @param to Address to receive the bought tokens
      * @param deadline Timestamp before which the transaction must be executed
      */
-    function exactOutBuy(
-        uint256 amountOut,
-        uint256 amountInMax,
-        address token,
-        address to,
-        uint256 deadline
-    ) external payable ensure(deadline) {
+    function exactOutBuy(uint256 amountOut, uint256 amountInMax, address token, address to, uint256 deadline)
+        external
+        payable
+        ensure(deadline)
+    {
         require(msg.value >= amountInMax, ERR_DEX_ROUTER_INVALID_SEND_NATIVE);
         address pair = UniswapV2Library.pairFor(dexFactory, WNATIVE, token);
-        (uint reserveNative, uint reserveToken) = UniswapV2Library.getReserves(
-            dexFactory,
-            WNATIVE,
-            token
-        );
-        uint amountIn = UniswapV2Library.getAmountIn(
-            amountOut,
-            reserveNative,
-            reserveToken
-        );
+        (uint256 reserveNative, uint256 reserveToken) = UniswapV2Library.getReserves(dexFactory, WNATIVE, token);
+        uint256 amountIn = UniswapV2Library.getAmountIn(amountOut, reserveNative, reserveToken);
 
-        uint fee = getFee(amountIn);
-        require(
-            amountIn + fee <= amountInMax,
-            ERR_DEX_ROUTER_INVALID_AMOUNT_IN_MAX
-        );
+        uint256 fee = getFee(amountIn);
+        require(amountIn + fee <= amountInMax, ERR_DEX_ROUTER_INVALID_AMOUNT_IN_MAX);
         {
             IWNative(WNATIVE).deposit{value: amountIn + fee}();
             sendFeeByVault(fee);
@@ -231,30 +177,14 @@ contract DexRouter is IDexRouter {
      * @param to Address to receive the Native
      * @param deadline Timestamp before which the transaction must be executed
      */
-    function sell(
-        uint256 amountIn,
-        address token,
-        address to,
-        uint256 deadline
-    ) external ensure(deadline) {
+    function sell(uint256 amountIn, address token, address to, uint256 deadline) external ensure(deadline) {
         require(amountIn > 0, ERR_DEX_ROUTER_INVALID_AMOUNT_IN);
-        require(
-            IERC20(token).allowance(msg.sender, address(this)) >= amountIn,
-            ERR_DEX_ROUTER_INVALID_ALLOWANCE
-        );
+        require(IERC20(token).allowance(msg.sender, address(this)) >= amountIn, ERR_DEX_ROUTER_INVALID_ALLOWANCE);
         address pair = UniswapV2Library.pairFor(dexFactory, WNATIVE, token);
 
-        (uint reserveNative, uint reserveToken) = UniswapV2Library.getReserves(
-            dexFactory,
-            WNATIVE,
-            token
-        );
-        uint amountOut = UniswapV2Library.getAmountOut(
-            amountIn,
-            reserveToken,
-            reserveNative
-        );
-        uint fee = getFee(amountOut);
+        (uint256 reserveNative, uint256 reserveToken) = UniswapV2Library.getReserves(dexFactory, WNATIVE, token);
+        uint256 amountOut = UniswapV2Library.getAmountOut(amountIn, reserveToken, reserveNative);
+        uint256 fee = getFee(amountOut);
         {
             //send Pair
             IERC20(token).safeTransferFrom(msg.sender, pair, amountIn);
@@ -292,28 +222,12 @@ contract DexRouter is IDexRouter {
         bytes32 r,
         bytes32 s
     ) external {
-        IERC20Permit(token).permit(
-            from,
-            address(this),
-            amountIn,
-            deadline,
-            v,
-            r,
-            s
-        );
+        IERC20Permit(token).permit(from, address(this), amountIn, deadline, v, r, s);
         address pair = UniswapV2Library.pairFor(dexFactory, WNATIVE, token);
 
-        (uint reserveNative, uint reserveToken) = UniswapV2Library.getReserves(
-            dexFactory,
-            WNATIVE,
-            token
-        );
-        uint amountOut = UniswapV2Library.getAmountOut(
-            amountIn,
-            reserveToken,
-            reserveNative
-        );
-        uint fee = getFee(amountOut);
+        (uint256 reserveNative, uint256 reserveToken) = UniswapV2Library.getReserves(dexFactory, WNATIVE, token);
+        uint256 amountOut = UniswapV2Library.getAmountOut(amountIn, reserveToken, reserveNative);
+        uint256 fee = getFee(amountOut);
         {
             //send Pair
             IERC20(token).safeTransferFrom(msg.sender, pair, amountIn);
@@ -337,35 +251,18 @@ contract DexRouter is IDexRouter {
      * @param to Address to receive the Native
      * @param deadline Timestamp before which the transaction must be executed
      */
-    function protectSell(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address token,
-        address to,
-        uint256 deadline
-    ) external ensure(deadline) {
+    function protectSell(uint256 amountIn, uint256 amountOutMin, address token, address to, uint256 deadline)
+        external
+        ensure(deadline)
+    {
         require(amountIn > 0, ERR_DEX_ROUTER_INVALID_AMOUNT_IN);
-        require(
-            IERC20(token).allowance(msg.sender, address(this)) > amountIn,
-            ERR_DEX_ROUTER_INVALID_ALLOWANCE
-        );
+        require(IERC20(token).allowance(msg.sender, address(this)) > amountIn, ERR_DEX_ROUTER_INVALID_ALLOWANCE);
         address pair = UniswapV2Library.pairFor(dexFactory, WNATIVE, token);
 
-        (uint reserveNative, uint reserveToken) = UniswapV2Library.getReserves(
-            dexFactory,
-            WNATIVE,
-            token
-        );
-        uint amountOut = UniswapV2Library.getAmountOut(
-            amountIn,
-            reserveToken,
-            reserveNative
-        );
-        uint fee = getFee(amountOut);
-        require(
-            amountOut - fee >= amountOutMin,
-            ERR_DEX_ROUTER_INVALID_AMOUNT_OUT_MIN
-        );
+        (uint256 reserveNative, uint256 reserveToken) = UniswapV2Library.getReserves(dexFactory, WNATIVE, token);
+        uint256 amountOut = UniswapV2Library.getAmountOut(amountIn, reserveToken, reserveNative);
+        uint256 fee = getFee(amountOut);
+        require(amountOut - fee >= amountOutMin, ERR_DEX_ROUTER_INVALID_AMOUNT_OUT_MIN);
         {
             IERC20(token).safeTransferFrom(msg.sender, pair, amountIn);
 
@@ -405,32 +302,13 @@ contract DexRouter is IDexRouter {
     ) external ensure(deadline) {
         // EIP-2612 permit: approve by signature
         require(amountIn > 0, ERR_CORE_INVALID_AMOUNT_IN);
-        IERC20Permit(token).permit(
-            from,
-            address(this),
-            amountIn,
-            deadline,
-            v,
-            r,
-            s
-        );
+        IERC20Permit(token).permit(from, address(this), amountIn, deadline, v, r, s);
         address pair = UniswapV2Library.pairFor(dexFactory, WNATIVE, token);
 
-        (uint reserveNative, uint reserveToken) = UniswapV2Library.getReserves(
-            dexFactory,
-            WNATIVE,
-            token
-        );
-        uint amountOut = UniswapV2Library.getAmountOut(
-            amountIn,
-            reserveToken,
-            reserveNative
-        );
-        uint fee = getFee(amountOut);
-        require(
-            amountOut - fee >= amountOutMin,
-            ERR_DEX_ROUTER_INVALID_AMOUNT_OUT_MIN
-        );
+        (uint256 reserveNative, uint256 reserveToken) = UniswapV2Library.getReserves(dexFactory, WNATIVE, token);
+        uint256 amountOut = UniswapV2Library.getAmountOut(amountIn, reserveToken, reserveNative);
+        uint256 fee = getFee(amountOut);
+        require(amountOut - fee >= amountOutMin, ERR_DEX_ROUTER_INVALID_AMOUNT_OUT_MIN);
         {
             IERC20(token).safeTransferFrom(msg.sender, pair, amountIn);
 
@@ -455,33 +333,20 @@ contract DexRouter is IDexRouter {
      * @param to Address to receive the ETH
      * @param deadline Timestamp before which the transaction must be executed
      */
-    function exactOutSell(
-        uint256 amountOut,
-        uint256 amountInMax,
-        address token,
-        address to,
-        uint256 deadline
-    ) external payable ensure(deadline) {
+    function exactOutSell(uint256 amountOut, uint256 amountInMax, address token, address to, uint256 deadline)
+        external
+        payable
+        ensure(deadline)
+    {
         require(amountInMax > 0, ERR_DEX_ROUTER_INVALID_AMOUNT_IN);
-        require(
-            IERC20(token).allowance(msg.sender, address(this)) > amountInMax,
-            ERR_DEX_ROUTER_INVALID_ALLOWANCE
-        );
+        require(IERC20(token).allowance(msg.sender, address(this)) > amountInMax, ERR_DEX_ROUTER_INVALID_ALLOWANCE);
         address pair = UniswapV2Library.pairFor(dexFactory, WNATIVE, token);
 
         uint256 fee = msg.value;
         checkFee(amountOut, fee);
 
-        (uint reserveNative, uint reserveToken) = UniswapV2Library.getReserves(
-            dexFactory,
-            WNATIVE,
-            token
-        );
-        uint amountIn = UniswapV2Library.getAmountIn(
-            amountOut,
-            reserveToken,
-            reserveNative
-        );
+        (uint256 reserveNative, uint256 reserveToken) = UniswapV2Library.getReserves(dexFactory, WNATIVE, token);
+        uint256 amountIn = UniswapV2Library.getAmountIn(amountOut, reserveToken, reserveNative);
 
         require(amountIn <= amountInMax, ERR_DEX_ROUTER_INVALID_AMOUNT_IN_MAX);
         {
@@ -521,30 +386,14 @@ contract DexRouter is IDexRouter {
         bytes32 s
     ) external payable ensure(deadline) {
         require(amountInMax > 0, ERR_DEX_ROUTER_INVALID_AMOUNT_IN_MAX);
-        IERC20Permit(token).permit(
-            from,
-            address(this),
-            amountInMax,
-            deadline,
-            v,
-            r,
-            s
-        );
+        IERC20Permit(token).permit(from, address(this), amountInMax, deadline, v, r, s);
         address pair = UniswapV2Library.pairFor(dexFactory, WNATIVE, token);
 
         uint256 fee = msg.value;
         checkFee(amountOut, fee);
 
-        (uint reserveNative, uint reserveToken) = UniswapV2Library.getReserves(
-            dexFactory,
-            WNATIVE,
-            token
-        );
-        uint amountIn = UniswapV2Library.getAmountIn(
-            amountOut,
-            reserveToken,
-            reserveNative
-        );
+        (uint256 reserveNative, uint256 reserveToken) = UniswapV2Library.getReserves(dexFactory, WNATIVE, token);
+        uint256 amountIn = UniswapV2Library.getAmountIn(amountOut, reserveToken, reserveNative);
 
         require(amountIn <= amountInMax, ERR_DEX_ROUTER_INVALID_AMOUNT_IN_MAX);
         {
@@ -659,7 +508,7 @@ contract DexRouter is IDexRouter {
         return address(vault);
     }
 
-    function getFeeConfig() public view returns (uint, uint) {
+    function getFeeConfig() public view returns (uint256, uint256) {
         return (feeDenominator, feeNumerator);
     }
 }

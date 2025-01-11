@@ -92,20 +92,10 @@ contract BondingCurveFactory is IBondingCurveFactory {
      * @return virtualNative Initial virtual NAD reserve
      * @return virtualToken Initial virtual token reserve
      */
-    function create(
-        address creator,
-        string memory name,
-        string memory symbol,
-        string memory tokenURI
-    )
+    function create(address creator, string memory name, string memory symbol, string memory tokenURI)
         external
         onlyCore
-        returns (
-            address curve,
-            address token,
-            uint256 virtualNative,
-            uint256 virtualToken
-        )
+        returns (address curve, address token, uint256 virtualNative, uint256 virtualToken)
     {
         Config memory _config = getConfig();
 
@@ -127,16 +117,7 @@ contract BondingCurveFactory is IBondingCurveFactory {
         curves[token] = curve;
         virtualNative = _config.virtualNative;
         virtualToken = _config.virtualToken;
-        emit Create(
-            creator,
-            curve,
-            token,
-            tokenURI,
-            name,
-            symbol,
-            virtualNative,
-            virtualToken
-        );
+        emit Create(creator, curve, token, tokenURI, name, symbol, virtualNative, virtualToken);
     }
 
     /**
@@ -177,9 +158,7 @@ contract BondingCurveFactory is IBondingCurveFactory {
      * @param token Token address to query
      * @return curve Address of the corresponding bonding curve
      */
-    function getCurve(
-        address token
-    ) public view override returns (address curve) {
+    function getCurve(address token) public view override returns (address curve) {
         curve = curves[token];
     }
 
@@ -228,11 +207,7 @@ contract BondingCurveFactory is IBondingCurveFactory {
      * @return denominator Fee denominator
      * @return numerator Fee numerator
      */
-    function getFeeConfig()
-        public
-        view
-        returns (uint8 denominator, uint16 numerator)
-    {
+    function getFeeConfig() public view returns (uint8 denominator, uint16 numerator) {
         denominator = config.feeDenominator;
         numerator = config.feeNumerator;
     }

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.20;
 
+import {console} from "forge-std/console.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
-
+import {IToken} from "./interfaces/IToken.sol";
 import {ICore} from "./interfaces/ICore.sol";
 import {IUniswapV2Factory} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import {IUniswapV2Pair} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
@@ -10,6 +11,7 @@ import {IUniswapV2ERC20} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2E
 import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
 import {IBondingCurve} from "./interfaces/IBondingCurve.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
+import {BondingCurveLibrary} from "./utils/BondingCurveLibrary.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./errors/Errors.sol";
 
@@ -42,6 +44,7 @@ contract BondingCurve is IBondingCurve {
         uint8 denominator;
         uint16 numerator;
     }
+
     Fee feeConfig;
 
     // Real reserves tracking actual balances
@@ -122,24 +125,15 @@ contract BondingCurve is IBondingCurve {
         address _wNative = wNative; //gas savings
         address _token = token; //gas savings
 
-        (
-            uint256 _realNativeReserves,
-            uint256 _realTokenReserves
-        ) = getReserves();
+        (uint256 _realNativeReserves, uint256 _realTokenReserves) = getReserves();
 
         // Ensure remaining tokens stay above target
-        require(
-            _realTokenReserves - amountOut >= targetToken,
-            ERR_BONDING_CURVE_OVERFLOW_TARGET
-        );
+        require(_realTokenReserves - amountOut >= targetToken, ERR_BONDING_CURVE_OVERFLOW_TARGET);
 
         uint256 balanceNative;
 
         {
-            require(
-                to != _wNative && to != _token,
-                ERR_BONDING_CURVE_INVALID_TO
-            );
+            require(to != _wNative && to != _token, ERR_BONDING_CURVE_INVALID_TO);
             IERC20(_token).safeTransfer(core, amountOut);
 
             balanceNative = IERC20(wNative).balanceOf(address(this));
@@ -162,22 +156,13 @@ contract BondingCurve is IBondingCurve {
 
         address _wNative = wNative;
         address _token = token;
-        (
-            uint256 _realNativeReserves,
-            uint256 _realTokenReserves
-        ) = getReserves();
-        require(
-            amountOut <= _realNativeReserves,
-            ERR_BONDING_CURVE_INVALID_AMOUNT_OUT
-        );
+        (uint256 _realNativeReserves, uint256 _realTokenReserves) = getReserves();
+        require(amountOut <= _realNativeReserves, ERR_BONDING_CURVE_INVALID_AMOUNT_OUT);
 
         uint256 balanceToken;
 
         {
-            require(
-                to != _wNative && to != _token,
-                ERR_BONDING_CURVE_INVALID_TO
-            );
+            require(to != _wNative && to != _token, ERR_BONDING_CURVE_INVALID_TO);
             IERC20(_wNative).safeTransfer(core, amountOut);
             balanceToken = IERC20(_token).balanceOf(address(this));
         }
@@ -193,27 +178,36 @@ contract BondingCurve is IBondingCurve {
     /**
      * @notice Lists the token on Uniswap after reaching target
      * @dev Creates trading pair and provides initial liquidity
-
      */
     function listing() external returns (address) {
         require(lock == true, ERR_BONDING_CURVE_ONLY_LOCK);
         require(!isListing, ERR_BONDING_CURVE_ALREADY_LISTED);
         IBondingCurveFactory _factory = IBondingCurveFactory(factory);
-        pair = IUniswapV2Factory(_factory.getDexFactory()).createPair(
-            wNative,
-            token
-        );
-
-        // Transfer listing fee to fee vault
-        IERC20(wNative).transfer(
-            ICore(_factory.getCore()).getFeeVault(),
-            _factory.getListingFee()
-        );
-
+        pair = IUniswapV2Factory(_factory.getDexFactory()).createPair(wNative, token);
+        uint256 listingFee = _factory.getListingFee();
+        //send Listing Fee
+        IERC20(wNative).transfer(ICore(_factory.getCore()).getFeeVault(), listingFee);
         // Transfer remaining tokens to the pair
-        uint256 listingNativeAmount = IERC20(wNative).balanceOf(address(this));
+        uint256 listingNativeAmount = IERC20(wNative).balanceOf(address(this)) - listingFee;
+        console.log("virtualNative", virtualNative);
+        console.log("virtualToken", virtualToken);
+        console.log("k", k);
+        console.log("realNativeReserves", realNativeReserves);
+        console.log("realTokenReserves", realTokenReserves);
+        console.log("realK ", realNativeReserves * realTokenReserves);
+        console.log("listingFee", listingFee);
+
+        uint256 listingTokenAmount;
+        {
+            uint256 tokenBlanace = IERC20(token).balanceOf(address(this));
+            uint256 realK = realTokenReserves * realNativeReserves;
+            uint256 burnTokenAmount =
+                BondingCurveLibrary.getAmountOut(listingFee, realK, realNativeReserves, realTokenReserves);
+            IToken(token).burn(burnTokenAmount);
+            listingTokenAmount = tokenBlanace - burnTokenAmount;
+        }
+
         IERC20(wNative).transfer(pair, listingNativeAmount);
-        uint256 listingTokenAmount = IERC20(token).balanceOf(address(this));
         IERC20(token).transfer(pair, listingTokenAmount);
 
         // Reset reserves and provide liquidity
@@ -223,14 +217,7 @@ contract BondingCurve is IBondingCurve {
 
         IUniswapV2ERC20(pair).transfer(address(0), liquidity);
         isListing = true;
-        emit Listing(
-            address(this),
-            token,
-            pair,
-            listingNativeAmount,
-            listingTokenAmount,
-            liquidity
-        );
+        emit Listing(address(this), token, pair, listingNativeAmount, listingTokenAmount, liquidity);
         return pair;
     }
 
@@ -270,13 +257,7 @@ contract BondingCurve is IBondingCurve {
             virtualToken += amountIn;
         }
 
-        emit Sync(
-            token,
-            realNativeReserves,
-            realTokenReserves,
-            virtualNative,
-            virtualToken
-        );
+        emit Sync(token, realNativeReserves, realTokenReserves, virtualNative, virtualToken);
         // Lock trading if target is reached
         if (realTokenReserves == getTargetToken()) {
             lock = true;
@@ -291,12 +272,7 @@ contract BondingCurve is IBondingCurve {
      * @return nativeReserves The current real Native reserves
      * @return tokenReserves The current real token reserves
      */
-    function getReserves()
-        public
-        view
-        override
-        returns (uint256 nativeReserves, uint256 tokenReserves)
-    {
+    function getReserves() public view override returns (uint256 nativeReserves, uint256 tokenReserves) {
         nativeReserves = realNativeReserves;
         tokenReserves = realTokenReserves;
     }
@@ -321,21 +297,13 @@ contract BondingCurve is IBondingCurve {
      * @return denominator The fee denominator
      * @return numerator The fee numerator
      */
-    function getFee()
-        public
-        view
-        returns (uint8 denominator, uint16 numerator)
-    {
+    function getFee() public view returns (uint8 denominator, uint16 numerator) {
         Fee memory fee = feeConfig;
         denominator = fee.denominator;
         numerator = fee.numerator;
     }
 
-    function getFeeConfig()
-        external
-        view
-        returns (uint8 denominator, uint16 numerator)
-    {
+    function getFeeConfig() external view returns (uint8 denominator, uint16 numerator) {
         Fee memory fee = feeConfig;
         denominator = fee.denominator;
         numerator = fee.numerator;

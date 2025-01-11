@@ -7,5 +7,5 @@ import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC2
 interface IToken is IERC20, IERC20Permit {
     function mint(address to) external;
 
-    function burn(uint amount) external;
+    function burn(uint256 amount) external;
 }

@@ -22,6 +22,7 @@ import "./errors/Errors.sol";
 contract Core is ICore {
     using SafeERC20 for IERC20;
     /// @notice Address of the bonding curve factory contract
+
     address public factory;
     /// @notice Address of the wrapped Native token
     address public immutable wNative;
@@ -31,7 +32,7 @@ contract Core is ICore {
 
     /**
      * @notice Constructor initializes core contract with essential addresses
-     
+     *
      * @param _wNative Address of the wrapped Native token
      * @param _vault Address of the fee collection vault
      */
@@ -69,17 +70,9 @@ contract Core is ICore {
      * @param amount Base amount for fee calculation
      * @param fee Fee amount to validate
      */
-    function checkFee(
-        address curve,
-        uint256 amount,
-        uint256 fee
-    ) internal view {
-        (uint8 denominator, uint16 numerator) = IBondingCurve(curve)
-            .getFeeConfig();
-        require(
-            fee >= (amount * denominator) / numerator,
-            ERR_CORE_INVALID_FEE
-        );
+    function checkFee(address curve, uint256 amount, uint256 fee) internal view {
+        (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
+        require(fee >= (amount * denominator) / numerator, ERR_CORE_INVALID_FEE);
     }
 
     /**
@@ -114,23 +107,13 @@ contract Core is ICore {
     )
         external
         payable
-        returns (
-            address curve,
-            address token,
-            uint256 virtualNative,
-            uint256 virtualToken,
-            uint256 amountOut
-        )
+        returns (address curve, address token, uint256 virtualNative, uint256 virtualToken, uint256 amountOut)
     {
         uint256 _deployFee = IBondingCurveFactory(factory).getDelpyFee();
-        require(
-            msg.value >= amountIn + fee + _deployFee,
-            ERR_CORE_INVALID_SEND_NATIVE
-        );
+        require(msg.value >= amountIn + fee + _deployFee, ERR_CORE_INVALID_SEND_NATIVE);
 
-        (curve, token, virtualNative, virtualToken) = IBondingCurveFactory(
-            factory
-        ).create(creator, name, symbol, tokenURI);
+        (curve, token, virtualNative, virtualToken) =
+            IBondingCurveFactory(factory).create(creator, name, symbol, tokenURI);
 
         IWNative(wNative).deposit{value: amountIn + fee + _deployFee}();
 
@@ -142,13 +125,7 @@ contract Core is ICore {
             IERC20(wNative).safeTransfer(curve, amountIn);
             IBondingCurve(curve).buy(creator, amountOut);
             IERC20(token).safeTransfer(creator, amountOut);
-            return (
-                curve,
-                token,
-                virtualNative + amountIn,
-                virtualToken - amountOut,
-                amountOut
-            );
+            return (curve, token, virtualNative + amountIn, virtualToken - amountOut, amountOut);
         }
         sendFeeByVault(_deployFee);
         return (curve, token, virtualNative, virtualToken, amountOut);
@@ -163,32 +140,20 @@ contract Core is ICore {
      * @param to Address to receive the bought tokens
      * @param deadline Timestamp before which the transaction must be executed
      */
-    function buy(
-        uint256 amountIn,
-        uint256 fee,
-        address token,
-        address to,
-        uint256 deadline
-    ) external payable ensure(deadline) {
+    function buy(uint256 amountIn, uint256 fee, address token, address to, uint256 deadline)
+        external
+        payable
+        ensure(deadline)
+    {
         require(msg.value >= amountIn + fee, ERR_CORE_INVALID_SEND_NATIVE);
         require(amountIn > 0, ERR_CORE_INVALID_AMOUNT_IN);
         require(fee > 0, ERR_CORE_INVALID_FEE);
 
-        (
-            address curve,
-            uint256 virtualNative,
-            uint256 virtualToken,
-            uint256 k
-        ) = getCurveData(factory, token);
+        (address curve, uint256 virtualNative, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
         checkFee(curve, amountIn, fee);
 
         // Calculate and verify amountOut
-        uint256 amountOut = getAmountOut(
-            amountIn,
-            k,
-            virtualNative,
-            virtualToken
-        );
+        uint256 amountOut = getAmountOut(amountIn, k, virtualNative, virtualToken);
         {
             IWNative(wNative).deposit{value: amountIn + fee}();
 
@@ -221,21 +186,11 @@ contract Core is ICore {
     ) external payable ensure(deadline) {
         require(msg.value >= amountIn + fee, ERR_CORE_INVALID_SEND_NATIVE);
 
-        (
-            address curve,
-            uint256 virtualNative,
-            uint256 virtualToken,
-            uint256 k
-        ) = getCurveData(factory, token);
+        (address curve, uint256 virtualNative, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
         checkFee(curve, amountIn, fee);
         // TransferHelper.safeTransferNative(owner, fee);
 
-        uint256 amountOut = getAmountOut(
-            amountIn,
-            k,
-            virtualNative,
-            virtualToken
-        );
+        uint256 amountOut = getAmountOut(amountIn, k, virtualNative, virtualToken);
 
         require(amountOut >= amountOutMin, ERR_CORE_INVALID_AMOUNT_OUT);
         {
@@ -257,36 +212,19 @@ contract Core is ICore {
      * @param to Address to receive the bought tokens
      * @param deadline Timestamp before which the transaction must be executed
      */
-    function exactOutBuy(
-        uint256 amountOut,
-        uint256 amountInMax,
-        address token,
-        address to,
-        uint256 deadline
-    ) external payable ensure(deadline) {
+    function exactOutBuy(uint256 amountInMax, uint256 amountOut, address token, address to, uint256 deadline)
+        external
+        payable
+        ensure(deadline)
+    {
         require(msg.value >= amountInMax, ERR_CORE_INVALID_SEND_NATIVE);
 
-        (
-            address curve,
-            uint256 virtualNative,
-            uint256 virtualToken,
-            uint256 k
-        ) = getCurveData(factory, token);
-        uint256 amountIn = getAmountIn(
-            amountOut,
-            k,
-            virtualNative,
-            virtualToken
-        );
+        (address curve, uint256 virtualNative, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
+        uint256 amountIn = getAmountIn(amountOut, k, virtualNative, virtualToken);
 
-        (uint8 denominator, uint16 numerator) = IBondingCurve(curve)
-            .getFeeConfig();
+        (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
 
-        uint256 fee = BondingCurveLibrary.getFeeAmount(
-            amountIn,
-            denominator,
-            numerator
-        );
+        uint256 fee = BondingCurveLibrary.getFeeAmount(amountIn, denominator, numerator);
 
         require(amountIn + fee <= amountInMax, ERR_CORE_INVALID_AMOUNT_IN_MAX);
         {
@@ -312,40 +250,17 @@ contract Core is ICore {
      * @param to Address to receive the Native
      * @param deadline Timestamp before which the transaction must be executed
      */
-    function sell(
-        uint256 amountIn,
-        address token,
-        address to,
-        uint256 deadline
-    ) external ensure(deadline) {
+    function sell(uint256 amountIn, address token, address to, uint256 deadline) external ensure(deadline) {
         require(amountIn > 0, ERR_CORE_INVALID_AMOUNT_IN);
 
-        require(
-            IERC20(token).allowance(msg.sender, address(this)) >= amountIn,
-            ERR_CORE_INVALID_ALLOWANCE
-        );
-        (
-            address curve,
-            uint256 virtualNative,
-            uint256 virtualToken,
-            uint256 k
-        ) = getCurveData(factory, token);
+        require(IERC20(token).allowance(msg.sender, address(this)) >= amountIn, ERR_CORE_INVALID_ALLOWANCE);
+        (address curve, uint256 virtualNative, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
 
-        uint256 amountOut = getAmountOut(
-            amountIn,
-            k,
-            virtualToken,
-            virtualNative
-        );
+        uint256 amountOut = getAmountOut(amountIn, k, virtualToken, virtualNative);
 
-        (uint8 denominator, uint16 numerator) = IBondingCurve(curve)
-            .getFeeConfig();
+        (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
 
-        uint256 fee = BondingCurveLibrary.getFeeAmount(
-            amountOut,
-            denominator,
-            numerator
-        );
+        uint256 fee = BondingCurveLibrary.getFeeAmount(amountOut, denominator, numerator);
         {
             IERC20(token).safeTransferFrom(msg.sender, curve, amountIn);
             IBondingCurve(curve).sell(to, amountOut);
@@ -377,38 +292,15 @@ contract Core is ICore {
         bytes32 r,
         bytes32 s
     ) external {
-        IERC20Permit(token).permit(
-            from,
-            address(this),
-            amountIn,
-            deadline,
-            v,
-            r,
-            s
-        );
+        IERC20Permit(token).permit(from, address(this), amountIn, deadline, v, r, s);
 
-        (
-            address curve,
-            uint256 virtualNative,
-            uint256 virtualToken,
-            uint256 k
-        ) = getCurveData(factory, token);
+        (address curve, uint256 virtualNative, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
 
-        uint256 amountOut = getAmountOut(
-            amountIn,
-            k,
-            virtualToken,
-            virtualNative
-        );
+        uint256 amountOut = getAmountOut(amountIn, k, virtualToken, virtualNative);
 
-        (uint8 denominator, uint16 numerator) = IBondingCurve(curve)
-            .getFeeConfig();
+        (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
 
-        uint256 fee = BondingCurveLibrary.getFeeAmount(
-            amountOut,
-            denominator,
-            numerator
-        );
+        uint256 fee = BondingCurveLibrary.getFeeAmount(amountOut, denominator, numerator);
         {
             IERC20(token).safeTransferFrom(from, curve, amountIn);
 
@@ -430,38 +322,20 @@ contract Core is ICore {
      * @param to Address to receive the Native
      * @param deadline Timestamp before which the transaction must be executed
      */
-    function protectSell(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address token,
-        address to,
-        uint256 deadline
-    ) external ensure(deadline) {
+    function protectSell(uint256 amountIn, uint256 amountOutMin, address token, address to, uint256 deadline)
+        external
+        ensure(deadline)
+    {
         require(amountIn > 0, ERR_CORE_INVALID_AMOUNT_IN);
         uint256 allowance = IERC20(token).allowance(msg.sender, address(this));
         require(allowance >= amountIn, ERR_CORE_INVALID_ALLOWANCE);
 
-        (
-            address curve,
-            uint256 virtualNative,
-            uint256 virtualToken,
-            uint256 k
-        ) = getCurveData(factory, token);
+        (address curve, uint256 virtualNative, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
 
-        uint256 amountOut = getAmountOut(
-            amountIn,
-            k,
-            virtualToken,
-            virtualNative
-        );
+        uint256 amountOut = getAmountOut(amountIn, k, virtualToken, virtualNative);
 
-        (uint8 denominator, uint16 numerator) = IBondingCurve(curve)
-            .getFeeConfig();
-        uint256 fee = BondingCurveLibrary.getFeeAmount(
-            amountOut,
-            denominator,
-            numerator
-        );
+        (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
+        uint256 fee = BondingCurveLibrary.getFeeAmount(amountOut, denominator, numerator);
 
         require(amountOut - fee >= amountOutMin, ERR_CORE_INVALID_AMOUNT_OUT);
         {
@@ -502,39 +376,16 @@ contract Core is ICore {
     ) external ensure(deadline) {
         // EIP-2612 permit: approve by signature
         require(amountIn > 0, ERR_CORE_INVALID_AMOUNT_IN);
-        IERC20Permit(token).permit(
-            from,
-            address(this),
-            amountIn,
-            deadline,
-            v,
-            r,
-            s
-        );
+        IERC20Permit(token).permit(from, address(this), amountIn, deadline, v, r, s);
         // Safe transfer the token from user to this contract
 
         // Get curve and reserves
-        (
-            address curve,
-            uint256 virtualNative,
-            uint256 virtualToken,
-            uint256 k
-        ) = getCurveData(factory, token);
+        (address curve, uint256 virtualNative, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
 
         // Calculate and verify amountOut
-        uint256 amountOut = getAmountOut(
-            amountIn,
-            k,
-            virtualToken,
-            virtualNative
-        );
-        (uint8 denominator, uint16 numerator) = IBondingCurve(curve)
-            .getFeeConfig();
-        uint256 fee = BondingCurveLibrary.getFeeAmount(
-            amountOut,
-            denominator,
-            numerator
-        );
+        uint256 amountOut = getAmountOut(amountIn, k, virtualToken, virtualNative);
+        (uint8 denominator, uint16 numerator) = IBondingCurve(curve).getFeeConfig();
+        uint256 fee = BondingCurveLibrary.getFeeAmount(amountOut, denominator, numerator);
 
         require(amountOut - fee >= amountOutMin, ERR_CORE_INVALID_AMOUNT_OUT);
         {
@@ -560,36 +411,21 @@ contract Core is ICore {
      * @param to Address to receive the ETH
      * @param deadline Timestamp before which the transaction must be executed
      */
-    function exactOutSell(
-        uint256 amountOut,
-        uint256 amountInMax,
-        address token,
-        address to,
-        uint256 deadline
-    ) external payable ensure(deadline) {
+    function exactOutSell(uint256 amountInMax, uint256 amountOut, address token, address to, uint256 deadline)
+        external
+        payable
+        ensure(deadline)
+    {
         require(amountInMax > 0, ERR_CORE_INVALID_AMOUNT_IN);
 
-        require(
-            IERC20(token).allowance(msg.sender, address(this)) >= amountInMax,
-            ERR_CORE_INVALID_ALLOWANCE
-        );
+        require(IERC20(token).allowance(msg.sender, address(this)) >= amountInMax, ERR_CORE_INVALID_ALLOWANCE);
 
-        (
-            address curve,
-            uint256 virtualNative,
-            uint256 virtualToken,
-            uint256 k
-        ) = getCurveData(factory, token);
+        (address curve, uint256 virtualNative, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
 
         uint256 fee = msg.value;
         checkFee(curve, amountOut, fee);
 
-        uint256 amountIn = getAmountIn(
-            amountOut,
-            k,
-            virtualToken,
-            virtualNative
-        );
+        uint256 amountIn = getAmountIn(amountOut, k, virtualToken, virtualNative);
 
         require(amountIn <= amountInMax, ERR_CORE_INVALID_AMOUNT_IN_MAX);
         {
@@ -619,8 +455,8 @@ contract Core is ICore {
      * @param s s parameter of the permit signature
      */
     function exactOutSellPermit(
-        uint256 amountOut,
         uint256 amountInMax,
+        uint256 amountOut,
         address token,
         address from,
         address to,
@@ -630,32 +466,14 @@ contract Core is ICore {
         bytes32 s
     ) external payable ensure(deadline) {
         require(amountInMax > 0, ERR_CORE_INVALID_AMOUNT_IN_MAX);
-        IERC20Permit(token).permit(
-            from,
-            address(this),
-            amountInMax,
-            deadline,
-            v,
-            r,
-            s
-        );
+        IERC20Permit(token).permit(from, address(this), amountInMax, deadline, v, r, s);
 
-        (
-            address curve,
-            uint256 virtualNative,
-            uint256 virtualToken,
-            uint256 k
-        ) = getCurveData(factory, token);
+        (address curve, uint256 virtualNative, uint256 virtualToken, uint256 k) = getCurveData(factory, token);
 
         uint256 fee = msg.value;
         checkFee(curve, amountOut, fee);
 
-        uint256 amountIn = getAmountIn(
-            amountOut,
-            k,
-            virtualToken,
-            virtualNative
-        );
+        uint256 amountIn = getAmountIn(amountOut, k, virtualToken, virtualNative);
         require(amountIn <= amountInMax, ERR_CORE_INVALID_AMOUNT_IN_MAX);
         {
             IWNative(wNative).deposit{value: fee}();
@@ -681,21 +499,12 @@ contract Core is ICore {
      * @return virtualToken Virtual token reserve
      * @return k Constant product value
      */
-    function getCurveData(
-        address _factory,
-        address token
-    )
+    function getCurveData(address _factory, address token)
         public
         view
-        returns (
-            address curve,
-            uint256 virtualNative,
-            uint256 virtualToken,
-            uint256 k
-        )
+        returns (address curve, uint256 virtualNative, uint256 virtualToken, uint256 k)
     {
-        (curve, virtualNative, virtualToken, k) = BondingCurveLibrary
-            .getCurveData(_factory, token);
+        (curve, virtualNative, virtualToken, k) = BondingCurveLibrary.getCurveData(_factory, token);
     }
 
     /**
@@ -705,16 +514,8 @@ contract Core is ICore {
      * @return virtualToken Virtual token reserve
      * @return k Constant product value
      */
-    function getCurveData(
-        address curve
-    )
-        public
-        view
-        returns (uint256 virtualNative, uint256 virtualToken, uint256 k)
-    {
-        (virtualNative, virtualToken, k) = BondingCurveLibrary.getCurveData(
-            curve
-        );
+    function getCurveData(address curve) public view returns (uint256 virtualNative, uint256 virtualToken, uint256 k) {
+        (virtualNative, virtualToken, k) = BondingCurveLibrary.getCurveData(curve);
     }
 
     /**
@@ -725,18 +526,12 @@ contract Core is ICore {
      * @param reserveOut Output reserve
      * @return amountOut Calculated output amount
      */
-    function getAmountOut(
-        uint256 amountIn,
-        uint256 k,
-        uint256 reserveIn,
-        uint256 reserveOut
-    ) public pure returns (uint256 amountOut) {
-        amountOut = BondingCurveLibrary.getAmountOut(
-            amountIn,
-            k,
-            reserveIn,
-            reserveOut
-        );
+    function getAmountOut(uint256 amountIn, uint256 k, uint256 reserveIn, uint256 reserveOut)
+        public
+        pure
+        returns (uint256 amountOut)
+    {
+        amountOut = BondingCurveLibrary.getAmountOut(amountIn, k, reserveIn, reserveOut);
     }
 
     /**
@@ -747,18 +542,12 @@ contract Core is ICore {
      * @param reserveOut Output reserve
      * @return amountIn Required input amount
      */
-    function getAmountIn(
-        uint256 amountOut,
-        uint256 k,
-        uint256 reserveIn,
-        uint256 reserveOut
-    ) public pure returns (uint256 amountIn) {
-        amountIn = BondingCurveLibrary.getAmountIn(
-            amountOut,
-            k,
-            reserveIn,
-            reserveOut
-        );
+    function getAmountIn(uint256 amountOut, uint256 k, uint256 reserveIn, uint256 reserveOut)
+        public
+        pure
+        returns (uint256 amountIn)
+    {
+        amountIn = BondingCurveLibrary.getAmountIn(amountOut, k, reserveIn, reserveOut);
     }
 
     /**

@@ -17,21 +17,11 @@ contract TokenTest is SetUp {
         // Buy tokens first
         vm.startPrank(TRADER_A);
         uint256 amountIn = 1 ether;
-        uint256 fee = BondingCurveLibrary.getFeeAmount(
-            amountIn,
-            FEE_DENOMINATOR,
-            FEE_NUMERATOR
-        );
+        uint256 fee = BondingCurveLibrary.getFeeAmount(amountIn, FEE_DENOMINATOR, FEE_NUMERATOR);
         vm.deal(TRADER_A, amountIn + fee);
 
         uint256 deadline = block.timestamp + 1;
-        CORE.buy{value: amountIn + fee}(
-            amountIn,
-            fee,
-            address(MEME_TOKEN),
-            TRADER_A,
-            deadline
-        );
+        CORE.buy{value: amountIn + fee}(amountIn, fee, address(MEME_TOKEN), TRADER_A, deadline);
 
         uint256 balance = MEME_TOKEN.balanceOf(TRADER_A);
 

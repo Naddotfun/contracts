@@ -14,22 +14,16 @@ contract UniswapV2RouterTest is SetUp {
 
     function testSell() public {
         vm.startPrank(TRADER_A);
-        uint tokenAmount = MEME_TOKEN.balanceOf(TRADER_A);
+        uint256 tokenAmount = MEME_TOKEN.balanceOf(TRADER_A);
         console.log("TRADER_A_BALANCE", TRADER_A.balance);
         console.log("tokenAmount = ", tokenAmount);
         address[] memory path = new address[](2);
         path[0] = address(MEME_TOKEN);
         path[1] = address(WNATIVE);
-        uint[] memory amounts = UNISWAP_ROUTER.getAmountsOut(tokenAmount, path);
-        uint amountOut = amounts[1];
+        uint256[] memory amounts = UNISWAP_ROUTER.getAmountsOut(tokenAmount, path);
+        uint256 amountOut = amounts[1];
         MEME_TOKEN.approve(address(UNISWAP_ROUTER), tokenAmount);
-        UNISWAP_ROUTER.swapExactTokensForNative(
-            tokenAmount,
-            amountOut,
-            path,
-            TRADER_A,
-            block.timestamp + 1
-        );
+        UNISWAP_ROUTER.swapExactTokensForNative(tokenAmount, amountOut, path, TRADER_A, block.timestamp + 1);
         assertEq(MEME_TOKEN.balanceOf(TRADER_A), 0);
         console.log("WNATIVE.balanceOf(TRADER_A)", WNATIVE.balanceOf(TRADER_A));
         assertApproxEqAbs(TRADER_A.balance, amountOut, 1e1);
@@ -39,22 +33,14 @@ contract UniswapV2RouterTest is SetUp {
     function testBuy() public {
         vm.startPrank(TRADER_B);
         vm.deal(TRADER_B, 1 ether);
-        console.log(
-            "TRADER_B TOKEN BALANCE = ",
-            MEME_TOKEN.balanceOf(TRADER_B)
-        );
+        console.log("TRADER_B TOKEN BALANCE = ", MEME_TOKEN.balanceOf(TRADER_B));
         address[] memory path = new address[](2);
         path[0] = address(WNATIVE);
         path[1] = address(MEME_TOKEN);
-        uint[] memory amounts = UNISWAP_ROUTER.getAmountsOut(1 ether, path);
-        uint amountOut = amounts[1];
+        uint256[] memory amounts = UNISWAP_ROUTER.getAmountsOut(1 ether, path);
+        uint256 amountOut = amounts[1];
 
-        UNISWAP_ROUTER.swapExactNativeForTokens{value: 1 ether}(
-            1 ether,
-            path,
-            TRADER_B,
-            block.timestamp + 1
-        );
+        UNISWAP_ROUTER.swapExactNativeForTokens{value: 1 ether}(1 ether, path, TRADER_B, block.timestamp + 1);
         console.log("AFTER TOKEN_BALANCE =", MEME_TOKEN.balanceOf(TRADER_B));
         assertEq(MEME_TOKEN.balanceOf(TRADER_B), amountOut);
 

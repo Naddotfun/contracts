@@ -17,7 +17,7 @@ library TransferHelper {
      * @param amount Amount of NATIVE to transfer in wei
      */
     function safeTransferNative(address to, uint256 amount) internal {
-        (bool success, ) = payable(to).call{value: amount, gas: 2300}("");
+        (bool success,) = payable(to).call{value: amount, gas: 2300}("");
         require(success, ERR_TRANSFER_NATIVE_FAILED);
     }
 }
