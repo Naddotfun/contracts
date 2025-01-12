@@ -194,8 +194,7 @@ contract BondingCurve is IBondingCurve {
         // Transfer remaining tokens to the pair
         uint256 burnTokenAmount;
         {
-            burnTokenAmount = (listingFee * virtualToken) / (virtualNative - initVirtualNative);
-
+            burnTokenAmount = realTokenReserves - ((realNativeReserves - listingFee) * virtualToken) / virtualNative;
             IToken(token).burn(burnTokenAmount);
             IERC20(wNative).safeTransfer(ICore(_factory.getCore()).getFeeVault(), listingFee);
         }
