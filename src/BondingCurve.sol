@@ -140,9 +140,10 @@ contract BondingCurve is IBondingCurve {
         }
 
         uint256 amountNativeIn = balanceNative - _realNativeReserves;
-        emit Buy(to, token, amountNativeIn, amountOut);
         _update(amountNativeIn, amountOut, true);
         require(virtualNative * virtualToken >= k, ERR_BONDING_CURVE_INVALID_K);
+        emit Buy(to, token, amountNativeIn, amountOut);
+        _checkTarget();
     }
 
     /**
@@ -170,9 +171,10 @@ contract BondingCurve is IBondingCurve {
         uint256 amountTokenIn = balanceToken - _realTokenReserves;
 
         require(amountTokenIn > 0, ERR_BONDING_CURVE_INVALID_AMOUNT_IN);
-        emit Sell(to, token, amountTokenIn, amountOut);
         _update(amountTokenIn, amountOut, false);
         require(virtualNative * virtualToken >= k, ERR_BONDING_CURVE_INVALID_K);
+        emit Sell(to, token, amountTokenIn, amountOut);
+        _checkTarget();
     }
 
     /**
@@ -186,16 +188,9 @@ contract BondingCurve is IBondingCurve {
         pair = IUniswapV2Factory(_factory.getDexFactory()).createPair(wNative, token);
         uint256 listingFee = _factory.getListingFee();
         //send Listing Fee
-        IERC20(wNative).transfer(ICore(_factory.getCore()).getFeeVault(), listingFee);
+        IERC20(wNative).safeTransfer(ICore(_factory.getCore()).getFeeVault(), listingFee);
         // Transfer remaining tokens to the pair
-        uint256 listingNativeAmount = IERC20(wNative).balanceOf(address(this)) - listingFee;
-        console.log("virtualNative", virtualNative);
-        console.log("virtualToken", virtualToken);
-        console.log("k", k);
-        console.log("realNativeReserves", realNativeReserves);
-        console.log("realTokenReserves", realTokenReserves);
-        console.log("realK ", realNativeReserves * realTokenReserves);
-        console.log("listingFee", listingFee);
+        uint256 listingNativeAmount = IERC20(wNative).balanceOf(address(this));
 
         uint256 listingTokenAmount;
         {
@@ -258,13 +253,15 @@ contract BondingCurve is IBondingCurve {
         }
 
         emit Sync(token, realNativeReserves, realTokenReserves, virtualNative, virtualToken);
+    }
+
+    function _checkTarget() private {
         // Lock trading if target is reached
         if (realTokenReserves == getTargetToken()) {
             lock = true;
             emit Lock(token);
         }
     }
-
     // View functions
 
     /**
