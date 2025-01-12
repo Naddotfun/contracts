@@ -101,12 +101,12 @@
     "name": "exactOutBuy",
     "inputs": [
       {
-        "name": "amountOut",
+        "name": "amountInMax",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "amountInMax",
+        "name": "amountOut",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -134,12 +134,12 @@
     "name": "exactOutSell",
     "inputs": [
       {
-        "name": "amountOut",
+        "name": "amountInMax",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "amountInMax",
+        "name": "amountOut",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -167,12 +167,12 @@
     "name": "exactOutSellPermit",
     "inputs": [
       {
-        "name": "amountOut",
+        "name": "amountInMax",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "amountInMax",
+        "name": "amountOut",
         "type": "uint256",
         "internalType": "uint256"
       },
