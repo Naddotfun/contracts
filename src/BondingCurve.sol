@@ -34,12 +34,13 @@ contract BondingCurve is IBondingCurve {
     uint256 private virtualToken; // Virtual token reserve
     uint256 private k; // Constant product parameter
     uint256 private targetToken; // Target token amount for listing
-
+    uint256 private initVirtualNative;
     /**
      * @dev Fee configuration structure
      * @param denominator Fee percentage denominator
      * @param numerator Fee percentage numerator
      */
+
     struct Fee {
         uint8 denominator;
         uint16 numerator;
@@ -106,6 +107,7 @@ contract BondingCurve is IBondingCurve {
         token = _token;
         virtualNative = _virtualNative;
         virtualToken = _virtualToken;
+        initVirtualNative = _virtualNative;
         k = _k;
         realNativeReserves = IERC20(wNative).balanceOf(address(this));
         realTokenReserves = IERC20(_token).balanceOf(address(this));
@@ -188,20 +190,18 @@ contract BondingCurve is IBondingCurve {
         pair = IUniswapV2Factory(_factory.getDexFactory()).createPair(wNative, token);
         uint256 listingFee = _factory.getListingFee();
         //send Listing Fee
-        IERC20(wNative).safeTransfer(ICore(_factory.getCore()).getFeeVault(), listingFee);
-        // Transfer remaining tokens to the pair
-        uint256 listingNativeAmount = IERC20(wNative).balanceOf(address(this));
 
-        uint256 listingTokenAmount;
+        // Transfer remaining tokens to the pair
+        uint256 burnTokenAmount;
         {
-            uint256 tokenBlanace = IERC20(token).balanceOf(address(this));
-            uint256 realK = realTokenReserves * realNativeReserves;
-            uint256 burnTokenAmount =
-                BondingCurveLibrary.getAmountOut(listingFee, realK, realNativeReserves, realTokenReserves);
+            burnTokenAmount = (listingFee * virtualToken) / (virtualNative - initVirtualNative);
+
             IToken(token).burn(burnTokenAmount);
-            listingTokenAmount = tokenBlanace - burnTokenAmount;
+            IERC20(wNative).safeTransfer(ICore(_factory.getCore()).getFeeVault(), listingFee);
         }
 
+        uint256 listingNativeAmount = IERC20(wNative).balanceOf(address(this));
+        uint256 listingTokenAmount = IERC20(token).balanceOf(address(this));
         IERC20(wNative).transfer(pair, listingNativeAmount);
         IERC20(token).transfer(pair, listingTokenAmount);
 
