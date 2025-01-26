@@ -34,13 +34,12 @@ contract BondingCurve is IBondingCurve {
     uint256 private virtualToken; // Virtual token reserve
     uint256 private k; // Constant product parameter
     uint256 private targetToken; // Target token amount for listing
-    uint256 private initVirtualNative;
+
     /**
      * @dev Fee configuration structure
      * @param denominator Fee percentage denominator
      * @param numerator Fee percentage numerator
      */
-
     struct Fee {
         uint8 denominator;
         uint16 numerator;
@@ -107,7 +106,7 @@ contract BondingCurve is IBondingCurve {
         token = _token;
         virtualNative = _virtualNative;
         virtualToken = _virtualToken;
-        initVirtualNative = _virtualNative;
+
         k = _k;
         realNativeReserves = IERC20(wNative).balanceOf(address(this));
         realTokenReserves = IERC20(_token).balanceOf(address(this));
