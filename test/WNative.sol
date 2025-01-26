@@ -61,7 +61,7 @@ contract WNativeTest is Test {
         uint256 deadline = block.timestamp + 1 hours;
 
         bytes32 DOMAIN_SEPARATOR = wNative.DOMAIN_SEPARATOR();
-        bytes32 structHash = keccak256(abi.encode(wNative.PERMIT_TYPEHASH(), owner, spender, value, nonce, deadline));
+        bytes32 structHash = keccak256(abi.encode(wNative.permitTypeHash(), owner, spender, value, nonce, deadline));
 
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash));
 
