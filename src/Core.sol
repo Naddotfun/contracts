@@ -128,6 +128,7 @@ contract Core is ICore {
             return (curve, token, virtualNative + amountIn, virtualToken - amountOut, amountOut);
         }
         sendFeeByVault(_deployFee);
+        emit NadFunCreate();
         return (curve, token, virtualNative, virtualToken, amountOut);
     }
 
@@ -165,6 +166,7 @@ contract Core is ICore {
 
             IERC20(token).safeTransfer(to, amountOut);
         }
+        emit NadFunBuy();
     }
 
     /**
@@ -202,6 +204,7 @@ contract Core is ICore {
             IBondingCurve(curve).buy(to, amountOut);
             IERC20(token).safeTransfer(to, amountOut);
         }
+        emit NadFunBuy();
     }
 
     /**
@@ -238,6 +241,7 @@ contract Core is ICore {
                 TransferHelper.safeTransferNative(msg.sender, restValue);
             }
         }
+        emit NadFunBuy();
     }
 
     // //-------------Sell Functions ---------------------------------------------
@@ -312,6 +316,7 @@ contract Core is ICore {
 
             TransferHelper.safeTransferNative(to, amountOut - fee);
         }
+        emit NadFunSell();
     }
 
     /**
@@ -349,6 +354,7 @@ contract Core is ICore {
 
             TransferHelper.safeTransferNative(to, amountOut - fee);
         }
+        emit NadFunSell();
     }
 
     /**
@@ -399,6 +405,7 @@ contract Core is ICore {
 
             TransferHelper.safeTransferNative(to, amountOut - fee);
         }
+        emit NadFunSell();
     }
 
     //amountOut 은 fee + amountOut 이어야함.
@@ -440,6 +447,7 @@ contract Core is ICore {
 
             TransferHelper.safeTransferNative(to, amountOut);
         }
+        emit NadFunSell();
     }
 
     /**
@@ -486,6 +494,7 @@ contract Core is ICore {
 
             TransferHelper.safeTransferNative(to, amountOut);
         }
+        emit NadFunSell();
     }
 
     //----------------------------Common Functions ---------------------------------------------------

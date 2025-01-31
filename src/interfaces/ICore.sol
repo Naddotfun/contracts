@@ -2,6 +2,10 @@
 pragma solidity ^0.8.20;
 
 interface ICore {
+    event NadFunCreate();
+    event NadFunBuy();
+    event NadFunSell();
+
     function createCurve(
         address creator,
         string memory name,
