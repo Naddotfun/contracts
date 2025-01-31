@@ -16,6 +16,9 @@ INTERFACES=(
     "ICore"
     "IToken"
     "ILock"
+    "IWNative"
+    "IFeeVault"
+    "IDexRouter"
 )
 
 UNISWAP_INTERFACES=(
