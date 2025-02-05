@@ -19,7 +19,8 @@ interface IBondingCurve {
         address indexed pair,
         uint256 listingWNativeAmount,
         uint256 listingTokenAmount,
-        uint256 burnLiquidity
+        bytes32 position,
+        uint128 liquidity
     );
 
     // event BurnLiquidity(address indexed pair, uint liquidity);

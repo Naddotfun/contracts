@@ -33,7 +33,7 @@ contract BondingCurve is IBondingCurve {
     address immutable core;
     address public immutable wNative; // Wrapped Native token address
     address public token; // Project token address
-    address public pair;
+    address public pool;
     // Virtual reserves for price calculation
     uint256 private virtualNative; // Virtual Native reserve
     uint256 private virtualToken; // Virtual token reserve
@@ -231,10 +231,10 @@ contract BondingCurve is IBondingCurve {
 
         IBondingCurveFactory _factory = IBondingCurveFactory(factory);
         // 1. Uniswap V3 풀 생성 (wNative, token, 지정된 poolFee 사용)
-        IUniswapV3Pool pool =
+        IUniswapV3Pool _pool =
             IUniswapV3Pool(IUniswapV3Factory(_factory.getDexFactory()).createPool(wNative, token, poolFee));
-
-        require(address(pool) != address(0), "Pool creation failed");
+        pool = address(_pool);
+        require(address(_pool) != address(0), "Pool creation failed");
 
         // 2. Listing fee 처리 및 기존 v2 로직: burnTokenAmount 계산 등 (변경 없음)
         uint256 listingFee = _factory.getListingFee();
@@ -261,7 +261,7 @@ contract BondingCurve is IBondingCurve {
         }
 
         // 5. 풀 초기화: 초기 √PriceX96 설정
-        pool.initialize(sqrtPriceX96);
+        _pool.initialize(sqrtPriceX96);
 
         // 6. 제공할 liquidity 계산 (full range: tickLower = type(int24).min, tickUpper = type(int24).max)
         uint128 liquidityDesired;
@@ -282,16 +282,16 @@ contract BondingCurve is IBondingCurve {
         //    mint() 호출 시, Uniswap V3 풀은 uniswapV3MintCallback을 호출하여 필요한 토큰 전송을 요청함.
         //mint 의 address(this)는 추후 스테이킹 컨트랙트에 주기
         (uint256 amount0Mint, uint256 amount1Mint) =
-            pool.mint(address(this), type(int24).min, type(int24).max, liquidityDesired, "");
+            _pool.mint(address(this), type(int24).min, type(int24).max, liquidityDesired, "");
         bytes32 memory position = keccak256(abi.encodePacked(address(this), type(int24).min, type(int24).max));
-        (uint128 liquidity,,,,) = pool.positions(position);
+        (uint128 liquidity,,,,) = _pool.positions(position);
 
         // 8. 상태 업데이트 및 이벤트 기록
         isListing = true;
         realNativeReserves = 0;
         realTokenReserves = 0;
-        pair = pool;
-        emit Listing(msg.sender, token, pool, nativeBalance, tokenBalance, liquidity);
+        pool = pool;
+        emit Listing(msg.sender, token, pool, nativeBalance, tokenBalance, position, liquidity);
         return pool;
     }
 
@@ -299,22 +299,16 @@ contract BondingCurve is IBondingCurve {
      * @notice Uniswap V3 mint callback.
      * @dev Called by the pool during mint; transfers owed tokens.
      */
-    function uniswapV3MintCallback(uint256 amount0Owed, uint256 amount1Owed, bytes calldata /*data*/ ) external {
-        // 실제 배포시 msg.sender가 올바른 풀 주소인지 검증하는 로직을 추가할 것
+    function uniswapV3MintCallback(uint256 amount0Owed, uint256 amount1Owed, bytes calldata) external {
+        require(msg.sender == pool, "CB");
+
+        // wNative가 token0인 경우
         if (wNative < token) {
-            if (amount0Owed > 0) {
-                IERC20(wNative).safeTransfer(msg.sender, amount0Owed);
-            }
-            if (amount1Owed > 0) {
-                IERC20(token).safeTransfer(msg.sender, amount1Owed);
-            }
+            IERC20(wNative).safeTransfer(msg.sender, amount0Owed);
+            IERC20(token).safeTransfer(msg.sender, amount1Owed);
         } else {
-            if (amount0Owed > 0) {
-                IERC20(token).safeTransfer(msg.sender, amount0Owed);
-            }
-            if (amount1Owed > 0) {
-                IERC20(wNative).safeTransfer(msg.sender, amount1Owed);
-            }
+            IERC20(token).safeTransfer(msg.sender, amount0Owed);
+            IERC20(wNative).safeTransfer(msg.sender, amount1Owed);
         }
     }
     /**
