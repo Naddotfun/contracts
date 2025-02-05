@@ -8,31 +8,10 @@ import {TransferHelper} from "./utils/TransferHelper.sol";
 import {IWNative} from "./interfaces/IWNative.sol";
 import {IDexRouter} from "./interfaces/IDexRouter.sol";
 import "./errors/Errors.sol";
-
-/// --------------------------------------------------------------------------
-/// 인터페이스 및 데이터 구조체
-/// --------------------------------------------------------------------------
-
-// Uniswap V3 Factory 인터페이스 (풀 주소 조회)
-interface IUniswapV3Factory {
-    function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool);
-}
+import {UniswapV3Factory} from "@uniswap/v3-core/contracts/UniswapV3Factory.sol";
+import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/UniswapV3Pool.sol";
 
 // Uniswap V3 Pool 인터페이스 (swap 함수)
-interface IUniswapV3Pool {
-    function swap(
-        address recipient,
-        bool zeroForOne,
-        int256 amountSpecified, // 양수: exact input, 음수: exact output
-        uint160 sqrtPriceLimitX96,
-        bytes calldata data
-    ) external returns (int256 amount0, int256 amount1);
-}
-
-// Uniswap V3 Swap callback 인터페이스
-interface IUniswapV3SwapCallback {
-    function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external;
-}
 
 /// @dev 스왑 호출 시 전달할 데이터 구조체
 ///     - tokenIn: 콜백 시 지급할(입력) 토큰 주소
@@ -47,7 +26,7 @@ struct SwapCallbackData {
 /// --------------------------------------------------------------------------
 /// DexRouter 계약 (Uniswap V3 풀과 직접 상호작용)
 /// --------------------------------------------------------------------------
-contract DexRouter is IDexRouter, IUniswapV3SwapCallback {
+contract DexRouter is IDexRouter {
     using SafeERC20 for IERC20;
 
     // ────────── 상태 변수 ──────────
@@ -373,7 +352,7 @@ contract DexRouter is IDexRouter, IUniswapV3SwapCallback {
      * @param amount1Delta 토큰1에 대한 델타 (양수면 지급해야 함)
      * @param data 콜백에 전달된 데이터 (SwapCallbackData 구조체로 인코딩되어 있음)
      */
-    function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external override {
+    function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external {
         // data 디코딩
         SwapCallbackData memory decoded = abi.decode(data, (SwapCallbackData));
         // 실제 운영 코드에서는 msg.sender가 올바른 Uniswap V3 풀인지 반드시 검증해야 함.

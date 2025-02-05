@@ -1,13 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.20;
 
-import {console} from "forge-std/console.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IToken} from "./interfaces/IToken.sol";
 import {ICore} from "./interfaces/ICore.sol";
 import {IUniswapV2Factory} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import {IUniswapV2Pair} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import {IUniswapV2ERC20} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2ERC20.sol";
+
+import {IUniswapV3Factory} from "@uniswap/v3-core/contracts/UniswapV3Factory.sol";
+import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/UniswapV3Pool.sol";
+
 import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
 import {IBondingCurve} from "./interfaces/IBondingCurve.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
@@ -22,8 +26,9 @@ import "./errors/Errors.sol";
  */
 contract BondingCurve is IBondingCurve {
     using SafeERC20 for IERC20;
-
+    using Math for uint256;
     // Immutable state variables
+
     address immutable factory;
     address immutable core;
     address public immutable wNative; // Wrapped Native token address
@@ -34,12 +39,13 @@ contract BondingCurve is IBondingCurve {
     uint256 private virtualToken; // Virtual token reserve
     uint256 private k; // Constant product parameter
     uint256 private targetToken; // Target token amount for listing
-
+    uint256 constant Q96 = 2 ** 96;
     /**
      * @dev Fee configuration structure
      * @param denominator Fee percentage denominator
      * @param numerator Fee percentage numerator
      */
+
     struct Fee {
         uint8 denominator;
         uint16 numerator;
@@ -178,42 +184,166 @@ contract BondingCurve is IBondingCurve {
         _checkTarget();
     }
 
+    // /**
+    //  * @notice Lists the token on Uniswap after reaching target
+    //  * @dev Creates trading pair and provides initial liquidity
+    //  */
+    // function listing() external returns (address) {
+    //     require(lock == true, ERR_BONDING_CURVE_ONLY_LOCK);
+    //     require(!isListing, ERR_BONDING_CURVE_ALREADY_LISTED);
+    //     IBondingCurveFactory _factory = IBondingCurveFactory(factory);
+    //     pair = IUniswapV2Factory(_factory.getDexFactory()).createPair(wNative, token);
+    //     uint256 listingFee = _factory.getListingFee();
+    //     //send Listing Fee
+
+    //     // Transfer remaining tokens to the pair
+    //     uint256 burnTokenAmount;
+    //     {
+    //         burnTokenAmount = realTokenReserves - ((realNativeReserves - listingFee) * virtualToken) / virtualNative;
+    //         IToken(token).burn(burnTokenAmount);
+    //         IERC20(wNative).safeTransfer(ICore(_factory.getCore()).getFeeVault(), listingFee);
+    //     }
+
+    //     uint256 listingNativeAmount = IERC20(wNative).balanceOf(address(this));
+    //     uint256 listingTokenAmount = IERC20(token).balanceOf(address(this));
+    //     IERC20(wNative).transfer(pair, listingNativeAmount);
+    //     IERC20(token).transfer(pair, listingTokenAmount);
+
+    //     // Reset reserves and provide liquidity
+    //     realNativeReserves = 0;
+    //     realTokenReserves = 0;
+    //     uint256 liquidity = IUniswapV2Pair(pair).mint(address(this));
+
+    //     IUniswapV2ERC20(pair).transfer(address(0), liquidity);
+    //     isListing = true;
+    //     emit Listing(address(this), token, pair, listingNativeAmount, listingTokenAmount, liquidity);
+    //     return pair;
+    // }
+
     /**
-     * @notice Lists the token on Uniswap after reaching target
-     * @dev Creates trading pair and provides initial liquidity
+     * @notice Executes the listing on Uniswap V3.
+     * @dev 기존 v2 listing()의 burnTokenAmount 등 비즈니스 로직은 그대로 유지하면서,
+     *      Uniswap V3 풀 생성, 초기화, full range liquidity mint까지 수행.
      */
     function listing() external returns (address) {
         require(lock == true, ERR_BONDING_CURVE_ONLY_LOCK);
         require(!isListing, ERR_BONDING_CURVE_ALREADY_LISTED);
-        IBondingCurveFactory _factory = IBondingCurveFactory(factory);
-        pair = IUniswapV2Factory(_factory.getDexFactory()).createPair(wNative, token);
-        uint256 listingFee = _factory.getListingFee();
-        //send Listing Fee
 
-        // Transfer remaining tokens to the pair
-        uint256 burnTokenAmount;
-        {
-            burnTokenAmount = realTokenReserves - ((realNativeReserves - listingFee) * virtualToken) / virtualNative;
-            IToken(token).burn(burnTokenAmount);
-            IERC20(wNative).safeTransfer(ICore(_factory.getCore()).getFeeVault(), listingFee);
+        IBondingCurveFactory _factory = IBondingCurveFactory(factory);
+        // 1. Uniswap V3 풀 생성 (wNative, token, 지정된 poolFee 사용)
+        IUniswapV3Pool pool =
+            IUniswapV3Pool(IUniswapV3Factory(_factory.getDexFactory()).createPool(wNative, token, poolFee));
+
+        require(address(pool) != address(0), "Pool creation failed");
+
+        // 2. Listing fee 처리 및 기존 v2 로직: burnTokenAmount 계산 등 (변경 없음)
+        uint256 listingFee = _factory.getListingFee();
+        uint256 burnTokenAmount = realTokenReserves - ((realNativeReserves - listingFee) * virtualToken) / virtualNative;
+        IToken(token).burn(burnTokenAmount);
+        IERC20(wNative).safeTransfer(ICore(_factory.getCore()).getFeeVault(), listingFee);
+
+        // 3. 현재 컨트랙트 보유 잔액 확인
+        uint256 nativeBalance = IERC20(wNative).balanceOf(address(this));
+        uint256 tokenBalance = IERC20(token).balanceOf(address(this));
+        require(nativeBalance > 0, "Insufficient WNATIVE balance");
+        require(tokenBalance > 0, "Insufficient token balance");
+
+        // 4. 초기 가격 계산
+        // Uniswap V3 풀은 토큰 순서에 따라 token0, token1이 정해지므로, wNative < token인 경우:
+        // price = tokenBalance / nativeBalance  → √price = sqrt(tokenBalance/nativeBalance)
+        uint160 sqrtPriceX96;
+        if (wNative < token) {
+            // sqrtPriceX96 = sqrt( (tokenBalance / nativeBalance) ) * Q96
+            // 이를 위해 tokenBalance * Q96^2 / nativeBalance의 제곱근을 구함.
+            sqrtPriceX96 = uint160(Math.sqrt((tokenBalance * (Q96 * Q96)) / nativeBalance));
+        } else {
+            sqrtPriceX96 = uint160(Math.sqrt((nativeBalance * (Q96 * Q96)) / tokenBalance));
         }
 
-        uint256 listingNativeAmount = IERC20(wNative).balanceOf(address(this));
-        uint256 listingTokenAmount = IERC20(token).balanceOf(address(this));
-        IERC20(wNative).transfer(pair, listingNativeAmount);
-        IERC20(token).transfer(pair, listingTokenAmount);
+        // 5. 풀 초기화: 초기 √PriceX96 설정
+        pool.initialize(sqrtPriceX96);
 
-        // Reset reserves and provide liquidity
+        // 6. 제공할 liquidity 계산 (full range: tickLower = type(int24).min, tickUpper = type(int24).max)
+        uint128 liquidityDesired;
+        uint256 liquidity0;
+        uint256 liquidity1;
+        if (wNative < token) {
+            // token0 = wNative, token1 = token
+            liquidity0 = (nativeBalance * Q96) / sqrtPriceX96;
+            liquidity1 = (tokenBalance * sqrtPriceX96) / Q96;
+        } else {
+            // token0 = token, token1 = wNative
+            liquidity0 = (tokenBalance * Q96) / sqrtPriceX96;
+            liquidity1 = (nativeBalance * sqrtPriceX96) / Q96;
+        }
+        liquidityDesired = uint128(liquidity0 < liquidity1 ? liquidity0 : liquidity1);
+
+        // 7. Liquidity mint: full range liquidity 추가
+        //    mint() 호출 시, Uniswap V3 풀은 uniswapV3MintCallback을 호출하여 필요한 토큰 전송을 요청함.
+        //mint 의 address(this)는 추후 스테이킹 컨트랙트에 주기
+        (uint256 amount0Mint, uint256 amount1Mint) =
+            pool.mint(address(this), type(int24).min, type(int24).max, liquidityDesired, "");
+        bytes32 memory position = keccak256(abi.encodePacked(address(this), type(int24).min, type(int24).max));
+        (uint128 liquidity,,,,) = pool.positions(position);
+
+        // 8. 상태 업데이트 및 이벤트 기록
+        isListing = true;
         realNativeReserves = 0;
         realTokenReserves = 0;
-        uint256 liquidity = IUniswapV2Pair(pair).mint(address(this));
-
-        IUniswapV2ERC20(pair).transfer(address(0), liquidity);
-        isListing = true;
-        emit Listing(address(this), token, pair, listingNativeAmount, listingTokenAmount, liquidity);
-        return pair;
+        pair = pool;
+        emit Listing(msg.sender, token, pool, nativeBalance, tokenBalance, liquidity);
+        return pool;
     }
 
+    /**
+     * @notice Uniswap V3 mint callback.
+     * @dev Called by the pool during mint; transfers owed tokens.
+     */
+    function uniswapV3MintCallback(uint256 amount0Owed, uint256 amount1Owed, bytes calldata /*data*/ ) external {
+        // 실제 배포시 msg.sender가 올바른 풀 주소인지 검증하는 로직을 추가할 것
+        if (wNative < token) {
+            if (amount0Owed > 0) {
+                IERC20(wNative).safeTransfer(msg.sender, amount0Owed);
+            }
+            if (amount1Owed > 0) {
+                IERC20(token).safeTransfer(msg.sender, amount1Owed);
+            }
+        } else {
+            if (amount0Owed > 0) {
+                IERC20(token).safeTransfer(msg.sender, amount0Owed);
+            }
+            if (amount1Owed > 0) {
+                IERC20(wNative).safeTransfer(msg.sender, amount1Owed);
+            }
+        }
+    }
+    /**
+     * @notice Uniswap V3 mint callback 함수
+     * - mint() 호출 후 풀에서 필요한 토큰을 요청할 때 호출됨
+     * @param amount0Owed 토큰0로 지급해야 할 금액
+     * @param amount1Owed 토큰1로 지급해야 할 금액
+     * @param data 추가 데이터 (여기선 사용하지 않음)
+     */
+
+    function uniswapV3MintCallback(uint256 amount0Owed, uint256 amount1Owed, bytes calldata data) external {
+        // 실제 배포시 msg.sender가 올바른 풀인지 확인하는 로직 필요합니다.
+        // 여기서는 단순화하여 조건에 따라 토큰 전송합니다.
+        if (wNative < token) {
+            if (amount0Owed > 0) {
+                IERC20(wNative).safeTransfer(msg.sender, amount0Owed);
+            }
+            if (amount1Owed > 0) {
+                IERC20(token).safeTransfer(msg.sender, amount1Owed);
+            }
+        } else {
+            if (amount0Owed > 0) {
+                IERC20(token).safeTransfer(msg.sender, amount0Owed);
+            }
+            if (amount1Owed > 0) {
+                IERC20(wNative).safeTransfer(msg.sender, amount1Owed);
+            }
+        }
+    }
     // /**
     //  * @dev Burns liquidity tokens by sending them to the zero address
     //  * @notice This function can only be called after listing is completed
