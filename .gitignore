@@ -26,3 +26,5 @@ script/
 lib/
 old
 
+deploy.sh
+.env.verify

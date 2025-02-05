@@ -14,8 +14,7 @@ DEX_FACTORY=$(echo "$DEPLOY_OUTPUT" | grep "DEX_FACTORY=" | awk '{print $2}')
 CORE=$(echo "$DEPLOY_OUTPUT" | grep "CORE=" | awk '{print $2}')
 WNATIVE=$(echo "$DEPLOY_OUTPUT" | grep "WNATIVE=" | awk '{print $2}')
 DEX_ROUTER=$(echo "$DEPLOY_OUTPUT" | grep "DEX_ROUTER=" | awk '{print $2}')
-# MINT_PARTY_FACTORY=$(echo "$DEPLOY_OUTPUT" | grep "MINT_PARTY_FACTORY=" | awk '{print $2}')
-# LOCK=$(echo "$DEPLOY_OUTPUT" | grep "LOCK=" | awk '{print $2}')
+UNISWAP_ROUTER=$(echo "$DEPLOY_OUTPUT" | grep "UNISWAP_ROUTER=" | awk '{print $2}')
 FEE_VAULT=$(echo "$DEPLOY_OUTPUT" | grep "FEE_VAULT=" | awk '{print $2}')
 START_BLOCK=$(echo "$DEPLOY_OUTPUT" | grep "START_BLOCK=" | awk '{print $2}')
 
@@ -38,13 +37,14 @@ update_env_file() {
    sed -i '' "s|WNATIVE=.*|WNATIVE=$WNATIVE|" .env
    sed -i '' "s|FEE_VAULT=.*|FEE_VAULT=$FEE_VAULT|" .env
    sed -i '' "s|DEX_ROUTER *=.*|DEX_ROUTER=$DEX_ROUTER|" .env
+  sed -i '' "s|UNISWAP_ROUTER *=.*|UNISWAP_ROUTER=$UNISWAP_ROUTER|" .env
    sed -i '' "s|START_BLOCK=.*|START_BLOCK=$START_BLOCK|" .env
    sed -i '' "s|END_BLOCK=.*|END_BLOCK=9999999999999999999|" .env
    
    echo "Updated $DIR/.env successfully!"
    echo "A backup of the original file has been created as $DIR/.env.backup"
    echo "Updated contract addresses in $DIR:"
-   grep -E "BONDING_CURVE_FACTORY|DEX_ROUTER|DEX_FACTORY|CORE|WNATIVE|FEE_VAULT" .env
+   grep -E "BONDING_CURVE_FACTORY|DEX_ROUTER|DEX_FACTORY|CORE|WNATIVE|FEE_VAULT|UNISWAP_ROUTER" .env
    echo "----------------------------------------"
 }
 
@@ -68,6 +68,7 @@ INTERFACES=(
   "IBondingCurveFactory" 
   "ICore"
   "IToken"
+  "IDexRouter"
   "IUniswapV2Factory"
   "IUniswapV2Router"
   "IUniswapV2Pair"
